@@ -1,0 +1,4 @@
+timestamp,channel,direction,from_number,to_number,duration_seconds,body,company
+2026-05-20 09:14:00,call,incoming,+1-800-123-4567,+1-555-000-1234,8,,Acme Home Warranty
+2026-05-21 11:02:00,sms,incoming,+1-877-000-9999,+1-555-000-1234,0,Limited time offer for lower rates!,Acme Financial
+2026-05-22 16:35:00,sms,incoming,+1-555-111-2222,+1-555-000-1234,0,Hey are we still on for dinner?,

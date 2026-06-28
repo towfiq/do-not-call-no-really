@@ -1,0 +1,91 @@
+<.header>
+  Messages & Calls
+  <:subtitle>
+    {@filtered_count} shown of {@total_count} total. Mark violations, optionally hide excluded/spam, then build cases.
+  </:subtitle>
+  <:actions>
+    <button
+      type="button"
+      phx-click="toggle_group_by_sender"
+      class={[
+        "rounded px-3 py-1 text-xs font-semibold ring-1",
+        @group_by_sender && "bg-brand/10 text-brand ring-brand/30",
+        !@group_by_sender && "bg-white text-zinc-600 ring-zinc-300"
+      ]}
+    >
+      {if @group_by_sender, do: "Grouped by sender", else: "Flat list"}
+    </button>
+    <button
+      type="button"
+      phx-click="toggle_hide_spam"
+      class={[
+        "rounded px-3 py-1 text-xs font-semibold ring-1",
+        @hide_spam && "bg-fuchsia-100 text-fuchsia-800 ring-fuchsia-300",
+        !@hide_spam && "bg-white text-zinc-600 ring-zinc-300"
+      ]}
+    >
+      {if @hide_spam, do: "Hiding spam", else: "Include spam"}
+    </button>
+    <button
+      type="button"
+      phx-click="toggle_hide_excluded"
+      class={[
+        "rounded px-3 py-1 text-xs font-semibold ring-1",
+        @hide_excluded && "bg-brand/10 text-brand ring-brand/30",
+        !@hide_excluded && "bg-white text-zinc-600 ring-zinc-300"
+      ]}
+    >
+      {if @hide_excluded, do: "Hiding excluded", else: "Including excluded"}
+    </button>
+    <button
+      type="button"
+      phx-click="toggle_violations_only"
+      class={[
+        "rounded px-3 py-1 text-xs font-semibold ring-1",
+        @violations_only && "bg-rose-100 text-rose-800 ring-rose-300",
+        !@violations_only && "bg-white text-zinc-600 ring-zinc-300"
+      ]}
+    >
+      {if @violations_only, do: "Violations only", else: "Include pending review"}
+    </button>
+    <.link navigate={~p"/cases"}>
+      <.button>View cases</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<%= if @communications == [] do %>
+  <div class="mt-6 rounded-lg border border-zinc-200 bg-zinc-50 p-6 text-sm text-zinc-700">
+    <p class="font-semibold">No messages or calls match the current filters.</p>
+    <p class="mt-2">
+      Run <code class="rounded bg-white px-1">mix dnc.import_local</code>
+      or adjust filters above. Use
+      <strong>Violation</strong> / <strong>Not a violation</strong> on each row to triage imports.
+    </p>
+  </div>
+<% else %>
+  <%= if @group_by_sender do %>
+    <div class="mt-6 space-y-6">
+      <%= for group <- @communication_groups do %>
+        <section id={"sender-#{group.peer}"} class="overflow-hidden rounded-lg border border-zinc-200 bg-white">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 bg-zinc-50 px-4 py-3">
+            <div>
+              <h2 class="text-sm font-semibold text-zinc-900">{group_title(group)}</h2>
+              <p class="text-xs text-zinc-500">
+                {group.label} · {length(group.communications)} communication(s) · latest {format_timestamp(group.latest.timestamp)}
+              </p>
+            </div>
+            <%= if group.latest.case do %>
+              <.link navigate={~p"/cases/#{group.latest.case}"} class="text-xs font-semibold text-brand hover:underline">
+                Case: {group.latest.case.company_name}
+              </.link>
+            <% end %>
+          </div>
+          <.communication_rows_table communications={group.communications} id_prefix={"group-#{group.peer}"} />
+        </section>
+      <% end %>
+    </div>
+  <% else %>
+    <.communication_rows_table communications={@communications} id_prefix="flat" class="mt-6" />
+  <% end %>
+<% end %>

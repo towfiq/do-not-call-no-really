@@ -1,0 +1,315 @@
+<.header>
+  Case {@case.id}
+  <:subtitle>Track violations, evidence, legal entity, and letter workflow.</:subtitle>
+  <:actions>
+    <.button phx-click="advance_workflow">Advance workflow</.button>
+    <.button phx-click="generate_letter">Generate letter draft</.button>
+    <.link patch={~p"/cases/#{@case}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit case</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<div class="mt-4 grid gap-4 lg:grid-cols-2">
+  <.list>
+    <:item title="Company name">{@case.company_name}</:item>
+    <:item title="Status">{@case.status}</:item>
+    <:item title="Workflow step">{@case.workflow_step}</:item>
+    <:item title="Claimant">{@case.claimant_name || "—"} ({@case.claimant_phone || "—"})</:item>
+    <:item title="Claimant address">{@case.claimant_address || "—"}</:item>
+    <:item title="Claimant email">{@case.claimant_email || "—"}</:item>
+    <:item title="DNC registration date">{@case.dnc_registration_date || "—"}</:item>
+    <:item title="STOP contact date">{@case.stop_contact_date || "—"}</:item>
+    <:item title="Small claims county">{@case.small_claims_county || "—"}</:item>
+    <:item title="Settlement offer">{@case.settlement_amount || "Full statutory total"}</:item>
+    <:item title="Relief per violation">{@case.relief_amount_per_violation || "500.00 (default)"}</:item>
+    <:item title="Notes">{@case.notes}</:item>
+  </.list>
+
+  <div class="rounded-lg border border-zinc-200 p-4">
+    <h3 class="text-base font-semibold">Workflow checklist</h3>
+    <ul class="mt-3 space-y-2 text-sm">
+      <%= for req <- @requirements do %>
+        <li class="flex items-start gap-2">
+          <span class={[
+            "mt-0.5 inline-block h-2.5 w-2.5 rounded-full",
+            req.met && "bg-emerald-500",
+            !req.met && "bg-amber-400"
+          ]} />
+          <span>
+            <span class="font-medium">{req.label}</span>
+            <span class="text-zinc-500"> — {req.detail}</span>
+          </span>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+</div>
+
+<div class="mt-8">
+  <.live_component
+    module={DncWatchdogWeb.CaseLive.LegalEntityFormComponent}
+    id={"legal-entity-#{@case.id}"}
+    case={@case}
+  />
+</div>
+
+<div class="mt-8 rounded-lg border border-zinc-200 p-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h3 class="text-base font-semibold">Evidence attachments</h3>
+      <p class="text-sm text-zinc-600">Upload screenshots to attach as exhibits in the letter.</p>
+    </div>
+  </div>
+
+  <form id="evidence-upload-form" phx-submit="upload_evidence" phx-change="validate_evidence" class="mt-4">
+    <.live_file_input upload={@uploads.evidence} class="text-sm" />
+    <.button type="submit" class="mt-2" phx-disable-with="Uploading...">Upload selected files</.button>
+  </form>
+
+  <%= for entry <- @uploads.evidence.entries do %>
+    <p class="mt-2 text-xs text-zinc-500">{entry.client_name} — {entry.progress}%</p>
+  <% end %>
+
+  <%= if @attachments == [] do %>
+    <p class="mt-4 text-sm text-zinc-600">No attachments yet.</p>
+  <% else %>
+    <ul class="mt-4 space-y-2">
+      <%= for att <- @attachments do %>
+        <li class="flex items-center justify-between rounded border border-zinc-100 px-3 py-2 text-sm">
+          <div>
+            <a href={attachment_url(att)} target="_blank" class="font-medium text-brand hover:underline">
+              {att.filename}
+            </a>
+            <%= if att.caption do %>
+              <span class="text-zinc-500"> — {att.caption}</span>
+            <% end %>
+          </div>
+          <button
+            type="button"
+            phx-click="delete_attachment"
+            phx-value-id={att.id}
+            class="text-xs font-semibold text-rose-700 hover:underline"
+          >
+            Remove
+          </button>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</div>
+
+<div class="mt-8">
+  <h3 class="text-base font-semibold">Letter draft</h3>
+  <%= if @case.letter_draft in [nil, ""] do %>
+    <p class="mt-2 text-sm text-zinc-600">
+      Mark violations, add the legal entity address, upload evidence, then click
+      <strong>Generate letter draft</strong>.
+    </p>
+  <% else %>
+    <div class="mt-3 flex flex-wrap gap-2">
+      <.link href={~p"/cases/#{@case}/letter.pdf"} class="inline-flex">
+        <.button>Download PDF with exhibits</.button>
+      </.link>
+    </div>
+    <pre class="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-xs">{@case.letter_draft}</pre>
+  <% end %>
+</div>
+
+<div class="mt-8 rounded-lg border border-zinc-200 p-4">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h3 class="text-base font-semibold">Certified mail tracking</h3>
+      <p class="mt-1 text-sm text-zinc-600">
+        Save the USPS tracking number after you mail the demand letter.
+        <%= if @usps_tracking_configured do %>
+          Status checks use the USPS Tracking API.
+        <% else %>
+          Automatic status checks require
+          <code class="rounded bg-zinc-100 px-1">USPS_CLIENT_ID</code>
+          and
+          <code class="rounded bg-zinc-100 px-1">USPS_CLIENT_SECRET</code>
+          environment variables.
+        <% end %>
+      </p>
+    </div>
+    <%= if @case.mail_tracking_number not in [nil, ""] do %>
+      <.mail_delivery_badge status={@case.mail_delivery_status || "pending"} />
+    <% end %>
+  </div>
+
+  <form id="mail-tracking-form" phx-submit="save_mail_tracking" class="mt-4 flex flex-wrap items-end gap-3">
+    <div class="min-w-[16rem] flex-1">
+      <label for="mail_tracking_tracking_number" class="block text-sm font-medium text-zinc-700">
+        Tracking number
+      </label>
+      <input
+        type="text"
+        name="mail_tracking[tracking_number]"
+        id="mail_tracking_tracking_number"
+        value={@case.mail_tracking_number || ""}
+        placeholder="9400 1118 9922 3197 4284 90"
+        class="mt-1 block w-full rounded-lg border-zinc-300 text-sm shadow-sm focus:border-brand focus:ring-brand"
+      />
+    </div>
+    <.button type="submit">Save tracking number</.button>
+    <%= if @case.mail_tracking_number not in [nil, ""] do %>
+      <.button type="button" phx-click="refresh_mail_tracking" phx-disable-with="Checking...">
+        Refresh status
+      </.button>
+      <.link
+        href={mail_tracking_url(@case.mail_tracking_number)}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex"
+      >
+        <.button type="button">View on USPS.com</.button>
+      </.link>
+    <% end %>
+  </form>
+
+  <%= if @case.mail_tracking_number not in [nil, ""] do %>
+    <dl class="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+      <div>
+        <dt class="font-medium text-zinc-700">Last checked</dt>
+        <dd class="text-zinc-600">{format_checked_at(@case.mail_tracking_checked_at)}</dd>
+      </div>
+      <div class="sm:col-span-2">
+        <dt class="font-medium text-zinc-700">Latest status</dt>
+        <dd class="text-zinc-600">{@case.mail_tracking_summary || "Not checked yet — click Refresh status"}</dd>
+      </div>
+    </dl>
+  <% end %>
+</div>
+
+<div class="mt-8 rounded-lg border border-zinc-200 p-4">
+  <h3 class="text-base font-semibold">Linked cases</h3>
+  <p class="mt-1 text-sm text-zinc-600">
+    Group cases that share the same caller but use different phone numbers. Communications from all linked cases appear below.
+  </p>
+
+  <%= if @linked_cases == [] do %>
+    <p class="mt-3 text-sm text-zinc-600">No linked cases yet.</p>
+  <% else %>
+    <ul class="mt-3 space-y-2">
+      <%= for linked <- @linked_cases do %>
+        <li class="flex flex-wrap items-center justify-between gap-2 rounded border border-zinc-100 px-3 py-2 text-sm">
+          <div>
+            <.link navigate={~p"/cases/#{linked}"} class="font-medium text-brand hover:underline">
+              {linked.company_name}
+            </.link>
+            <span class="text-zinc-500"> — case #{linked.id}</span>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              phx-click="merge_case"
+              phx-value-id={linked.id}
+              data-confirm={"Merge case #{linked.id} into this case? All communications and evidence will move here and case #{linked.id} will be deleted."}
+              class="text-xs font-semibold text-brand hover:underline"
+            >
+              Merge into this case
+            </button>
+            <button
+              type="button"
+              phx-click="unlink_case"
+              phx-value-id={linked.id}
+              class="text-xs font-semibold text-zinc-600 hover:underline"
+            >
+              Unlink
+            </button>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <.link_case_typeahead query={@link_case_query} results={@link_case_results} />
+</div>
+
+<div class="mt-8">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h2 class="text-lg font-semibold">Related communications</h2>
+    <%= if @linked_cases != [] do %>
+      <span class="text-xs text-zinc-500">Includes {length(@linked_cases) + 1} linked case(s)</span>
+    <% end %>
+    <div class="flex flex-wrap gap-2">
+      <button
+        type="button"
+        phx-click="toggle_hide_excluded"
+        class={[
+          "rounded px-3 py-1 text-xs font-semibold ring-1",
+          @hide_excluded && "bg-brand/10 text-brand ring-brand/30",
+          !@hide_excluded && "bg-white text-zinc-600 ring-zinc-300"
+        ]}
+      >
+        {if @hide_excluded, do: "Hiding non-violations", else: "Showing all statuses"}
+      </button>
+      <button
+        type="button"
+        phx-click="toggle_violations_only"
+        class={[
+          "rounded px-3 py-1 text-xs font-semibold ring-1",
+          @violations_only && "bg-rose-100 text-rose-800 ring-rose-300",
+          !@violations_only && "bg-white text-zinc-600 ring-zinc-300"
+        ]}
+      >
+        {if @violations_only, do: "Violations only", else: "Include pending review"}
+      </button>
+    </div>
+  </div>
+
+  <%= if @communications == [] do %>
+    <p class="mt-4 text-sm text-zinc-600">
+      No communications match the current filters. Import with
+      <code class="rounded bg-zinc-100 px-1">mix dnc.import_local</code>
+      or change filter toggles above.
+    </p>
+  <% else %>
+    <.table id="communications" rows={@communications} row_id={&("comm-#{&1.id}")}>
+      <:col :let={comm} label="Date & time">{format_timestamp(comm.timestamp)}</:col>
+      <:col :let={comm} label="Status"><.violation_badge status={comm.violation_status} /></:col>
+      <:col :let={comm} label="Violation">
+        <.violation_button communication={comm} />
+      </:col>
+      <:col :let={comm} label="Not a violation">
+        <.not_violation_button communication={comm} />
+      </:col>
+      <:col :let={comm} label="Sender">
+        <.exclude_sender_button communication={comm} />
+      </:col>
+      <:col :let={comm} label="Channel">{comm.channel}</:col>
+      <:col :let={comm} label="Case">
+        <%= if comm.case_id == @case.id do %>
+          <span class="text-zinc-500">This case</span>
+        <% else %>
+          <.link navigate={~p"/cases/#{comm.case_id}"} class="text-brand hover:underline">
+            Case {comm.case_id}
+          </.link>
+        <% end %>
+      </:col>
+      <:col :let={comm} label="From">{comm.from_number}</:col>
+      <:col :let={comm} label="To">{comm.to_number}</:col>
+      <:col :let={comm} label="Message">
+        <%= if comm.channel == "sms" and comm.body not in [nil, ""] do %>
+          {comm.body}
+        <% else %>
+          —
+        <% end %>
+      </:col>
+    </.table>
+  <% end %>
+</div>
+
+<.back navigate={~p"/cases"}>Back to cases</.back>
+
+<.modal :if={@live_action == :edit} id="case-modal" show on_cancel={JS.patch(~p"/cases/#{@case}")}>
+  <.live_component
+    module={DncWatchdogWeb.CaseLive.FormComponent}
+    id={@case.id}
+    title={@page_title}
+    action={@live_action}
+    case={@case}
+    patch={~p"/cases/#{@case}"}
+  />
+</.modal>
