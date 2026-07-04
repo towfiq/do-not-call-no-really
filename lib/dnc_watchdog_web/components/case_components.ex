@@ -5,6 +5,52 @@ defmodule DncWatchdogWeb.CaseComponents do
   alias Phoenix.LiveView.JS
 
   attr :query, :string, default: ""
+  attr :id, :string, default: "list-search"
+  attr :placeholder, :string, default: "Search…"
+
+  def list_search_form(assigns) do
+    ~H"""
+    <form id={@id} phx-change="search" phx-submit="search" class="mt-4 max-w-xl">
+      <label for={"#{@id}-input"} class="block text-sm font-medium text-zinc-700">Search</label>
+      <input
+        type="search"
+        name="q"
+        id={"#{@id}-input"}
+        value={@query}
+        phx-debounce="300"
+        autocomplete="off"
+        placeholder={@placeholder}
+        class="mt-1 block w-full rounded-lg border-zinc-300 text-sm shadow-sm focus:border-brand focus:ring-brand"
+      />
+    </form>
+    """
+  end
+
+  attr :workflow_phase, :string, default: "all"
+  attr :event, :string, default: "set_workflow_filter"
+
+  def workflow_phase_filters(assigns) do
+    ~H"""
+    <div class="flex flex-wrap gap-2">
+      <%= for {phase, label} <- DncWatchdog.Enforcement.Workflow.workflow_phases() do %>
+        <button
+          type="button"
+          phx-click={@event}
+          phx-value-workflow={phase}
+          class={[
+            "rounded px-3 py-1 text-xs font-semibold ring-1",
+            @workflow_phase == phase && "bg-brand/10 text-brand ring-brand/30",
+            @workflow_phase != phase && "bg-white text-zinc-600 ring-zinc-300"
+          ]}
+        >
+          {label}
+        </button>
+      <% end %>
+    </div>
+    """
+  end
+
+  attr :query, :string, default: ""
   attr :results, :list, default: []
 
   def link_case_typeahead(assigns) do

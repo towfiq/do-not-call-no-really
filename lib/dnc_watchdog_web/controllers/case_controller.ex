@@ -34,6 +34,66 @@ defmodule DncWatchdogWeb.CaseController do
     end
   end
 
+  def court_filing_pdf(conn, %{"id" => id}) do
+    case_record = Enforcement.get_case!(id)
+
+    cond do
+      case_record.court_filing_draft in [nil, ""] ->
+        conn
+        |> put_flash(:error, "Generate a court filing draft before downloading PDF.")
+        |> redirect(to: ~p"/cases/#{case_record}")
+
+      true ->
+        attachments = Enforcement.list_case_attachments(case_record.id)
+
+        case LetterPdf.generate(case_record.court_filing_draft, attachments) do
+          {:ok, pdf} ->
+            filename =
+              "#{LetterExporter.safe_company_filename(case_record.company_name)}_small_claims_filing.pdf"
+
+            conn
+            |> put_resp_content_type("application/pdf")
+            |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
+            |> send_resp(200, pdf)
+
+          {:error, reason} ->
+            conn
+            |> put_flash(:error, pdf_error_message(reason))
+            |> redirect(to: ~p"/cases/#{case_record}")
+        end
+    end
+  end
+
+  def civil_complaint_pdf(conn, %{"id" => id}) do
+    case_record = Enforcement.get_case!(id)
+
+    cond do
+      case_record.civil_complaint_draft in [nil, ""] ->
+        conn
+        |> put_flash(:error, "Generate a civil complaint draft before downloading PDF.")
+        |> redirect(to: ~p"/cases/#{case_record}")
+
+      true ->
+        attachments = Enforcement.list_case_attachments(case_record.id)
+
+        case LetterPdf.generate(case_record.civil_complaint_draft, attachments) do
+          {:ok, pdf} ->
+            filename =
+              "#{LetterExporter.safe_company_filename(case_record.company_name)}_civil_complaint.pdf"
+
+            conn
+            |> put_resp_content_type("application/pdf")
+            |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))
+            |> send_resp(200, pdf)
+
+          {:error, reason} ->
+            conn
+            |> put_flash(:error, pdf_error_message(reason))
+            |> redirect(to: ~p"/cases/#{case_record}")
+        end
+    end
+  end
+
   defp pdf_error_message(:chromic_pdf_unavailable) do
     "PDF export is not loaded. Stop the server, run `mix deps.get && mix compile`, then restart with `mix phx.server`."
   end

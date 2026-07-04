@@ -44,6 +44,7 @@ defmodule DncWatchdog.Enforcement.LetterDraft do
     evidence_types = evidence_types(sorted_violations, attachments)
     willful_paragraph = willful_paragraph(stop_date, willful_count)
     damages_breakdown = damages_breakdown(standard_count, standard_total, willful_count, willful_total, total_statutory)
+    tcpa_quotes = tcpa_statutory_quotes_section(sorted_violations)
     appendix = violation_appendix(sorted_violations, attachments)
 
     recipient_block = recipient_block(entity, company_name)
@@ -67,8 +68,10 @@ defmodule DncWatchdog.Enforcement.LetterDraft do
 
     This letter serves as formal notice that #{company_name} has systematically violated the Telephone Consumer Protection Act (TCPA), 47 U.S.C. § 227, as well as the rules of the Federal Communications Commission (FCC) and Federal Trade Commission (FTC), by placing unauthorized #{channel_label} to my personal wireless phone number, #{claimant_phone}.
 
+    I have never registered to receive marketing or other communications from you, nor have I provided prior express consent for your company to contact me at this number.
+
     My phone number has been continuously registered on the National Do Not Call Registry since #{dnc_date}. Under 47 U.S.C. § 227(c) and 47 C.F.R. § 64.1200, it is a violation of federal law to make telemarketing calls or texts to a number listed on the National Do Not Call Registry.
-    #{willful_paragraph}
+    #{tcpa_quotes}#{willful_paragraph}
     Summary of Violations:
 
     Between #{first_date} and #{last_date}, your company placed a total of #{total_count} unauthorized #{channel_label} to my phone. I have fully documented these infractions, including dates, timestamps, originating numbers, call routing details, and #{evidence_types}.
@@ -86,7 +89,6 @@ defmodule DncWatchdog.Enforcement.LetterDraft do
 
     Sincerely,
 
-    (Your Signature)
     #{claimant_name}
     #{appendix}
     """
@@ -164,6 +166,65 @@ defmodule DncWatchdog.Enforcement.LetterDraft do
   end
 
   defp willful_paragraph(_, _), do: ""
+
+  defp tcpa_statutory_quotes_section(violations) do
+    quotes =
+      []
+      |> maybe_add_quote(wireless_contact?(violations), wireless_autodialer_quote())
+      |> maybe_add_quote(true, dnc_registry_quote())
+      |> maybe_add_quote(true, private_right_of_action_quote())
+
+    case quotes do
+      [] ->
+        ""
+
+      items ->
+        """
+
+        Applicable Violations of Federal Law:
+
+        Your conduct violates the following provisions of the Telephone Consumer Protection Act, 47 U.S.C. § 227:
+
+        #{Enum.join(items, "\n\n")}
+        """
+    end
+  end
+
+  defp maybe_add_quote(quotes, true, quote), do: quotes ++ [quote]
+  defp maybe_add_quote(quotes, false, _quote), do: quotes
+
+  defp wireless_contact?(violations) do
+    Enum.any?(violations, fn comm ->
+      call_channel?(comm.channel) or text_channel?(comm.channel)
+    end)
+  end
+
+  defp wireless_autodialer_quote do
+    """
+    Section 227(b)(1)(A)(iii) provides in relevant part:
+
+    "It shall be unlawful for any person within the United States ... to make any call (other than a call made for emergency purposes or made with the prior express consent of the called party) using any automatic telephone dialing system or an artificial or prerecorded voice ... to any telephone number assigned to ... a cellular telephone service ..."
+    """
+    |> String.trim()
+  end
+
+  defp dnc_registry_quote do
+    """
+    Section 227(c)(5) provides:
+
+    "It shall be unlawful for any person to initiate any telephone solicitation to ... a residential subscriber who has registered the subscriber's telephone number on the national do-not-call registry."
+    """
+    |> String.trim()
+  end
+
+  defp private_right_of_action_quote do
+    """
+    Section 227(b)(3) establishes my private right of action and remedies:
+
+    "A person or entity may ... bring ... an action to recover for actual monetary loss from such a violation, or to receive $500 in damages for each such violation, except that the court may ... increase the amount of the award ... to an amount not to exceed $1,500" if the violation was willful or knowing.
+    """
+    |> String.trim()
+  end
 
   defp damages_breakdown(standard_count, standard_total, willful_count, willful_total, total_statutory) do
     lines =

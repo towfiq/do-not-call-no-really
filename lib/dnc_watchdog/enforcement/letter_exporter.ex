@@ -20,7 +20,7 @@ defmodule DncWatchdog.Enforcement.LetterExporter do
       dnc_registration_date: dnc_date
     ]
 
-    Enforcement.list_cases(preload_legal_entity: true)
+    Enforcement.list_cases(preload_legal_entity: true, require_violations: true)
     |> Enum.filter(fn case_record -> case_record.letter_draft not in [nil, ""] end)
     |> case do
       [] ->
@@ -38,7 +38,7 @@ defmodule DncWatchdog.Enforcement.LetterExporter do
   def safe_company_filename(company), do: safe_name(company)
 
   defp export_generated(output_dir, letter_opts, pdf?) do
-    Enforcement.list_cases(preload_legal_entity: true)
+    Enforcement.list_cases(preload_legal_entity: true, require_violations: true)
     |> Enum.flat_map(fn case_record ->
       violations = Enforcement.list_violation_communications(case_record.id)
       attachments = Enforcement.list_case_attachments(case_record.id)

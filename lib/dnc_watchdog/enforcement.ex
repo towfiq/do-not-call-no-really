@@ -16,30 +16,86 @@ defmodule DncWatchdog.Enforcement do
   alias DncWatchdog.Enforcement.EvidenceStorage
   alias DncWatchdog.Enforcement.LegalEntity
   alias DncWatchdog.Enforcement.LetterDraft
+  alias DncWatchdog.Enforcement.CourtFilingDraft
+  alias DncWatchdog.Enforcement.CivilComplaintDraft
+  alias DncWatchdog.Enforcement.FilingLimits
   alias DncWatchdog.Enforcement.Local.MeCard
   alias DncWatchdog.Enforcement.UspsTracking
   alias DncWatchdog.Enforcement.CaseGroups
   alias DncWatchdog.Enforcement.Workflow
+  alias DncWatchdog.Enforcement.SearchFilter
 
   def list_cases(opts \\ []) do
     Case
     |> order_by([c], desc: c.inserted_at)
+    |> apply_case_filters(opts)
     |> maybe_preload_communications(opts)
     |> maybe_preload_legal_entity(opts)
     |> Repo.all()
   end
 
-  defp maybe_preload_communications(query, preload_communications: true) do
-    preload(query, :communications)
+  def count_cases(opts \\ []) do
+    Case
+    |> apply_case_filters(opts)
+    |> Repo.aggregate(:count, :id)
   end
 
-  defp maybe_preload_communications(query, _opts), do: query
-
-  defp maybe_preload_legal_entity(query, preload_legal_entity: true) do
-    preload(query, :legal_entity)
+  defp apply_case_filters(query, opts) do
+    query
+    |> maybe_filter_workflow_steps(workflow_steps_opt(opts))
+    |> maybe_require_violations(Keyword.get(opts, :require_violations, false))
+    |> SearchFilter.apply_case_search(Keyword.get(opts, :search))
   end
 
-  defp maybe_preload_legal_entity(query, _opts), do: query
+  defp maybe_require_violations(query, true) do
+    violation_case_ids =
+      from comm in Communication,
+        where: comm.violation_status == "violation",
+        group_by: comm.case_id,
+        select: comm.case_id
+
+    group_ids_with_violations =
+      from comm in Communication,
+        join: comm_case in Case,
+        on: comm.case_id == comm_case.id,
+        where: comm.violation_status == "violation",
+        where: not is_nil(comm_case.case_group_id),
+        group_by: comm_case.case_group_id,
+        select: comm_case.case_group_id
+
+    query
+    |> where(
+      [c],
+      c.id in subquery(violation_case_ids) or
+        (not is_nil(c.case_group_id) and c.case_group_id in subquery(group_ids_with_violations))
+    )
+  end
+
+  defp maybe_require_violations(query, _), do: query
+
+  defp workflow_steps_opt(opts) do
+    case Keyword.get(opts, :workflow_phase) do
+      phase when is_binary(phase) ->
+        Workflow.steps_for_phase(phase)
+
+      _ ->
+        Keyword.get(opts, :workflow_steps)
+    end
+  end
+
+  defp maybe_filter_workflow_steps(query, steps) when is_list(steps) and steps != [] do
+    where(query, [c], c.workflow_step in ^steps)
+  end
+
+  defp maybe_filter_workflow_steps(query, _), do: query
+
+  defp maybe_preload_communications(query, opts) do
+    if Keyword.get(opts, :preload_communications), do: preload(query, :communications), else: query
+  end
+
+  defp maybe_preload_legal_entity(query, opts) do
+    if Keyword.get(opts, :preload_legal_entity), do: preload(query, :legal_entity), else: query
+  end
 
   def get_case!(id) do
     Case
@@ -102,7 +158,17 @@ defmodule DncWatchdog.Enforcement do
     |> maybe_violations_only(Keyword.get(opts, :violations_only, false))
     |> maybe_hide_excluded(Keyword.get(opts, :hide_excluded, true))
     |> maybe_hide_spam(Keyword.get(opts, :hide_spam, false))
+    |> maybe_filter_case_workflow_steps(workflow_steps_opt(opts))
+    |> SearchFilter.apply_communication_search(Keyword.get(opts, :search))
   end
+
+  defp maybe_filter_case_workflow_steps(query, steps) when is_list(steps) and steps != [] do
+    query
+    |> join(:inner, [c], case in assoc(c, :case))
+    |> where([c, case], case.workflow_step in ^steps)
+  end
+
+  defp maybe_filter_case_workflow_steps(query, _), do: query
 
   defp maybe_violations_only(query, true) do
     where(query, [c], c.violation_status == "violation")
@@ -355,12 +421,97 @@ defmodule DncWatchdog.Enforcement do
     update_case(case, %{letter_draft: draft})
   end
 
+  def generate_court_filing_draft(%Case{} = case) do
+    case = Repo.preload(case, [:legal_entity, :evidence_attachments], force: true)
+    violations = list_violation_communications(case.id)
+
+    if violations == [] do
+      {:error, :no_violations}
+    else
+      attachments = list_case_attachments(case.id)
+      profile = get_claimant_profile()
+
+      limits = assess_case_filing_limits(case)
+
+      draft =
+        CourtFilingDraft.render(case, violations, attachments,
+          claimant_profile: profile,
+          filing_limits: limits
+        )
+
+      update_case(case, %{court_filing_draft: draft})
+    end
+  end
+
+  def generate_civil_complaint_draft(%Case{} = case) do
+    case = Repo.preload(case, [:legal_entity, :evidence_attachments], force: true)
+    violations = list_violation_communications(case.id)
+
+    if violations == [] do
+      {:error, :no_violations}
+    else
+      attachments = list_case_attachments(case.id)
+      profile = get_claimant_profile()
+      limits = assess_case_filing_limits(case)
+
+      draft =
+        CivilComplaintDraft.render(case, violations, attachments,
+          claimant_profile: profile,
+          filing_limits: FilingLimits.civil_assess(length(violations), calendar_year: limits.calendar_year, high_small_claims_filings_this_year: limits.small_claims_high_filings_this_year)
+        )
+
+      update_case(case, %{civil_complaint_draft: draft})
+    end
+  end
+
+  def assess_case_filing_limits(%Case{} = case) do
+    violations = list_violation_communications(case.id)
+    year = Date.utc_today().year
+
+    FilingLimits.assess(length(violations),
+      calendar_year: year,
+      high_small_claims_filings_this_year: count_high_small_claims_filings(year, exclude_case_id: case.id)
+    )
+  end
+
+  def count_high_small_claims_filings(year, opts \\ []) do
+    exclude_id = Keyword.get(opts, :exclude_case_id)
+    {start_date, end_date} = year_date_range(year)
+
+    query =
+      from c in Case,
+        where: not is_nil(c.court_filed_at),
+        where: c.court_filed_at >= ^start_date and c.court_filed_at <= ^end_date,
+        where: c.court_filed_venue == "small_claims",
+        where: c.court_filed_amount > ^FilingLimits.small_claims_high_threshold()
+
+    query =
+      if exclude_id do
+        from c in query, where: c.id != ^exclude_id
+      else
+        query
+      end
+
+    Repo.aggregate(query, :count)
+  end
+
+  def record_court_filing(%Case{} = case, attrs) when is_map(attrs) do
+    case
+    |> Case.court_filing_changeset(attrs)
+    |> Repo.update()
+  end
+
+  def change_court_filing(%Case{} = case, attrs \\ %{}) do
+    Case.court_filing_changeset(case, attrs)
+  end
+
   def advance_case_workflow(%Case{} = case) do
     case = Repo.preload(case, [:legal_entity, :evidence_attachments], force: true)
     violations = list_violation_communications(case.id)
     attachments = list_case_attachments(case.id)
+    filing_limits = assess_case_filing_limits(case)
 
-    with :ok <- Workflow.validate_advance(case, violations, attachments),
+    with :ok <- Workflow.validate_advance(case, violations, attachments, filing_limits: filing_limits),
          next_step <- Workflow.next_step(case.workflow_step),
          next_status <- Workflow.next_status(next_step) do
       update_case(case, %{workflow_step: next_step, status: next_status})
@@ -371,7 +522,13 @@ defmodule DncWatchdog.Enforcement do
     case = Repo.preload(case, [:legal_entity], force: true)
     violations = list_violation_communications(case.id)
     attachments = list_case_attachments(case.id)
+    filing_limits = assess_case_filing_limits(case)
 
+    base_requirements(case, violations, attachments) ++
+      litigation_requirements(case, filing_limits)
+  end
+
+  defp base_requirements(case, violations, attachments) do
     [
       %{
         label: "Violations marked",
@@ -394,6 +551,64 @@ defmodule DncWatchdog.Enforcement do
         detail: "Generate before sending"
       }
     ]
+  end
+
+  defp litigation_requirements(case, filing_limits) do
+    if case.workflow_step in ["intake", "triage", "evidence_review", "draft_review", "ready_to_send"] do
+      []
+    else
+      draft_label =
+        case filing_limits.recommended_venue do
+          "small_claims" -> "Small claims filing draft"
+          _ -> "Civil complaint draft"
+        end
+
+      draft_met =
+        case filing_limits.recommended_venue do
+          "small_claims" -> case.court_filing_draft not in [nil, ""]
+          _ -> case.civil_complaint_draft not in [nil, ""]
+        end
+
+      [
+        %{
+          label: "Filing venue",
+          met: true,
+          detail:
+            "#{filing_limits.recommended_venue_label} (#{format_money(filing_limits.total_damages)} total damages)"
+        },
+        %{
+          label: draft_label,
+          met: draft_met,
+          detail: "Required before ready to file"
+        },
+        %{
+          label: "Court filing recorded",
+          met: case.court_filed_at != nil,
+          detail: court_filing_detail(case)
+        }
+      ]
+    end
+  end
+
+  defp court_filing_detail(%Case{court_filed_at: nil}), do: "Record date, venue, and amount after filing"
+
+  defp court_filing_detail(%Case{} = case) do
+    venue = FilingLimits.venue_label(case.court_filed_venue || "")
+    amount = format_money(case.court_filed_amount)
+    "Filed #{case.court_filed_at} — #{venue}, #{amount}"
+  end
+
+  defp format_money(nil), do: "—"
+
+  defp format_money(%Decimal{} = amount) do
+    amount
+    |> Decimal.round(2)
+    |> Decimal.to_string(:normal)
+    |> then(&"$#{&1}")
+  end
+
+  defp year_date_range(year) do
+    {Date.new!(year, 1, 1), Date.new!(year, 12, 31)}
   end
 
   defp legal_entity_mailable?(%LegalEntity{} = entity), do: LegalEntity.mailable?(entity)
@@ -486,17 +701,27 @@ defmodule DncWatchdog.Enforcement do
       true ->
         case UspsTracking.lookup(number) do
           {:ok, result} ->
-            update_mail_tracking(case, %{
-              mail_delivery_status: result.delivery_status,
-              mail_tracking_summary: result.summary,
-              mail_tracking_checked_at: result.checked_at
-            })
+            with {:ok, case} <-
+                   update_mail_tracking(case, %{
+                     mail_delivery_status: result.delivery_status,
+                     mail_tracking_summary: result.summary,
+                     mail_tracking_checked_at: result.checked_at
+                   }),
+                 {:ok, case} <- maybe_mark_delivered_workflow(case) do
+              {:ok, case}
+            end
 
           {:error, _} = error ->
             error
         end
     end
   end
+
+  defp maybe_mark_delivered_workflow(%Case{workflow_step: "sent", mail_delivery_status: "delivered"} = case) do
+    update_case(case, %{workflow_step: "delivered", status: "delivered"})
+  end
+
+  defp maybe_mark_delivered_workflow(case), do: {:ok, case}
 
   def refresh_all_mail_tracking do
     cases =
@@ -543,31 +768,10 @@ defmodule DncWatchdog.Enforcement do
       []
     else
       exclude_ids = linkable_exclude_ids(case_record)
-      needle = String.downcase(trimmed)
-      phone_case_ids = phone_matching_case_ids(trimmed)
-
-      name_match =
-        dynamic([c], fragment("instr(lower(?), ?) > 0", c.company_name, ^needle))
-
-      notes_match =
-        dynamic([c], fragment("instr(lower(?), ?) > 0", coalesce(c.notes, ""), ^needle))
-
-      phone_match =
-        if phone_case_ids == [] do
-          dynamic(false)
-        else
-          dynamic([c], c.id in ^phone_case_ids)
-        end
-
-      id_match =
-        case Integer.parse(trimmed) do
-          {id, ""} -> dynamic([c], c.id == ^id)
-          _ -> dynamic(false)
-        end
 
       Case
       |> where([c], c.id not in ^exclude_ids)
-      |> where(^dynamic([c], ^name_match or ^notes_match or ^phone_match or ^id_match))
+      |> SearchFilter.apply_case_search(trimmed)
       |> order_by([c], desc: c.inserted_at)
       |> limit(^limit)
       |> Repo.all()
@@ -581,27 +785,5 @@ defmodule DncWatchdog.Enforcement do
       |> Enum.map(& &1.id)
 
     [case_record.id | linked_ids]
-  end
-
-  defp phone_matching_case_ids(query) do
-    digits =
-      query
-      |> to_string()
-      |> String.replace(~r/[^0-9]/, "")
-
-    if digits == "" do
-      []
-    else
-      like = "%#{digits}%"
-
-      Communication
-      |> where(
-        [comm],
-        comm.direction == "incoming" and like(comm.from_number, ^like)
-      )
-      |> group_by([comm], comm.case_id)
-      |> select([comm], comm.case_id)
-      |> Repo.all()
-    end
   end
 end

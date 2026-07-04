@@ -54,6 +54,15 @@
   </:actions>
 </.header>
 
+<div class="mt-4">
+  <.workflow_phase_filters workflow_phase={@workflow_phase} />
+  <.list_search_form
+    id="communications-search"
+    query={@search_query}
+    placeholder="Phone, message text, company, case #…"
+  />
+</div>
+
 <%= if @communications == [] do %>
   <div class="mt-6 rounded-lg border border-zinc-200 bg-zinc-50 p-6 text-sm text-zinc-700">
     <p class="font-semibold">No messages or calls match the current filters.</p>

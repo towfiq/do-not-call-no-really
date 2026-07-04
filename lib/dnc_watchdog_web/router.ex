@@ -27,6 +27,8 @@ defmodule DncWatchdogWeb.Router do
     live "/cases/:id/show/edit", CaseLive.Show, :edit
     live "/settings", SettingsLive.Index, :index
     get "/cases/:id/letter.pdf", CaseController, :letter_pdf
+    get "/cases/:id/court_filing.pdf", CaseController, :court_filing_pdf
+    get "/cases/:id/civil_complaint.pdf", CaseController, :civil_complaint_pdf
   end
 
   # Other scopes may use custom stacks.

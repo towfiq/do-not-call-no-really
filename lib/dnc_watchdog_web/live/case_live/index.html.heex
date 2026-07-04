@@ -1,11 +1,23 @@
 <.header>
   Listing Cases
+  <:subtitle>
+    {@filtered_count} shown of {@total_count} with at least one violation.
+  </:subtitle>
   <:actions>
     <.link patch={~p"/cases/new"}>
       <.button>New Case</.button>
     </.link>
   </:actions>
 </.header>
+
+<div class="mt-4">
+  <.workflow_phase_filters workflow_phase={@workflow_phase} />
+  <.list_search_form
+    id="cases-search"
+    query={@search_query}
+    placeholder="Company, phone, notes, case #, status…"
+  />
+</div>
 
 <.table
   id="cases"
@@ -41,13 +53,13 @@
   </:action>
 </.table>
 
-<.modal :if={@live_action in [:new, :edit]} id="case-modal" show on_cancel={JS.patch(~p"/cases")}>
+<.modal :if={@live_action in [:new, :edit]} id="case-modal" show on_cancel={JS.patch(@index_path)}>
   <.live_component
     module={DncWatchdogWeb.CaseLive.FormComponent}
     id={@case.id || :new}
     title={@page_title}
     action={@live_action}
     case={@case}
-    patch={~p"/cases"}
+    patch={@index_path}
   />
 </.modal>

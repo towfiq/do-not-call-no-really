@@ -95,11 +95,6 @@ config :dnc_watchdog, :periodic_import,
   lookback_days: String.to_integer(System.get_env("DNC_IMPORT_LOOKBACK_DAYS") || "7"),
   interval_ms: String.to_integer(System.get_env("DNC_IMPORT_INTERVAL_MS") || "900000")
 
-config :dnc_watchdog, :usps_tracking,
-  client_id: System.get_env("USPS_CLIENT_ID"),
-  client_secret: System.get_env("USPS_CLIENT_SECRET"),
-  api_base: System.get_env("USPS_API_BASE") || "https://apis.usps.com"
-
 config :dnc_watchdog, :periodic_tracking_refresh,
   enabled: System.get_env("DNC_PERIODIC_TRACKING_REFRESH") == "true",
   interval_ms: String.to_integer(System.get_env("DNC_TRACKING_REFRESH_INTERVAL_MS") || "3600000"),

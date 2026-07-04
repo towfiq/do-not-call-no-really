@@ -111,16 +111,6 @@ if config_env() == :prod do
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
 end
 
-usps_client_id = System.get_env("USPS_CLIENT_ID")
-usps_client_secret = System.get_env("USPS_CLIENT_SECRET")
-
-if usps_client_id && usps_client_secret do
-  config :dnc_watchdog, :usps_tracking,
-    client_id: usps_client_id,
-    client_secret: usps_client_secret,
-    api_base: System.get_env("USPS_API_BASE") || "https://apis.usps.com"
-end
-
 if System.get_env("DNC_PERIODIC_TRACKING_REFRESH") == "true" do
   config :dnc_watchdog, :periodic_tracking_refresh,
     enabled: true,

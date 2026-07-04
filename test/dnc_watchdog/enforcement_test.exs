@@ -15,6 +15,16 @@ defmodule DncWatchdog.EnforcementTest do
       assert Enforcement.list_cases() == [case]
     end
 
+    test "list_cases/1 with require_violations only returns cases with violations" do
+      visible = case_fixture(%{company_name: "Violation Co"})
+      hidden = case_fixture(%{company_name: "Pending Only Co"})
+      communication_fixture(%{case_id: visible.id, violation_status: "violation"})
+
+      ids = Enforcement.list_cases(require_violations: true) |> Enum.map(& &1.id)
+      assert visible.id in ids
+      refute hidden.id in ids
+    end
+
     test "get_case!/1 returns the case with given id" do
       case = case_fixture()
       fetched = Enforcement.get_case!(case.id)

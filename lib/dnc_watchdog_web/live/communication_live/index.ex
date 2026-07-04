@@ -2,16 +2,58 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
   use DncWatchdogWeb, :live_view
 
   alias DncWatchdog.Enforcement
+  alias DncWatchdogWeb.FilterParams
 
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
-     socket
-     |> assign(:violations_only, false)
-     |> assign(:hide_excluded, true)
-     |> assign(:hide_spam, false)
-     |> assign(:group_by_sender, true)
-     |> reload_communications()}
+     assign(socket,
+       violations_only: false,
+       hide_excluded: true,
+       hide_spam: false,
+       group_by_sender: true,
+       workflow_phase: "all",
+       search_query: "",
+       filtered_count: 0,
+       total_count: 0,
+       communications: [],
+       communication_groups: []
+     )}
+  end
+
+  @impl true
+  def handle_params(params, _url, socket) do
+    socket =
+      socket
+      |> assign(:workflow_phase, FilterParams.parse_workflow(params))
+      |> assign(:search_query, FilterParams.parse_search(params))
+      |> assign(
+        :index_path,
+        FilterParams.path(
+          ~p"/communications",
+          FilterParams.parse_workflow(params),
+          FilterParams.parse_search(params)
+        )
+      )
+      |> reload_communications()
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("search", %{"q" => query}, socket) do
+    {:noreply,
+     push_patch(socket,
+       to: FilterParams.path(~p"/communications", socket.assigns.workflow_phase, query)
+     )}
+  end
+
+  @impl true
+  def handle_event("set_workflow_filter", %{"workflow" => phase}, socket) do
+    {:noreply,
+     push_patch(socket,
+       to: FilterParams.path(~p"/communications", phase, socket.assigns.search_query)
+     )}
   end
 
   @impl true
@@ -95,11 +137,7 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
   end
 
   defp reload_communications(socket) do
-    opts = [
-      violations_only: socket.assigns.violations_only,
-      hide_excluded: socket.assigns.hide_excluded,
-      hide_spam: socket.assigns.hide_spam
-    ]
+    opts = list_opts(socket)
 
     communications = Enforcement.list_communications(opts)
     total = Enforcement.count_communications([])
@@ -116,6 +154,16 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
     |> assign(:communication_groups, groups)
     |> assign(:filtered_count, Enforcement.count_communications(opts))
     |> assign(:total_count, total)
+  end
+
+  defp list_opts(socket) do
+    [
+      violations_only: socket.assigns.violations_only,
+      hide_excluded: socket.assigns.hide_excluded,
+      hide_spam: socket.assigns.hide_spam,
+      workflow_phase: socket.assigns.workflow_phase,
+      search: socket.assigns.search_query
+    ]
   end
 
   def group_title(%{latest: %{case: %{company_name: name}}}) when is_binary(name) and name != "" do

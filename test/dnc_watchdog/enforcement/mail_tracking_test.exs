@@ -1,5 +1,5 @@
 defmodule DncWatchdog.Enforcement.MailTrackingTest do
-  use DncWatchdog.DataCase, async: true
+  use DncWatchdog.DataCase, async: false
 
   alias DncWatchdog.Enforcement
 
@@ -39,22 +39,19 @@ defmodule DncWatchdog.Enforcement.MailTrackingTest do
       previous = Application.get_env(:dnc_watchdog, :usps_tracking, [])
 
       Application.put_env(:dnc_watchdog, :usps_tracking,
-        client_id: "test-id",
-        client_secret: "test-secret",
-        http_client: DncWatchdog.Enforcement.UspsTracking.StubClient
+        page_fetcher: DncWatchdog.Enforcement.UspsTracking.StubPageFetcher
       )
 
       on_exit(fn ->
         Application.put_env(:dnc_watchdog, :usps_tracking, previous)
-        :persistent_term.erase({DncWatchdog.Enforcement.UspsTracking, :token})
       end)
 
       :ok
     end
 
-    test "updates case from USPS lookup" do
+    test "updates case from parsed USPS page" do
       case =
-        case_fixture()
+        case_fixture(%{workflow_step: "sent", status: "sent"})
         |> then(fn c ->
           {:ok, c} = Enforcement.save_mail_tracking_number(c, "9400111899223197428490")
           c
@@ -64,39 +61,22 @@ defmodule DncWatchdog.Enforcement.MailTrackingTest do
       assert updated.mail_delivery_status == "delivered"
       assert updated.mail_tracking_summary =~ "delivered"
       assert updated.mail_tracking_checked_at != nil
+      assert updated.workflow_step == "delivered"
+      assert updated.status == "delivered"
     end
 
-    test "returns not_configured without credentials" do
-      Application.put_env(:dnc_watchdog, :usps_tracking, [])
-
+    test "does not change workflow when case is not at sent" do
       case =
-        case_fixture()
+        case_fixture(%{workflow_step: "ready_to_send", status: "investigating"})
         |> then(fn c ->
           {:ok, c} = Enforcement.save_mail_tracking_number(c, "9400111899223197428490")
           c
         end)
 
-      assert {:error, :not_configured} = Enforcement.refresh_mail_tracking(case)
+      assert {:ok, updated} = Enforcement.refresh_mail_tracking(case)
+      assert updated.mail_delivery_status == "delivered"
+      assert updated.workflow_step == "ready_to_send"
+      assert updated.status == "investigating"
     end
-  end
-end
-
-defmodule DncWatchdog.Enforcement.UspsTracking.StubClient do
-  @moduledoc false
-
-  def get(_url, _headers) do
-    body =
-      Jason.encode!(%{
-        "status" => "Delivered, In/At Mailbox",
-        "statusCategory" => "Delivered",
-        "statusSummary" => "Your item was delivered at 3:14 pm on June 1, 2026.",
-        "trackingEvents" => [%{"eventType" => "Delivered, In/At Mailbox"}]
-      })
-
-    {:ok, 200, body}
-  end
-
-  def post(_url, _headers, _body) do
-    {:ok, 200, Jason.encode!(%{"access_token" => "stub-token", "expires_in" => 3600})}
   end
 end

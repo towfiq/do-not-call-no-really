@@ -1,8 +1,12 @@
 defmodule DncWatchdogWeb.CaseLive.Show do
   use DncWatchdogWeb, :live_view
 
+  require Logger
+
   alias DncWatchdog.Enforcement
+  alias DncWatchdog.Enforcement.Case
   alias DncWatchdog.Enforcement.EvidenceStorage
+  alias DncWatchdog.Enforcement.FilingLimits
 
   @impl true
   def mount(_params, _session, socket) do
@@ -11,6 +15,7 @@ defmodule DncWatchdogWeb.CaseLive.Show do
      |> assign(:violations_only, false)
      |> assign(:hide_excluded, true)
      |> assign(:usps_tracking_configured, Enforcement.usps_tracking_configured?())
+     |> assign(:mail_tracking_refreshing, false)
      |> assign(:link_case_query, "")
      |> assign(:link_case_results, [])
      |> allow_upload(:evidence,
@@ -160,6 +165,74 @@ defmodule DncWatchdogWeb.CaseLive.Show do
     end
   end
 
+  def handle_event("save_letter_draft", %{"letter_draft" => %{"body" => body}}, socket) do
+    letter_draft = if String.trim(body || "") == "", do: nil, else: body
+
+    case Enforcement.update_case(socket.assigns.case, %{letter_draft: letter_draft}) do
+      {:ok, updated_case} ->
+        {:noreply,
+         socket
+         |> assign(:case, updated_case)
+         |> assign(:requirements, Enforcement.workflow_requirements(updated_case))
+         |> put_flash(:info, "Letter draft saved")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not save letter draft")}
+    end
+  end
+
+  def handle_event("generate_court_filing", _, socket) do
+    case Enforcement.generate_court_filing_draft(socket.assigns.case) do
+      {:ok, case} ->
+        {:noreply,
+         socket
+         |> load_case(case.id)
+         |> put_flash(:info, "Small-claims filing draft generated")}
+
+      {:error, :no_violations} ->
+        {:noreply, put_flash(socket, :error, "Mark at least one violation before generating a filing draft")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not generate court filing draft")}
+    end
+  end
+
+  def handle_event("generate_civil_complaint", _, socket) do
+    case Enforcement.generate_civil_complaint_draft(socket.assigns.case) do
+      {:ok, case} ->
+        {:noreply,
+         socket
+         |> load_case(case.id)
+         |> put_flash(:info, "Civil complaint draft generated")}
+
+      {:error, :no_violations} ->
+        {:noreply, put_flash(socket, :error, "Mark at least one violation before generating a civil complaint")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not generate civil complaint draft")}
+    end
+  end
+
+  def handle_event("save_court_filing", %{"court_filing" => params}, socket) do
+    attrs = court_filing_params(params)
+
+    case Enforcement.record_court_filing(socket.assigns.case, attrs) do
+      {:ok, updated_case} ->
+        {:noreply,
+         socket
+         |> load_case(updated_case.id)
+         |> put_flash(:info, "Court filing recorded")}
+
+      {:error, changeset} ->
+        message =
+          changeset.errors
+          |> Enum.map(fn {field, {msg, _}} -> "#{field} #{msg}" end)
+          |> Enum.join(", ")
+
+        {:noreply, put_flash(socket, :error, message || "Could not save court filing")}
+    end
+  end
+
   def handle_event("advance_workflow", _, socket) do
     case Enforcement.advance_case_workflow(socket.assigns.case) do
       {:ok, updated_case} ->
@@ -232,33 +305,137 @@ defmodule DncWatchdogWeb.CaseLive.Show do
   end
 
   def handle_event("refresh_mail_tracking", _, socket) do
-    case Enforcement.refresh_mail_tracking(socket.assigns.case) do
-      {:ok, updated_case} ->
-        {:noreply,
-         socket
-         |> assign(:case, updated_case)
-         |> put_flash(:info, "Tracking updated: #{updated_case.mail_tracking_summary}")}
+    cond do
+      socket.assigns[:mail_tracking_refreshing] ->
+        {:noreply, socket}
 
-      {:error, :not_configured} ->
-        {:noreply,
-         put_flash(
-           socket,
-           :error,
-           "USPS API credentials not configured. Set USPS_CLIENT_ID and USPS_CLIENT_SECRET to enable automatic tracking."
-         )}
-
-      {:error, :no_tracking_number} ->
+      socket.assigns.case.mail_tracking_number in [nil, ""] ->
         {:noreply, put_flash(socket, :error, "Save a tracking number first")}
 
-      {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "USPS has no record for that tracking number yet")}
+      true ->
+        case_id = socket.assigns.case.id
+        parent = self()
 
-      {:error, {:http_error, status}} ->
-        {:noreply, put_flash(socket, :error, "USPS tracking lookup failed (HTTP #{status})")}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Could not refresh tracking status")}
+        {:noreply,
+         socket
+         |> assign(:mail_tracking_refreshing, true)
+         |> assign(:mail_tracking_previous_step, socket.assigns.case.workflow_step)
+         |> start_async(:mail_tracking_refresh, fn ->
+           allow_repo_sandbox(parent)
+           refresh_mail_tracking_safely(case_id)
+         end)}
     end
+  end
+
+  @impl true
+  def handle_async(:mail_tracking_refresh, {:ok, {:ok, updated_case}}, socket) do
+    previous_step = socket.assigns[:mail_tracking_previous_step]
+
+    message =
+      if updated_case.workflow_step == "delivered" and previous_step == "sent" do
+        "Letter delivered — workflow moved to delivered. #{updated_case.mail_tracking_summary}"
+      else
+        "Tracking updated: #{updated_case.mail_tracking_summary}"
+      end
+
+    {:noreply,
+     socket
+     |> assign(:mail_tracking_refreshing, false)
+     |> assign(:mail_tracking_previous_step, nil)
+     |> load_case(updated_case.id)
+     |> put_flash(:info, message)}
+  end
+
+  def handle_async(:mail_tracking_refresh, {:ok, {:error, reason}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:mail_tracking_refreshing, false)
+     |> assign(:mail_tracking_previous_step, nil)
+     |> put_mail_tracking_refresh_error(reason)}
+  end
+
+  def handle_async(:mail_tracking_refresh, {:exit, _reason}, socket) do
+    {:noreply,
+     socket
+     |> assign(:mail_tracking_refreshing, false)
+     |> assign(:mail_tracking_previous_step, nil)
+     |> put_flash(
+       :error,
+       "Tracking lookup timed out or failed. Try again or use View on USPS.com."
+     )}
+  end
+
+  def handle_async(:mail_tracking_refresh, _result, socket) do
+    {:noreply,
+     socket
+     |> assign(:mail_tracking_refreshing, false)
+     |> assign(:mail_tracking_previous_step, nil)
+     |> put_flash(:error, "Could not refresh tracking status")}
+  end
+
+  defp refresh_mail_tracking_safely(case_id) do
+    case_id
+    |> Enforcement.get_case!()
+    |> Enforcement.refresh_mail_tracking()
+  rescue
+    error ->
+      Logger.error(
+        "[CaseLive.Show] refresh_mail_tracking failed: #{Exception.format(:error, error, __STACKTRACE__)}"
+      )
+
+      {:error, :lookup_failed}
+  end
+
+  defp allow_repo_sandbox(parent) do
+    if sandbox_repo?() do
+      Ecto.Adapters.SQL.Sandbox.allow(DncWatchdog.Repo, parent, self())
+    end
+  end
+
+  defp sandbox_repo? do
+    Application.get_env(:dnc_watchdog, DncWatchdog.Repo, [])
+    |> Keyword.get(:pool) == Ecto.Adapters.SQL.Sandbox
+  end
+
+  defp put_mail_tracking_refresh_error(socket, reason) do
+    message =
+      case reason do
+        :chromic_pdf_unavailable ->
+          "Chrome/Chromium is not available. Install Google Chrome to enable automatic tracking checks."
+
+        :chromic_pdf_not_started ->
+          "Chrome is not running. Restart the server after installing Google Chrome or Chromium."
+
+        :lookup_failed ->
+          "Tracking lookup failed unexpectedly. Try again or use View on USPS.com."
+
+        {:chromic_pdf, msg} when is_binary(msg) ->
+          if String.contains?(msg, "Could not find session pool") do
+            "Tracking is not configured yet. Restart the server after updating, then try again."
+          else
+            "Tracking lookup failed: #{msg}"
+          end
+
+        :blocked ->
+          "USPS blocked the automated lookup. Use View on USPS.com to check status manually."
+
+        {:blocked, msg} when is_binary(msg) ->
+          "USPS blocked the automated lookup: #{msg}. Use View on USPS.com to check status manually."
+
+        :no_tracking_number ->
+          "Save a tracking number first"
+
+        :not_found ->
+          "USPS has no record for that tracking number yet"
+
+        {:http_error, status} ->
+          "USPS tracking lookup failed (HTTP #{status})"
+
+        _ ->
+          "Could not refresh tracking status"
+      end
+
+    put_flash(socket, :error, message)
   end
 
   @impl true
@@ -279,6 +456,9 @@ defmodule DncWatchdogWeb.CaseLive.Show do
     socket
     |> assign(:page_title, page_title(socket.assigns.live_action))
     |> assign(:case, case_record)
+    |> assign_new(:mail_tracking_refreshing, fn -> false end)
+    |> assign(:filing_limits, Enforcement.assess_case_filing_limits(case_record))
+    |> assign(:court_filed_venues, Case.court_filed_venues())
     |> assign(:linked_cases, Enforcement.list_linked_cases(case_record))
     |> assign_link_case_search("", [])
     |> assign(:attachments, Enforcement.list_case_attachments(case_record.id))
@@ -317,4 +497,35 @@ defmodule DncWatchdogWeb.CaseLive.Show do
 
   def attachment_url(%{storage_path: path}), do: EvidenceStorage.public_url(path)
   def mail_tracking_url(number), do: Enforcement.mail_tracking_url(number)
+
+  def format_money_decimal(%Decimal{} = amount) do
+    "$#{amount |> Decimal.round(2) |> Decimal.to_string(:normal)}"
+  end
+
+  def format_money_decimal(_), do: "—"
+
+  def court_filed_venue_label(venue), do: FilingLimits.venue_label(venue)
+
+  def court_filed_amount_value(%Case{court_filed_amount: %Decimal{} = amount}) do
+    amount |> Decimal.round(2) |> Decimal.to_string(:normal)
+  end
+
+  def court_filed_amount_value(_), do: ""
+
+  defp court_filing_params(params) do
+    %{
+      court_filed_at: parse_date(params["filed_at"]),
+      court_filed_venue: blank_to_nil(params["venue"]),
+      court_filed_amount: parse_amount(params["amount"])
+    }
+  end
+
+  defp parse_date(value) when value in [nil, ""], do: nil
+  defp parse_date(value), do: Date.from_iso8601!(value)
+
+  defp parse_amount(value) when value in [nil, ""], do: nil
+  defp parse_amount(value), do: Decimal.new(value)
+
+  defp blank_to_nil(value) when value in [nil, ""], do: nil
+  defp blank_to_nil(value), do: value
 end

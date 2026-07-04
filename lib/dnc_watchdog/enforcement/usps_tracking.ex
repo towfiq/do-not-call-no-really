@@ -1,24 +1,23 @@
 defmodule DncWatchdog.Enforcement.UspsTracking do
   @moduledoc """
-  Looks up USPS tracking status via the official Tracking API v3.
+  Looks up USPS tracking status by loading the public tracking page in Chrome
+  and parsing the rendered result.
 
-  Requires OAuth credentials from the [USPS developer portal](https://developers.usps.com/).
-  Set `USPS_CLIENT_ID` and `USPS_CLIENT_SECRET` environment variables, or configure
-  `:dnc_watchdog, :usps_tracking` in config.
-
-  Without credentials, tracking numbers can still be saved and linked to the public
-  USPS tracking page, but automatic status checks will return `{:error, :not_configured}`.
+  Requires Google Chrome or Chromium (same dependency as PDF export via ChromicPDF).
   """
 
   require Logger
 
+  alias DncWatchdog.Enforcement.LetterPdf
+  alias DncWatchdog.Enforcement.UspsTracking.PageFetcher
+
   @delivery_statuses ~w(pending pre_shipment in_transit out_for_delivery delivered returned alert unknown)
 
   @doc """
-  Returns true when USPS API credentials are configured.
+  Returns true when Chrome/ChromicPDF is available for page lookups.
   """
   def configured? do
-    config()[:client_id] not in [nil, ""] and config()[:client_secret] not in [nil, ""]
+    LetterPdf.ensure_chromic_pdf!() == :ok
   end
 
   @doc """
@@ -42,20 +41,21 @@ defmodule DncWatchdog.Enforcement.UspsTracking do
   def tracking_url(number) when is_binary(number) do
     case normalize_tracking_number(number) do
       nil -> nil
-      normalized -> "https://tools.usps.com/go/TrackConfirmAction?tLabels=#{normalized}"
+      normalized -> "https://tools.usps.com/go/TrackConfirmAction?qtc_tLabels1=#{normalized}"
     end
   end
 
   @doc """
-  Looks up tracking status from USPS.
+  Looks up tracking status from the USPS tracking page.
 
   Returns `{:ok, result}` where result contains:
     * `:delivery_status` — one of #{inspect(@delivery_statuses)}
     * `:summary` — human-readable status text from USPS
     * `:checked_at` — UTC datetime of the lookup
 
-  Or `{:error, reason}` where reason may be `:not_configured`, `:invalid_tracking_number`,
-  `:not_found`, or `{:http_error, status}`.
+  Or `{:error, reason}` where reason may be `:invalid_tracking_number`,
+  `:not_found`, `:blocked`, `:chromic_pdf_unavailable`, `:chromic_pdf_not_started`,
+  or `{:http_error, status}`.
   """
   def lookup(tracking_number) do
     case normalize_tracking_number(tracking_number) do
@@ -63,16 +63,95 @@ defmodule DncWatchdog.Enforcement.UspsTracking do
         {:error, :invalid_tracking_number}
 
       number ->
-        if configured?() do
-          do_lookup(number)
-        else
-          {:error, :not_configured}
+        with {:ok, url} <- tracking_page_url(number),
+             {:ok, page_json} <- page_fetcher().fetch(url),
+             {:ok, parsed} <- parse_page_json(page_json) do
+          {:ok,
+           Map.merge(parsed, %{
+             checked_at: DateTime.utc_now() |> DateTime.truncate(:second)
+           })}
         end
+    end
+  rescue
+    error ->
+      Logger.warning("[UspsTracking] lookup failed: #{Exception.format(:error, error, __STACKTRACE__)}")
+      {:error, :lookup_failed}
+  end
+
+  @doc """
+  Client-side script used by ChromicPDF to wait for the USPS page to render
+  and return page text as JSON.
+  """
+  def extract_page_script do
+    """
+    (async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const normalize = value => (value || "").replace(/\\s+/g, " ").trim();
+      const deadline = Date.now() + 15000;
+
+      while (Date.now() < deadline) {
+        const text = normalize(document.body?.innerText);
+        const html = document.documentElement?.outerHTML || "";
+
+        if (/access denied/i.test(text) || /access denied/i.test(html)) {
+          return JSON.stringify({blocked: true, text, summary: "USPS blocked automated access"});
+        }
+
+        if (/status not available|not yet available|invalid tracking|no tracking information/i.test(text)) {
+          return JSON.stringify({blocked: false, text, summary: text.slice(0, 240), not_found: true});
+        }
+
+        if (/tracking number|delivered|in transit|out for delivery|label created|pre-shipment|arriving|accepted|departed|processed through|available for pickup|returned to sender|refused|undeliverable/i.test(text)) {
+          return JSON.stringify({blocked: false, text, summary: text.slice(0, 240), url: location.href, title: document.title});
+        }
+
+        await sleep(250);
+      }
+
+      const text = normalize(document.body?.innerText);
+      return JSON.stringify({blocked: false, text, summary: text.slice(0, 240), timeout: true, url: location.href, title: document.title});
+    })()
+    """
+  end
+
+  @doc """
+  Parses JSON returned from the browser extraction script.
+  """
+  def parse_page_json(json) when is_binary(json) do
+    case Jason.decode(json) do
+      {:ok, %{"blocked" => true} = data} ->
+        {:error, {:blocked, Map.get(data, "summary", "USPS blocked automated access")}}
+
+      {:ok, %{"not_found" => true}} ->
+        {:error, :not_found}
+
+      {:ok, data} when is_map(data) ->
+        text = Map.get(data, "text", "")
+
+        cond do
+          blank?(text) ->
+            {:error, :not_found}
+
+          not tracking_page?(text) ->
+            {:error, :not_found}
+
+          true ->
+            {:ok,
+             %{
+               delivery_status: delivery_status_from_text(text),
+               summary: summary_from_page(data, text)
+             }}
+        end
+
+      {:error, _} ->
+        {:error, :parse_failed}
     end
   end
 
   @doc """
   Parses a USPS Tracking API v3 JSON response into delivery status and summary.
+
+  Kept for backwards compatibility with older tests and fixtures.
   """
   def parse_response(body) when is_map(body) do
     status = Map.get(body, "status", "")
@@ -88,87 +167,86 @@ defmodule DncWatchdog.Enforcement.UspsTracking do
 
   def delivery_statuses, do: @delivery_statuses
 
-  defp do_lookup(number) do
-    with {:ok, token} <- fetch_access_token(),
-         {:ok, body} <- fetch_tracking(number, token) do
-      parsed = parse_response(body)
-
-      {:ok,
-       Map.merge(parsed, %{
-         checked_at: DateTime.utc_now() |> DateTime.truncate(:second)
-       })}
+  defp tracking_page_url(number) do
+    case tracking_url(number) do
+      nil -> {:error, :invalid_tracking_number}
+      url -> {:ok, url}
     end
   end
 
-  defp fetch_access_token do
-    case cached_token() do
-      {:ok, token} ->
-        {:ok, token}
-
-      :miss ->
-        request_access_token()
-    end
+  defp page_fetcher do
+    config()[:page_fetcher] || PageFetcher
   end
 
-  defp cached_token do
-    now = System.system_time(:second)
+  defp config, do: Application.get_env(:dnc_watchdog, :usps_tracking, [])
 
-    case :persistent_term.get({__MODULE__, :token}, nil) do
-      {token, expires_at} when expires_at > now + 30 ->
-        {:ok, token}
+  defp summary_from_page(data, text) do
+    case data["summary"] do
+      summary when is_binary(summary) ->
+        case String.trim(summary) do
+          "" -> extract_summary(text)
+          trimmed -> trimmed
+        end
 
       _ ->
-        :miss
+        extract_summary(text)
     end
   end
 
-  defp request_access_token do
-    url = api_base() <> "/oauth2/v3/token"
+  defp extract_summary(text) do
+    text
+    |> String.split("\n", trim: true)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.find_value("", fn line ->
+      line_lc = String.downcase(line)
 
-    body =
-      Jason.encode!(%{
-        client_id: config()[:client_id],
-        client_secret: config()[:client_secret],
-        grant_type: "client_credentials",
-        scope: "tracking"
-      })
-
-    headers = [{"content-type", "application/json"}]
-
-    case http_post(url, headers, body) do
-      {:ok, 200, response_body} ->
-        %{"access_token" => token, "expires_in" => expires_in} = Jason.decode!(response_body)
-        expires_at = System.system_time(:second) + expires_in
-        :persistent_term.put({__MODULE__, :token}, {token, expires_at})
-        {:ok, token}
-
-      {:ok, status, response_body} ->
-        Logger.warning("[UspsTracking] token request failed status=#{status} body=#{response_body}")
-        {:error, {:http_error, status}}
-
-      {:error, reason} ->
-        Logger.warning("[UspsTracking] token request error: #{inspect(reason)}")
-        {:error, reason}
-    end
+      if String.length(line) >= 12 and
+           (String.contains?(line_lc, "delivered") or
+              String.contains?(line_lc, "out for delivery") or
+              String.contains?(line_lc, "in transit") or
+              String.contains?(line_lc, "returned") or
+              String.contains?(line_lc, "refused") or
+              String.contains?(line_lc, "accepted") or
+              String.contains?(line_lc, "departed") or
+              String.contains?(line_lc, "label created") or
+              String.contains?(line_lc, "pre-shipment") or
+              String.contains?(line_lc, "available for pickup")) do
+        line
+      end
+    end)
   end
 
-  defp fetch_tracking(number, token) do
-    url = api_base() <> "/tracking/v3/tracking/#{number}?expand=DETAIL"
-    headers = [{"authorization", "Bearer #{token}"}, {"accept", "application/json"}]
+  defp delivery_status_from_text(text) do
+    text_lc = String.downcase(text)
 
-    case http_get(url, headers) do
-      {:ok, 200, body} ->
-        {:ok, Jason.decode!(body)}
+    cond do
+      returned_status?(text_lc) ->
+        "returned"
 
-      {:ok, 404, _body} ->
-        {:error, :not_found}
+      String.contains?(text_lc, "delivered") ->
+        "delivered"
 
-      {:ok, status, body} ->
-        Logger.warning("[UspsTracking] tracking lookup failed status=#{status} body=#{body}")
-        {:error, {:http_error, status}}
+      String.contains?(text_lc, "out for delivery") ->
+        "out_for_delivery"
 
-      {:error, reason} ->
-        {:error, reason}
+      String.contains?(text_lc, "pre-shipment") or String.contains?(text_lc, "label created") ->
+        "pre_shipment"
+
+      String.contains?(text_lc, "delivery status alert") or
+          String.contains?(text_lc, "alert -") ->
+        "alert"
+
+      String.contains?(text_lc, "in transit") or
+          String.contains?(text_lc, "departed") or
+          String.contains?(text_lc, "accepted") or
+          String.contains?(text_lc, "processed through") or
+          String.contains?(text_lc, "arrived at") or
+          String.contains?(text_lc, "in possession") ->
+        "in_transit"
+
+      true ->
+        "unknown"
     end
   end
 
@@ -229,40 +307,34 @@ defmodule DncWatchdog.Enforcement.UspsTracking do
     )
   end
 
-  defp http_get(url, headers), do: http_client().get(url, headers)
-  defp http_post(url, headers, body), do: http_client().post(url, headers, body)
+  defp tracking_page?(text) do
+    text_lc = String.downcase(text)
 
-  defp http_client do
-    config()[:http_client] || DncWatchdog.Enforcement.UspsTracking.FinchClient
-  end
+    status_markers = [
+      "tracking history",
+      "status not available",
+      "label created",
+      "delivered",
+      "in transit",
+      "out for delivery",
+      "returned to sender",
+      "accepted",
+      "departed",
+      "processed through"
+    ]
 
-  defp config, do: Application.get_env(:dnc_watchdog, :usps_tracking, [])
+    cond do
+      String.contains?(text_lc, "tracking number") ->
+        true
 
-  defp api_base do
-    config()[:api_base] || "https://apis.usps.com"
-  end
-end
+      String.contains?(text_lc, "skip all category navigation") ->
+        false
 
-defmodule DncWatchdog.Enforcement.UspsTracking.FinchClient do
-  @moduledoc false
-
-  @finch DncWatchdog.Finch
-
-  def get(url, headers) do
-    request = Finch.build(:get, url, headers)
-
-    case Finch.request(request, @finch, receive_timeout: 15_000) do
-      {:ok, %{status: status, body: body}} -> {:ok, status, body}
-      {:error, reason} -> {:error, reason}
+      true ->
+        Enum.any?(status_markers, &String.contains?(text_lc, &1))
     end
   end
 
-  def post(url, headers, body) do
-    request = Finch.build(:post, url, headers, body)
-
-    case Finch.request(request, @finch, receive_timeout: 15_000) do
-      {:ok, %{status: status, body: body}} -> {:ok, status, body}
-      {:error, reason} -> {:error, reason}
-    end
-  end
+  defp blank?(value) when value in [nil, ""], do: true
+  defp blank?(_), do: false
 end

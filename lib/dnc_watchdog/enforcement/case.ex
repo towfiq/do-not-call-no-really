@@ -2,8 +2,8 @@ defmodule DncWatchdog.Enforcement.Case do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @statuses ~w(new investigating drafting_letter sent closed)
-  @workflow_steps ~w(intake triage evidence_review draft_review ready_to_send sent archived)
+  @statuses ~w(new investigating drafting_letter sent delivered litigating filed closed)
+  @workflow_steps ~w(intake triage evidence_review draft_review ready_to_send sent delivered litigation_draft ready_to_file filed archived)
   @mail_delivery_statuses ~w(pending pre_shipment in_transit out_for_delivery delivered returned alert unknown)
 
   alias DncWatchdog.Enforcement.CaseGroup
@@ -14,6 +14,11 @@ defmodule DncWatchdog.Enforcement.Case do
     field :workflow_step, :string
     field :notes, :string
     field :letter_draft, :string
+    field :court_filing_draft, :string
+    field :civil_complaint_draft, :string
+    field :court_filed_at, :date
+    field :court_filed_venue, :string
+    field :court_filed_amount, :decimal
     field :claimant_name, :string
     field :claimant_address, :string
     field :claimant_phone, :string
@@ -45,6 +50,11 @@ defmodule DncWatchdog.Enforcement.Case do
       :workflow_step,
       :notes,
       :letter_draft,
+      :court_filing_draft,
+      :civil_complaint_draft,
+      :court_filed_at,
+      :court_filed_venue,
+      :court_filed_amount,
       :claimant_name,
       :claimant_address,
       :claimant_phone,
@@ -60,6 +70,18 @@ defmodule DncWatchdog.Enforcement.Case do
     |> validate_required([:company_name, :status, :workflow_step])
     |> validate_inclusion(:status, @statuses)
     |> validate_inclusion(:workflow_step, @workflow_steps)
+  end
+
+  @court_filed_venues ~w(small_claims limited_civil unlimited_civil)
+
+  def court_filed_venues, do: @court_filed_venues
+
+  @doc false
+  def court_filing_changeset(case, attrs) do
+    case
+    |> cast(attrs, [:court_filed_at, :court_filed_venue, :court_filed_amount])
+    |> validate_required([:court_filed_at, :court_filed_venue, :court_filed_amount])
+    |> validate_inclusion(:court_filed_venue, @court_filed_venues)
   end
 
   @doc false

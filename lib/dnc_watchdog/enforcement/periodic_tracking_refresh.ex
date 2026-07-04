@@ -8,7 +8,7 @@ defmodule DncWatchdog.Enforcement.PeriodicTrackingRefresh do
         enabled: true,
         interval_ms: 3_600_000
 
-  Requires USPS API credentials (`USPS_CLIENT_ID` / `USPS_CLIENT_SECRET`).
+  Requires Google Chrome or Chromium (same as PDF export).
   """
 
   use GenServer

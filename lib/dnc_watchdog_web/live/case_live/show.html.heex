@@ -4,6 +4,8 @@
   <:actions>
     <.button phx-click="advance_workflow">Advance workflow</.button>
     <.button phx-click="generate_letter">Generate letter draft</.button>
+    <.button phx-click="generate_court_filing">Generate small claims filing</.button>
+    <.button phx-click="generate_civil_complaint">Generate civil complaint</.button>
     <.link patch={~p"/cases/#{@case}/show/edit"} phx-click={JS.push_focus()}>
       <.button>Edit case</.button>
     </.link>
@@ -99,21 +101,164 @@
   <% end %>
 </div>
 
+<div class="mt-8 rounded-lg border border-zinc-200 p-4">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h3 class="text-base font-semibold">Letter draft</h3>
+      <p class="mt-1 text-sm text-zinc-600">
+        Generate from violations and evidence, then edit before sending certified mail.
+      </p>
+    </div>
+    <%= if @case.letter_draft not in [nil, ""] do %>
+      <.link href={~p"/cases/#{@case}/letter.pdf"} class="inline-flex">
+        <.button type="button">Download PDF with exhibits</.button>
+      </.link>
+    <% end %>
+  </div>
+
+  <form id="letter-draft-form" phx-submit="save_letter_draft" class="mt-4 space-y-3">
+    <div>
+      <label for="letter_draft_body" class="block text-sm font-medium text-zinc-700">
+        Draft text
+      </label>
+      <textarea
+        name="letter_draft[body]"
+        id="letter_draft_body"
+        rows="20"
+        placeholder="Click Generate letter draft above, or type your demand letter here."
+        class="mt-1 block w-full rounded-lg border-zinc-300 font-mono text-xs shadow-sm focus:border-brand focus:ring-brand"
+      >{@case.letter_draft || ""}</textarea>
+    </div>
+    <.button type="submit" phx-disable-with="Saving...">Save letter draft</.button>
+  </form>
+</div>
+
+<div class="mt-8 rounded-lg border border-zinc-200 p-4">
+  <h3 class="text-base font-semibold">Filing limits &amp; venue</h3>
+  <p class="mt-1 text-sm text-zinc-600">
+    California rules: $12,500 small-claims cap, and at most 2 small-claims cases over $2,500 per calendar year (CCP § 116.231).
+  </p>
+  <%= if @filing_limits.violation_count == 0 do %>
+    <p class="mt-3 text-sm text-zinc-600">Mark violations to see filing limits.</p>
+  <% else %>
+    <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+      <div>
+        <dt class="font-medium text-zinc-700">Violations / trial damages</dt>
+        <dd class="text-zinc-600">{@filing_limits.violation_count} × $1,500 = {format_money_decimal(@filing_limits.total_damages)}</dd>
+      </div>
+      <div>
+        <dt class="font-medium text-zinc-700">Small claims amount</dt>
+        <dd class="text-zinc-600">{format_money_decimal(@filing_limits.small_claims_claim_amount)}</dd>
+      </div>
+      <div>
+        <dt class="font-medium text-zinc-700">Recommended venue</dt>
+        <dd class="text-zinc-600">{@filing_limits.recommended_venue_label}</dd>
+      </div>
+      <div>
+        <dt class="font-medium text-zinc-700">Small claims &gt;$2,500 slots ({@filing_limits.calendar_year})</dt>
+        <dd class="text-zinc-600">
+          {@filing_limits.small_claims_high_filings_this_year} used,
+          {@filing_limits.small_claims_high_filings_remaining} remaining
+        </dd>
+      </div>
+    </dl>
+    <%= if @filing_limits.warnings != [] do %>
+      <ul class="mt-4 space-y-2 text-sm text-amber-800">
+        <%= for warning <- @filing_limits.warnings do %>
+          <li class="rounded border border-amber-200 bg-amber-50 px-3 py-2">{warning}</li>
+        <% end %>
+      </ul>
+    <% end %>
+  <% end %>
+</div>
+
 <div class="mt-8">
-  <h3 class="text-base font-semibold">Letter draft</h3>
-  <%= if @case.letter_draft in [nil, ""] do %>
+  <h3 class="text-base font-semibold">Small-claims filing draft (Santa Clara County)</h3>
+  <p class="mt-1 text-sm text-zinc-600">
+    Generates an SC-100 worksheet, statement of facts, declaration, damages worksheet, and exhibit index.
+    Review before filing — not legal advice.
+  </p>
+  <%= if @case.court_filing_draft in [nil, ""] do %>
     <p class="mt-2 text-sm text-zinc-600">
-      Mark violations, add the legal entity address, upload evidence, then click
-      <strong>Generate letter draft</strong>.
+      Mark violations and add the defendant's legal entity address, then click
+      <strong>Generate small claims filing</strong>.
     </p>
   <% else %>
     <div class="mt-3 flex flex-wrap gap-2">
-      <.link href={~p"/cases/#{@case}/letter.pdf"} class="inline-flex">
-        <.button>Download PDF with exhibits</.button>
+      <.link href={~p"/cases/#{@case}/court_filing.pdf"} class="inline-flex">
+        <.button>Download small claims PDF with exhibits</.button>
       </.link>
     </div>
-    <pre class="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-xs">{@case.letter_draft}</pre>
+    <pre class="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-xs">{@case.court_filing_draft}</pre>
   <% end %>
+</div>
+
+<div class="mt-8">
+  <h3 class="text-base font-semibold">Civil complaint draft (Santa Clara County)</h3>
+  <p class="mt-1 text-sm text-zinc-600">
+    For limited or unlimited civil court when damages exceed small-claims limits or annual filing slots are used.
+  </p>
+  <%= if @case.civil_complaint_draft in [nil, ""] do %>
+    <p class="mt-2 text-sm text-zinc-600">
+      Click <strong>Generate civil complaint</strong> when recommended venue is civil court.
+    </p>
+  <% else %>
+    <div class="mt-3 flex flex-wrap gap-2">
+      <.link href={~p"/cases/#{@case}/civil_complaint.pdf"} class="inline-flex">
+        <.button>Download civil complaint PDF with exhibits</.button>
+      </.link>
+    </div>
+    <pre class="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-xs">{@case.civil_complaint_draft}</pre>
+  <% end %>
+</div>
+
+<div class="mt-8 rounded-lg border border-zinc-200 p-4">
+  <h3 class="text-base font-semibold">Record court filing</h3>
+  <p class="mt-1 text-sm text-zinc-600">
+    After you file, record the date, venue, and amount claimed. This tracks your annual small-claims limit.
+  </p>
+  <form id="court-filing-form" phx-submit="save_court_filing" class="mt-4 grid gap-3 sm:grid-cols-2">
+    <div>
+      <label for="court_filing_filed_at" class="block text-sm font-medium text-zinc-700">Filing date</label>
+      <input
+        type="date"
+        name="court_filing[filed_at]"
+        id="court_filing_filed_at"
+        value={@case.court_filed_at || ""}
+        class="mt-1 block w-full rounded-lg border-zinc-300 text-sm shadow-sm focus:border-brand focus:ring-brand"
+      />
+    </div>
+    <div>
+      <label for="court_filing_venue" class="block text-sm font-medium text-zinc-700">Venue</label>
+      <select
+        name="court_filing[venue]"
+        id="court_filing_venue"
+        class="mt-1 block w-full rounded-lg border-zinc-300 text-sm shadow-sm focus:border-brand focus:ring-brand"
+      >
+        <option value="">Select venue…</option>
+        <%= for venue <- @court_filed_venues do %>
+          <option value={venue} selected={@case.court_filed_venue == venue}>
+            {court_filed_venue_label(venue)}
+          </option>
+        <% end %>
+      </select>
+    </div>
+    <div class="sm:col-span-2">
+      <label for="court_filing_amount" class="block text-sm font-medium text-zinc-700">Amount claimed</label>
+      <input
+        type="number"
+        name="court_filing[amount]"
+        id="court_filing_amount"
+        value={court_filed_amount_value(@case)}
+        step="0.01"
+        min="0"
+        class="mt-1 block w-full rounded-lg border-zinc-300 text-sm shadow-sm focus:border-brand focus:ring-brand"
+      />
+    </div>
+    <div class="sm:col-span-2">
+      <.button type="submit">Save court filing record</.button>
+    </div>
+  </form>
 </div>
 
 <div class="mt-8 rounded-lg border border-zinc-200 p-4">
@@ -122,14 +267,9 @@
       <h3 class="text-base font-semibold">Certified mail tracking</h3>
       <p class="mt-1 text-sm text-zinc-600">
         Save the USPS tracking number after you mail the demand letter.
-        <%= if @usps_tracking_configured do %>
-          Status checks use the USPS Tracking API.
-        <% else %>
-          Automatic status checks require
-          <code class="rounded bg-zinc-100 px-1">USPS_CLIENT_ID</code>
-          and
-          <code class="rounded bg-zinc-100 px-1">USPS_CLIENT_SECRET</code>
-          environment variables.
+        Refresh status loads the public USPS tracking page in Chrome and parses the result.
+        <%= unless @usps_tracking_configured do %>
+          Install Google Chrome or Chromium to enable automatic status checks (same requirement as PDF export).
         <% end %>
       </p>
     </div>
@@ -154,8 +294,13 @@
     </div>
     <.button type="submit">Save tracking number</.button>
     <%= if @case.mail_tracking_number not in [nil, ""] do %>
-      <.button type="button" phx-click="refresh_mail_tracking" phx-disable-with="Checking...">
-        Refresh status
+      <.button
+        type="button"
+        phx-click="refresh_mail_tracking"
+        phx-disable-with="Checking..."
+        disabled={@mail_tracking_refreshing}
+      >
+        {if @mail_tracking_refreshing, do: "Checking USPS…", else: "Refresh status"}
       </.button>
       <.link
         href={mail_tracking_url(@case.mail_tracking_number)}

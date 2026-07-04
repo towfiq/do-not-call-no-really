@@ -7,6 +7,7 @@ Phoenix + SQLite app for tracking unsolicited call/text evidence as workflow-dri
 - LiveView case queue (`/cases`) with workflow/status fields
 - Mark communications as **violations** or **not a violation**; hide non-violations by default
 - Legal entity + mailing address per case, evidence screenshot uploads, certified-mail letter drafts with relief demand
+- Santa Clara County small-claims and civil complaint filing drafts with California filing-limit tracking ($12,500 cap, 2/year over $2,500)
 - Case detail view with workflow checklist and one-click advancement (gated on evidence requirements)
 - Import mix task for normalized communication CSV files
 - Local macOS import from Messages `chat.db` and Call History SQLite
@@ -46,7 +47,7 @@ mix phx.server
 4. Click **Exclude sender** to dismiss a number now and on **future imports** (manage the list under **Excluded senders**).
 5. Open a **Case** (`/cases/:id`) to add the defendant's legal name and mailing address, upload screenshot exhibits, and generate a certified-mail demand letter draft.
 
-Case workflow steps: `intake` → `triage` → `evidence_review` → `draft_review` → `ready_to_send` → `sent` → `archived`. Advancing past `evidence_review` requires at least one marked violation, a complete mailing address, and at least one uploaded attachment.
+Case workflow steps: `intake` → `triage` → `evidence_review` → `draft_review` → `ready_to_send` → `sent` → `litigation_draft` → `ready_to_file` → `filed` → `archived`. Advancing past `evidence_review` requires at least one marked violation, a complete mailing address, and at least one uploaded attachment.
 
 ## Import from local macOS databases (recommended)
 
@@ -162,7 +163,28 @@ From the web UI, open a case with a generated letter draft and click **Download 
 
 PDF export uses [ChromicPDF](https://github.com/bitcrowd/chromic_pdf) and requires Google Chrome or Chromium installed locally.
 
+## Export small-claims filing drafts
+
+Generates Santa Clara County filing packets (for cases with marked violations):
+
+```bash
+mix dnc.export_filings output/filings
+mix dnc.export_filings output/filings --pdf
+```
+
+From the web UI, open a case and click **Generate court filing**, then **Download filing PDF with exhibits**.
+
+Review all generated filings before submitting to the court. Complete official form SC-100 from [courts.ca.gov](https://courts.ca.gov/find-court-forms).
+
+## Export civil complaint drafts
+
+```bash
+mix dnc.export_civil_complaints output/civil
+mix dnc.export_civil_complaints output/civil --pdf
+```
+
 ## Notes
 
 - Review all generated letters before sending.
+- Review all generated court filings before filing.
 - This project is software tooling and not legal advice.

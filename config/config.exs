@@ -80,11 +80,20 @@ config :phoenix, :json_library, Jason
 config :chromic_pdf,
   offline: true,
   no_sandbox: true,
-  session_pool: [
-    timeout: 30_000,
-    init_timeout: 30_000,
-    checkout_timeout: 30_000
-  ]
+  session_pool: %{
+    default: [
+      timeout: 30_000,
+      init_timeout: 30_000,
+      checkout_timeout: 30_000
+    ],
+    online: [
+      size: 1,
+      offline: false,
+      timeout: 45_000,
+      init_timeout: 45_000,
+      checkout_timeout: 45_000
+    ]
+  }
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

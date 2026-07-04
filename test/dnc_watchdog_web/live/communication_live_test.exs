@@ -96,4 +96,47 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
 
     assert Enforcement.count_communications(hide_excluded: true) == 1
   end
+
+  test "filters communications by linked case workflow phase", %{conn: conn} do
+    {:ok, intake_case} =
+      Enforcement.create_case(%{company_name: "Intake", status: "new", workflow_step: "intake", letter_draft: ""})
+
+    {:ok, sent_case} =
+      Enforcement.create_case(%{company_name: "Sent", status: "sent", workflow_step: "sent", letter_draft: ""})
+
+    communication_fixture(%{case_id: intake_case.id, body: "intake only"})
+    communication_fixture(%{case_id: sent_case.id, body: "sent only"})
+
+    {:ok, view, html} = live(conn, ~p"/communications?workflow=sent")
+
+    assert html =~ "sent only"
+    refute html =~ "intake only"
+
+    html =
+      view
+      |> element("button", "Triage")
+      |> render_click()
+
+    assert html =~ "intake only"
+    refute html =~ "sent only"
+  end
+
+  test "filters communications by search query", %{conn: conn} do
+    case_record = case_fixture()
+    communication_fixture(%{case_id: case_record.id, body: "special search token"})
+    communication_fixture(%{case_id: case_record.id, body: "ordinary message"})
+
+    {:ok, view, html} = live(conn, ~p"/communications?q=search+token")
+
+    assert html =~ "special search token"
+    refute html =~ "ordinary message"
+
+    html =
+      view
+      |> form("#communications-search", %{q: ""})
+      |> render_change()
+
+    assert html =~ "special search token"
+    assert html =~ "ordinary message"
+  end
 end

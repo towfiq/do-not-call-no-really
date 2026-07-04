@@ -35,4 +35,12 @@ defmodule DncWatchdog.Enforcement.WorkflowTest do
     assert {:ok, updated} = Enforcement.advance_case_workflow(case)
     assert updated.workflow_step == "draft_review"
   end
+
+  test "advance_case_workflow/1 moves sent to delivered" do
+    case = case_fixture(%{workflow_step: "sent", status: "sent"})
+
+    assert {:ok, updated} = Enforcement.advance_case_workflow(case)
+    assert updated.workflow_step == "delivered"
+    assert updated.status == "delivered"
+  end
 end
