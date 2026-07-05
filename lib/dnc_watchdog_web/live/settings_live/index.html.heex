@@ -5,31 +5,29 @@
   </:subtitle>
 </.header>
 
-<div class="mt-6 max-w-2xl">
-  <.simple_form for={@form} id="claimant-profile-form" phx-change="validate" phx-submit="save">
-    <.input field={@form[:name]} type="text" label="Your name" />
-    <.input field={@form[:address]} type="textarea" label="Mailing address" rows="4" />
-    <.input field={@form[:phone]} type="text" label="Phone number" />
-    <.input field={@form[:email]} type="email" label="Email address" />
-    <.input field={@form[:dnc_registration_date]} type="date" label="DNC registration date" />
-    <.input field={@form[:small_claims_county]} type="text" label="Small claims county" />
+<div class="content-card mt-2 max-w-2xl">
+  <div class="content-card-body">
+    <.simple_form for={@form} id="claimant-profile-form" phx-change="validate" phx-submit="save">
+      <.input field={@form[:name]} type="text" label="Your name" />
+      <.input field={@form[:address]} type="textarea" label="Mailing address" rows="4" />
+      <.input field={@form[:phone]} type="text" label="Phone number" />
+      <.input field={@form[:email]} type="email" label="Email address" />
+      <.input field={@form[:dnc_registration_date]} type="date" label="DNC registration date" />
+      <.input field={@form[:small_claims_county]} type="text" label="Small claims county" />
 
-    <:actions>
-      <.button phx-disable-with="Saving...">Save profile</.button>
-      <.button
-        type="button"
-        phx-click="import_from_contacts"
-        class="bg-white text-zinc-700 ring-zinc-300"
-      >
-        Import from Contacts
-      </.button>
-    </:actions>
-  </.simple_form>
+      <:actions>
+        <.button phx-disable-with="Saving...">Save profile</.button>
+        <.button type="button" phx-click="import_from_contacts" class="btn-secondary">
+          Import from Contacts
+        </.button>
+      </:actions>
+    </.simple_form>
 
-  <p class="mt-4 text-sm text-zinc-600">
-    You can also set environment variables such as
-    <code class="rounded bg-zinc-100 px-1">DNC_MY_ADDRESS</code>
-    and <code class="rounded bg-zinc-100 px-1">DNC_MY_PHONE</code>
-    for CLI exports. Saved profile values take precedence over env vars in the web app.
-  </p>
+    <p class="mt-4 text-sm text-slate-600">
+      You can also set environment variables such as
+      <code class="rounded bg-slate-100 px-1">DNC_MY_ADDRESS</code>
+      and <code class="rounded bg-slate-100 px-1">DNC_MY_PHONE</code>
+      for CLI exports. Saved profile values take precedence over env vars in the web app.
+    </p>
+  </div>
 </div>

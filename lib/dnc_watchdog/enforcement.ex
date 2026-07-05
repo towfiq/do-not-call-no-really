@@ -412,6 +412,30 @@ defmodule DncWatchdog.Enforcement do
     key != "" and MapSet.member?(excluded_keys, key)
   end
 
+  @doc """
+  Reassigns every communication matching `peer` (any case) onto `case_id`.
+
+  Used when merging cases so messages/calls imported under the wrong case
+  still move with the defendant being merged in.
+  """
+  def reassign_peer_communications_to_case(peer, case_id)
+      when is_binary(peer) and is_integer(case_id) do
+    peer = String.trim(peer)
+
+    if peer == "" do
+      0
+    else
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+      {count, _} =
+        peer
+        |> peer_query()
+        |> Repo.update_all(set: [case_id: case_id, updated_at: now])
+
+      count
+    end
+  end
+
   defp peer_query(peer) do
     if ContactFilter.email_peer?(peer) do
       email = String.downcase(peer)

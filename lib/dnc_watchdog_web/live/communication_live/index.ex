@@ -2,7 +2,6 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
   use DncWatchdogWeb, :live_view
 
   alias DncWatchdog.Enforcement
-  alias DncWatchdog.Enforcement.Case
   alias DncWatchdogWeb.FilterParams
 
   @impl true
@@ -224,11 +223,12 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
     ]
   end
 
-  def group_title(%{latest: %{case: %Case{} = case_record}}) do
-    Case.display_name(case_record)
-  end
+  def group_title(%{label: label}), do: format_peer_label(label)
+  def group_title(%{peer: peer}), do: format_peer_label(peer)
 
-  def group_title(%{label: label}), do: label
+  defp format_peer_label("unknown"), do: "Unknown sender"
+  defp format_peer_label(peer) when is_binary(peer), do: peer
+  defp format_peer_label(_), do: "Unknown sender"
 
   def last_sync_label(state), do: DncWatchdog.Enforcement.LocalSync.format_last_sync(state)
 end

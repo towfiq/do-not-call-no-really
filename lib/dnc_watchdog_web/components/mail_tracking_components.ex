@@ -8,15 +8,14 @@ defmodule DncWatchdogWeb.MailTrackingComponents do
   def mail_delivery_badge(assigns) do
     ~H"""
     <span class={[
-      "rounded px-2 py-0.5 text-xs font-semibold",
-      @status == "delivered" && "bg-emerald-100 text-emerald-800",
-      @status == "returned" && "bg-rose-100 text-rose-800",
-      @status == "out_for_delivery" && "bg-sky-100 text-sky-800",
-      @status == "in_transit" && "bg-blue-100 text-blue-800",
-      @status == "pre_shipment" && "bg-zinc-200 text-zinc-700",
-      @status == "alert" && "bg-amber-100 text-amber-800",
-      @status == "pending" && "bg-zinc-100 text-zinc-600",
-      @status == "unknown" && "bg-zinc-100 text-zinc-600"
+      "badge",
+      @status == "delivered" && "badge-success",
+      @status == "returned" && "bg-rose-50 text-rose-700 ring-rose-600/20",
+      @status == "out_for_delivery" && "bg-sky-50 text-sky-700 ring-sky-600/20",
+      @status == "in_transit" && "bg-blue-50 text-blue-700 ring-blue-600/20",
+      @status == "pre_shipment" && "badge-neutral",
+      @status == "alert" && "badge-warning",
+      @status in ["pending", "unknown"] && "badge-neutral"
     ]}>
       {mail_delivery_label(@status)}
     </span>

@@ -1,28 +1,79 @@
-<.flash_group flash={@flash} />
-<div class="mx-auto max-w-4xl px-4 py-12">
-  <h1 class="text-3xl font-semibold text-zinc-900">Do Not Call Enforcement</h1>
-  <p class="mt-2 text-zinc-600">
-    Manage unsolicited contact evidence, case workflows, and demand-letter drafts.
-  </p>
+<.header>
+  Dashboard
+  <:subtitle>
+    Review imported contact, advance cases, and generate demand letters.
+  </:subtitle>
+</.header>
 
-  <div class="mt-8 rounded-xl border border-zinc-200 p-6">
-    <h2 class="text-lg font-semibold text-zinc-900">Start Here</h2>
-    <p class="mt-2 text-sm text-zinc-600">
-      Import communications with mix tasks, then review and advance each case through your workflow.
-    </p>
-    <div class="mt-4 flex gap-3">
-      <.link
-        navigate={~p"/communications"}
-        class="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-700"
-      >
-        View imported messages
-      </.link>
-      <.link
-        navigate={~p"/cases"}
-        class="rounded-md bg-zinc-100 px-4 py-2 text-sm text-zinc-900 hover:bg-zinc-200"
-      >
-        Open cases
-      </.link>
+<div class="stat-grid">
+  <.link navigate={~p"/communications"} class="stat-card transition hover:border-indigo-200 hover:shadow-md">
+    <p class="stat-label">Inbox</p>
+    <p class="stat-value">Messages</p>
+    <p class="mt-2 text-sm text-slate-500">Sync from Mac and triage violations</p>
+  </.link>
+
+  <.link navigate={~p"/cases"} class="stat-card transition hover:border-indigo-200 hover:shadow-md">
+    <p class="stat-label">Pipeline</p>
+    <p class="stat-value">Cases</p>
+    <p class="mt-2 text-sm text-slate-500">Track workflow, evidence, and filings</p>
+  </.link>
+
+  <.link
+    navigate={~p"/excluded-senders"}
+    class="stat-card transition hover:border-indigo-200 hover:shadow-md"
+  >
+    <p class="stat-label">Automation</p>
+    <p class="stat-value">Excluded</p>
+    <p class="mt-2 text-sm text-slate-500">Senders skipped on future imports</p>
+  </.link>
+
+  <.link navigate={~p"/settings"} class="stat-card transition hover:border-indigo-200 hover:shadow-md">
+    <p class="stat-label">Account</p>
+    <p class="stat-value">Profile</p>
+    <p class="mt-2 text-sm text-slate-500">Claimant details for letters and filings</p>
+  </.link>
+</div>
+
+<div class="content-card mt-6">
+  <div class="content-card-header">
+    <div>
+      <h2 class="content-card-title">Getting started</h2>
+      <p class="content-card-subtitle">Typical workflow from import to demand letter</p>
+    </div>
+  </div>
+  <div class="content-card-body">
+    <ol class="space-y-3 text-sm text-slate-700">
+      <li class="flex gap-3">
+        <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700">
+          1
+        </span>
+        <span>
+          <strong class="font-medium text-slate-900">Sync messages</strong>
+          from your Mac on the Messages page, or import via CLI.
+        </span>
+      </li>
+      <li class="flex gap-3">
+        <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700">
+          2
+        </span>
+        <span>
+          <strong class="font-medium text-slate-900">Mark violations</strong>
+          and link communications to defendants on each case.
+        </span>
+      </li>
+      <li class="flex gap-3">
+        <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700">
+          3
+        </span>
+        <span>
+          <strong class="font-medium text-slate-900">Advance workflow</strong>
+          , attach evidence, and generate letter or filing drafts.
+        </span>
+      </li>
+    </ol>
+    <div class="mt-5 flex flex-wrap gap-2">
+      <.link navigate={~p"/communications"} class="btn-primary">Open messages</.link>
+      <.link navigate={~p"/cases"} class="btn-secondary">View cases</.link>
     </div>
   </div>
 </div>

@@ -110,6 +110,7 @@ defmodule DncWatchdogWeb do
       import DncWatchdogWeb.CommunicationComponents
       import DncWatchdogWeb.MailTrackingComponents
       import DncWatchdogWeb.CaseComponents
+      import DncWatchdogWeb.Nav, only: [sidebar_link: 1]
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS

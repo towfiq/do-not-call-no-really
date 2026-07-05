@@ -231,8 +231,7 @@ defmodule DncWatchdogWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "phx-submit-loading:opacity-75 rounded-md bg-zinc-900 hover:bg-zinc-700 py-1.5 px-3",
-        "text-sm font-semibold leading-6 text-white active:text-white/80",
+        "phx-submit-loading:opacity-75 btn-primary",
         @class
       ]}
       {@rest}
@@ -428,14 +427,15 @@ defmodule DncWatchdogWeb.CoreComponents do
   def header(assigns) do
     ~H"""
     <header class={[
-      @actions != [] && "flex flex-wrap items-start justify-between gap-3",
+      "mb-6",
+      @actions != [] && "flex flex-wrap items-start justify-between gap-4",
       @class
     ]}>
       <div class="min-w-0">
-        <h1 class="text-xl font-semibold tracking-tight text-zinc-900">
+        <h1 class="text-2xl font-semibold tracking-tight text-slate-900">
           {render_slot(@inner_block)}
         </h1>
-        <p :if={@subtitle != []} class="mt-1 text-sm text-zinc-500">
+        <p :if={@subtitle != []} class="mt-1 text-sm text-slate-500">
           {render_slot(@subtitle)}
         </p>
       </div>
@@ -476,48 +476,48 @@ defmodule DncWatchdogWeb.CoreComponents do
       end
 
     ~H"""
-    <div class="overflow-y-auto px-4 sm:overflow-visible sm:px-0">
-      <table class="w-[40rem] mt-11 sm:w-full">
-        <thead class="text-sm text-left leading-6 text-zinc-500">
-          <tr>
-            <th :for={col <- @col} class="p-0 pb-4 pr-6 font-normal">{col[:label]}</th>
-            <th :if={@action != []} class="relative p-0 pb-4">
-              <span class="sr-only">{gettext("Actions")}</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody
-          id={@id}
-          phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
-          class="relative divide-y divide-zinc-100 border-t border-zinc-200 text-sm leading-6 text-zinc-700"
-        >
-          <tr :for={row <- @rows} id={@row_id && @row_id.(row)} class="group hover:bg-zinc-50">
-            <td
-              :for={{col, i} <- Enum.with_index(@col)}
-              phx-click={@row_click && @row_click.(row)}
-              class={["relative p-0", @row_click && "hover:cursor-pointer"]}
+    <div class="data-table-wrap">
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[48rem]">
+          <thead>
+            <tr>
+              <th :for={col <- @col} class="px-4 py-3">{col[:label]}</th>
+              <th :if={@action != []} class="relative px-4 py-3 text-right">
+                <span class="sr-only">{gettext("Actions")}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody
+            id={@id}
+            phx-update={match?(%Phoenix.LiveView.LiveStream{}, @rows) && "stream"}
+            class="divide-y divide-slate-100 bg-white text-slate-700"
+          >
+            <tr
+              :for={row <- @rows}
+              id={@row_id && @row_id.(row)}
+              class={["group transition", @row_click && "cursor-pointer hover:bg-indigo-50/40"]}
             >
-              <div class="block py-4 pr-6">
-                <span class="absolute -inset-y-px right-0 -left-4 group-hover:bg-zinc-50 sm:rounded-l-xl" />
-                <span class={["relative", i == 0 && "font-semibold text-zinc-900"]}>
+              <td
+                :for={{col, i} <- Enum.with_index(@col)}
+                phx-click={@row_click && @row_click.(row)}
+                class="px-4 py-3 align-top"
+              >
+                <span class={[i == 0 && "font-medium text-slate-900"]}>
                   {render_slot(col, @row_item.(row))}
                 </span>
-              </div>
-            </td>
-            <td :if={@action != []} class="relative w-14 p-0">
-              <div class="relative whitespace-nowrap py-4 text-right text-sm font-medium">
-                <span class="absolute -inset-y-px -right-4 left-0 group-hover:bg-zinc-50 sm:rounded-r-xl" />
+              </td>
+              <td :if={@action != []} class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <span
                   :for={action <- @action}
-                  class="relative ml-4 font-semibold leading-6 text-zinc-900 hover:text-zinc-700"
+                  class="ml-3 font-medium text-indigo-600 hover:text-indigo-500"
                 >
                   {render_slot(action, @row_item.(row))}
                 </span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
     """
   end
@@ -538,13 +538,15 @@ defmodule DncWatchdogWeb.CoreComponents do
 
   def list(assigns) do
     ~H"""
-    <div class="mt-14">
-      <dl class="-my-4 divide-y divide-zinc-100">
-        <div :for={item <- @item} class="flex gap-4 py-4 text-sm leading-6 sm:gap-8">
-          <dt class="w-1/4 flex-none text-zinc-500">{item.title}</dt>
-          <dd class="text-zinc-700">{render_slot(item)}</dd>
-        </div>
-      </dl>
+    <div class="content-card">
+      <div class="content-card-body">
+        <dl class="detail-list">
+          <div :for={item <- @item} class="detail-list-row">
+            <dt class="detail-list-label">{item.title}</dt>
+            <dd class="detail-list-value">{render_slot(item)}</dd>
+          </div>
+        </dl>
+      </div>
     </div>
     """
   end

@@ -8,6 +8,7 @@ defmodule DncWatchdogWeb.Router do
     plug :put_root_layout, html: {DncWatchdogWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug DncWatchdogWeb.Plugs.AssignCurrentPath
   end
 
   pipeline :api do
@@ -18,14 +19,18 @@ defmodule DncWatchdogWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
-    live "/communications", CommunicationLive.Index, :index
-    live "/excluded-senders", ExcludedSenderLive.Index, :index
-    live "/cases", CaseLive.Index, :index
-    live "/cases/new", CaseLive.Index, :new
-    live "/cases/:id/edit", CaseLive.Index, :edit
-    live "/cases/:id", CaseLive.Show, :show
-    live "/cases/:id/show/edit", CaseLive.Show, :edit
-    live "/settings", SettingsLive.Index, :index
+
+    live_session :app, on_mount: [{DncWatchdogWeb.Nav, :assign_current_path}] do
+      live "/communications", CommunicationLive.Index, :index
+      live "/excluded-senders", ExcludedSenderLive.Index, :index
+      live "/cases", CaseLive.Index, :index
+      live "/cases/new", CaseLive.Index, :new
+      live "/cases/:id/edit", CaseLive.Index, :edit
+      live "/cases/:id", CaseLive.Show, :show
+      live "/cases/:id/show/edit", CaseLive.Show, :edit
+      live "/settings", SettingsLive.Index, :index
+    end
+
     get "/cases/:id/letter.pdf", CaseController, :letter_pdf
     get "/cases/:id/court_filing.pdf", CaseController, :court_filing_pdf
     get "/cases/:id/civil_complaint.pdf", CaseController, :civil_complaint_pdf

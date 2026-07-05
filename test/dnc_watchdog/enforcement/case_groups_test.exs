@@ -2,7 +2,7 @@ defmodule DncWatchdog.Enforcement.CaseGroupsTest do
   use DncWatchdog.DataCase
 
   alias DncWatchdog.Enforcement
-  alias DncWatchdog.Enforcement.CaseGroups
+  alias DncWatchdog.Enforcement.{CaseGroups, Communication}
   alias DncWatchdog.Repo
 
   import DncWatchdog.EnforcementFixtures
@@ -51,6 +51,34 @@ defmodule DncWatchdog.Enforcement.CaseGroupsTest do
     [moved] = Enforcement.list_case_communications(target.id)
     assert moved.id == comm.id
     assert moved.case_id == target.id
+  end
+
+  test "merge_case_into/2 moves misplaced peer communications from other cases" do
+    target = case_fixture(%{company_name: "Caller 9494682993"})
+    source = case_fixture(%{company_name: "Caller 9495390557"})
+    wrong_case = case_fixture(%{company_name: "Caller 4159719595"})
+
+    {:ok, on_source} =
+      Enforcement.create_communication(
+        communication_attrs(%{case_id: source.id, from_number: "9495390557", body: "on source"})
+      )
+
+    {:ok, misplaced} =
+      Enforcement.create_communication(
+        communication_attrs(%{
+          case_id: wrong_case.id,
+          from_number: "9495390557",
+          body: "misplaced on wrong case"
+        })
+      )
+
+    assert {:ok, _} = CaseGroups.merge_case_into(target, source.id)
+
+    for comm <- [on_source, misplaced] do
+      assert Repo.get!(Communication, comm.id).case_id == target.id
+    end
+
+    assert length(Enforcement.list_case_communications(target.id)) == 2
   end
 
   test "search_linkable_cases/2 matches company name and phone" do

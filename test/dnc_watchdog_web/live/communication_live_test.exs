@@ -6,6 +6,24 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
 
   alias DncWatchdog.Enforcement
 
+  test "grouped view titles sender peer not linked case name", %{conn: conn} do
+    case = case_fixture(%{company_name: "Caller 4159719595"})
+
+    communication_fixture(%{
+      case_id: case.id,
+      from_number: "639283296146",
+      direction: "incoming",
+      body: "DMV spam test",
+      violation_status: "pending"
+    })
+
+    {:ok, _view, html} = live(conn, ~p"/communications")
+
+    assert html =~ "639283296146"
+    assert html =~ "Caller 4159719595"
+    refute html =~ ~r/<h2[^>]*>Caller 4159719595<\/h2>/
+  end
+
   test "shows legal entity name for linked case", %{conn: conn} do
     case =
       case_with_legal_entity_fixture(%{

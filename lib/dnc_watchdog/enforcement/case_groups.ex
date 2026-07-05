@@ -8,7 +8,9 @@ defmodule DncWatchdog.Enforcement.CaseGroups do
   alias DncWatchdog.Enforcement.Case
   alias DncWatchdog.Enforcement.CaseGroup
   alias DncWatchdog.Enforcement.Communication
+  alias DncWatchdog.Enforcement.ContactFilter
   alias DncWatchdog.Enforcement.EvidenceAttachment
+  alias DncWatchdog.Enforcement.Phone
   alias DncWatchdog.Repo
 
   @doc """
@@ -102,6 +104,10 @@ defmodule DncWatchdog.Enforcement.CaseGroups do
         from(c in Communication, where: c.case_id == ^source.id)
         |> Repo.update_all(set: [case_id: target.id, updated_at: now])
 
+        Enum.each(peers_for_case(source), fn peer ->
+          DncWatchdog.Enforcement.reassign_peer_communications_to_case(peer, target.id)
+        end)
+
         from(a in EvidenceAttachment, where: a.case_id == ^source.id)
         |> Repo.update_all(set: [case_id: target.id, updated_at: now])
 
@@ -164,4 +170,24 @@ defmodule DncWatchdog.Enforcement.CaseGroups do
 
     :ok
   end
+
+  @doc """
+  Phone/email peers associated with a case (from its label and communications).
+  """
+  def peers_for_case(%Case{} = case_record) do
+    from_comms =
+      Communication
+      |> where([c], c.case_id == ^case_record.id)
+      |> select([c], %{direction: c.direction, from_number: c.from_number, to_number: c.to_number})
+      |> Repo.all()
+      |> Enum.map(&ContactFilter.peer_for/1)
+
+    (caller_label_peers(case_record.company_name) ++ from_comms)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.uniq()
+  end
+
+  defp caller_label_peers("Caller " <> phone), do: [Phone.normalize(phone)]
+  defp caller_label_peers(_), do: []
 end

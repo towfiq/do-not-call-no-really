@@ -5,15 +5,13 @@
     stay off your violation review list, including on future imports.
   </:subtitle>
   <:actions>
-    <.link navigate={~p"/communications"}>
-      <.button>Back to messages</.button>
-    </.link>
+    <.link navigate={~p"/communications"} class="btn-secondary">Back to messages</.link>
   </:actions>
 </.header>
 
 <%= if @senders == [] do %>
-  <div class="mt-6 rounded-lg border border-zinc-200 bg-zinc-50 p-6 text-sm text-zinc-700">
-    <p class="font-semibold">No excluded senders yet.</p>
+  <div class="empty-state mt-4 px-4 py-8">
+    <p class="font-semibold text-slate-900">No excluded senders yet.</p>
     <p class="mt-2">
       On <.link navigate={~p"/communications"} class="text-brand hover:underline">Messages</.link>,
       click <strong>Exclude sender</strong>

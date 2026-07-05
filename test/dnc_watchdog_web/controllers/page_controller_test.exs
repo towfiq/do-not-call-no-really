@@ -3,6 +3,6 @@ defmodule DncWatchdogWeb.PageControllerTest do
 
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")
-    assert html_response(conn, 200) =~ "Do Not Call Enforcement"
+    assert html_response(conn, 200) =~ "Dashboard"
   end
 end
