@@ -3,6 +3,10 @@ defmodule DncWatchdog.Application do
   # for more information on OTP Applications
   @moduledoc false
 
+  use Boundary,
+    top_level?: true,
+    deps: [DncWatchdog, DncWatchdogWeb, Phoenix, Finch, ChromicPDF, DNSCluster, Swoosh]
+
   use Application
 
   @impl true

@@ -6,13 +6,18 @@ defmodule DncWatchdog.Enforcement.UspsTracking.FetchPage do
   steps do
     include_protocol(ChromicPDF.Navigate)
 
-    call(:extract, "Runtime.evaluate", fn _state ->
-      %{
-        "expression" => DncWatchdog.Enforcement.UspsTracking.extract_page_script(),
-        "awaitPromise" => true,
-        "returnByValue" => true
-      }
-    end, %{})
+    call(
+      :extract,
+      "Runtime.evaluate",
+      fn _state ->
+        %{
+          "expression" => DncWatchdog.Enforcement.UspsTracking.extract_page_script(),
+          "awaitPromise" => true,
+          "returnByValue" => true
+        }
+      end,
+      %{}
+    )
 
     await_response(:extracted, [{["result", "value"], "page_json"}])
 

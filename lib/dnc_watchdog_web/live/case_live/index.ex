@@ -102,6 +102,7 @@ defmodule DncWatchdogWeb.CaseLive.Index do
   defp list_opts(socket) do
     [
       preload_communications: true,
+      preload_legal_entity: true,
       require_violations: true,
       workflow_phase: socket.assigns.workflow_phase,
       search: socket.assigns.search_query

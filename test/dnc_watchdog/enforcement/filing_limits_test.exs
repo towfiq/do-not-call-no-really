@@ -41,8 +41,19 @@ defmodule DncWatchdog.Enforcement.FilingLimitsTest do
   end
 
   test "counts_toward_high_small_claims_limit?/2" do
-    assert FilingLimits.counts_toward_high_small_claims_limit?("small_claims", Decimal.new("3000"))
-    refute FilingLimits.counts_toward_high_small_claims_limit?("small_claims", Decimal.new("2500"))
-    refute FilingLimits.counts_toward_high_small_claims_limit?("limited_civil", Decimal.new("10000"))
+    assert FilingLimits.counts_toward_high_small_claims_limit?(
+             "small_claims",
+             Decimal.new("3000")
+           )
+
+    refute FilingLimits.counts_toward_high_small_claims_limit?(
+             "small_claims",
+             Decimal.new("2500")
+           )
+
+    refute FilingLimits.counts_toward_high_small_claims_limit?(
+             "limited_civil",
+             Decimal.new("10000")
+           )
   end
 end

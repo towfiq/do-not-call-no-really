@@ -37,7 +37,8 @@ defmodule DncWatchdog.Enforcement.Dedupe do
       |> Enum.group_by(&fingerprint_for/1)
 
     {duplicate_groups, deleted, backfilled} =
-      Enum.reduce(groups, {0, 0, 0}, fn {_fingerprint, group}, {groups_acc, deleted_acc, backfilled_acc} ->
+      Enum.reduce(groups, {0, 0, 0}, fn {_fingerprint, group},
+                                        {groups_acc, deleted_acc, backfilled_acc} ->
         case group do
           [_] ->
             {groups_acc, deleted_acc, backfilled_acc}

@@ -158,7 +158,9 @@ defmodule DncWatchdogWeb.CommunicationComponents do
 
   def violation_badge(%{status: _status, spam: true} = assigns) do
     ~H"""
-    <span class="rounded bg-fuchsia-100 px-2 py-0.5 text-xs font-semibold text-fuchsia-800">Spam</span>
+    <span class="rounded bg-fuchsia-100 px-2 py-0.5 text-xs font-semibold text-fuchsia-800">
+      Spam
+    </span>
     """
   end
 

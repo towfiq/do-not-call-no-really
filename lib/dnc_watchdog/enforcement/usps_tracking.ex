@@ -74,7 +74,10 @@ defmodule DncWatchdog.Enforcement.UspsTracking do
     end
   rescue
     error ->
-      Logger.warning("[UspsTracking] lookup failed: #{Exception.format(:error, error, __STACKTRACE__)}")
+      Logger.warning(
+        "[UspsTracking] lookup failed: #{Exception.format(:error, error, __STACKTRACE__)}"
+      )
+
       {:error, :lookup_failed}
   end
 
@@ -238,10 +241,10 @@ defmodule DncWatchdog.Enforcement.UspsTracking do
         "alert"
 
       String.contains?(text_lc, "in transit") or
-          String.contains?(text_lc, "departed") or
-          String.contains?(text_lc, "accepted") or
-          String.contains?(text_lc, "processed through") or
-          String.contains?(text_lc, "arrived at") or
+        String.contains?(text_lc, "departed") or
+        String.contains?(text_lc, "accepted") or
+        String.contains?(text_lc, "processed through") or
+        String.contains?(text_lc, "arrived at") or
           String.contains?(text_lc, "in possession") ->
         "in_transit"
 
@@ -281,7 +284,7 @@ defmodule DncWatchdog.Enforcement.UspsTracking do
         "alert"
 
       category_lc in ["accepted", "in transit", "in_transit"] or
-          String.contains?(status_lc, "in transit") or
+        String.contains?(status_lc, "in transit") or
           String.contains?(status_lc, "in possession") ->
         "in_transit"
 

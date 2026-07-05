@@ -6,4 +6,11 @@ defmodule DncWatchdog do
   Contexts are also responsible for managing your data, regardless
   if it comes from the database, an external API or others.
   """
+
+  use Boundary,
+    deps: [Ecto, Ecto.Changeset, Ecto.Adapters.SQL, Exqlite, Finch, Jason, ChromicPDF, Swoosh],
+    exports: [
+      Repo,
+      {Enforcement, []}
+    ]
 end

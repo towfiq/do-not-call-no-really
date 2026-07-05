@@ -38,13 +38,14 @@ defmodule DncWatchdog.Enforcement.CivilComplaintExporter do
               case_record,
               violations,
               Enforcement.list_case_attachments(case_record.id),
-              Keyword.merge(letter_opts, [
+              Keyword.merge(letter_opts,
                 filing_limits:
                   FilingLimits.civil_assess(length(violations),
                     calendar_year: limits.calendar_year,
-                    high_small_claims_filings_this_year: limits.small_claims_high_filings_this_year
+                    high_small_claims_filings_this_year:
+                      limits.small_claims_high_filings_this_year
                   )
-              ])
+              )
             )
           end
       end

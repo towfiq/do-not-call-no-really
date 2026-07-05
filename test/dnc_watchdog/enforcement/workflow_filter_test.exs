@@ -22,7 +22,11 @@ defmodule DncWatchdog.Enforcement.WorkflowFilterTest do
     refute intake.id in sent_ids
 
     delivered =
-      case_fixture(%{company_name: "Delivered Co", workflow_step: "delivered", status: "delivered"})
+      case_fixture(%{
+        company_name: "Delivered Co",
+        workflow_step: "delivered",
+        status: "delivered"
+      })
 
     delivered_ids = Enforcement.list_cases(workflow_phase: "delivered") |> Enum.map(& &1.id)
     assert delivered.id in delivered_ids

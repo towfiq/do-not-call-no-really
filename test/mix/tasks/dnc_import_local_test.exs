@@ -17,7 +17,10 @@ defmodule Mix.Tasks.Dnc.ImportLocalTest do
     %{messages_db: messages_db, calls_db: calls_db}
   end
 
-  test "run/1 imports from explicit database paths", %{messages_db: messages_db, calls_db: calls_db} do
+  test "run/1 imports from explicit database paths", %{
+    messages_db: messages_db,
+    calls_db: calls_db
+  } do
     output =
       capture_io(fn ->
         Mix.Task.run("dnc.import_local", [

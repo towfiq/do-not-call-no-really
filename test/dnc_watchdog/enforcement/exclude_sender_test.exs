@@ -47,6 +47,8 @@ defmodule DncWatchdog.Enforcement.ExcludeSenderTest do
       })
 
     assert {:ok, 1} = Enforcement.exclude_all_from_peer_for_communication(comm)
-    assert Repo.get!(DncWatchdog.Enforcement.Communication, comm.id).violation_status == "excluded"
+
+    assert Repo.get!(DncWatchdog.Enforcement.Communication, comm.id).violation_status ==
+             "excluded"
   end
 end

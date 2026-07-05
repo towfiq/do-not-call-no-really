@@ -1,7 +1,9 @@
 <.header>
   Messages & Calls
   <:subtitle>
-    {@filtered_count} shown of {@total_count} total · Last sync: {last_sync_label(@local_sync_state)}
+    {@filtered_count} shown of {@total_count} total · Last sync: {last_sync_label(
+      @local_sync_state
+    )}
   </:subtitle>
   <:actions>
     <.button
@@ -39,7 +41,8 @@
   <div class="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
     <p class="font-medium">No messages or calls match the current filters.</p>
     <p class="mt-1 text-zinc-600">
-      Click <strong>Sync from Mac</strong> or adjust filters above, then click <strong>Apply filters</strong>.
+      Click <strong>Sync from Mac</strong>
+      or adjust filters above, then click <strong>Apply filters</strong>.
     </p>
   </div>
 <% else %>
@@ -51,11 +54,16 @@
             <div class="min-w-0">
               <h2 class="text-sm font-semibold text-zinc-900">{group_title(group)}</h2>
               <p class="text-xs text-zinc-500">
-                {group.label} · {length(group.communications)} · latest {format_timestamp(group.latest.timestamp)}
+                {group.label} · {length(group.communications)} · latest {format_timestamp(
+                  group.latest.timestamp
+                )}
               </p>
             </div>
             <%= if group.latest.case do %>
-              <.link navigate={~p"/cases/#{group.latest.case}"} class="text-xs font-medium text-brand hover:underline">
+              <.link
+                navigate={~p"/cases/#{group.latest.case}"}
+                class="text-xs font-medium text-brand hover:underline"
+              >
                 {DncWatchdog.Enforcement.Case.display_name(group.latest.case)}
               </.link>
             <% end %>
@@ -69,6 +77,11 @@
       <% end %>
     </div>
   <% else %>
-    <.communication_rows_table communications={@communications} id_prefix="flat" compact class="mt-4 table-compact" />
+    <.communication_rows_table
+      communications={@communications}
+      id_prefix="flat"
+      compact
+      class="mt-4 table-compact"
+    />
   <% end %>
 <% end %>

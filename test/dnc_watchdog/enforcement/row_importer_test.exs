@@ -140,6 +140,7 @@ defmodule DncWatchdog.Enforcement.RowImporterTest do
 
     assert [%{company_name: "Caller 9254996086", id: case_id} | _] =
              Enforcement.list_cases() |> Enum.filter(&(&1.company_name == "Caller 9254996086"))
+
     assert case_id != unrelated.id
     assert length(Enforcement.list_case_communications(case_id)) == 1
   end
@@ -197,6 +198,7 @@ defmodule DncWatchdog.Enforcement.RowImporterTest do
     row = import_row_attrs(%{to_number: "local"})
 
     assert %{created_communications: 1} = RowImporter.import_rows([row])
+
     assert %{created_communications: 0, skipped_duplicates: 1} =
              RowImporter.import_rows([Map.put(row, :to_number, "4159719595")])
 

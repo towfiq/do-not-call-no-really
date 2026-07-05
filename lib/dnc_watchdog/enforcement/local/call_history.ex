@@ -144,6 +144,7 @@ defmodule DncWatchdog.Enforcement.Local.CallHistory do
 
   defp duration_to_seconds(value) when is_integer(value), do: value
   defp duration_to_seconds(value) when is_float(value), do: trunc(value)
+
   defp duration_to_seconds(value) when is_binary(value) do
     case Float.parse(value) do
       {num, _} -> trunc(num)
@@ -162,5 +163,4 @@ defmodule DncWatchdog.Enforcement.Local.CallHistory do
     do: apple_timestamp_to_naive(trunc(value))
 
   defp apple_timestamp_to_naive(_), do: ~N[1970-01-01 00:00:00]
-
 end

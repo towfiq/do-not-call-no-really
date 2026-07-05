@@ -114,6 +114,7 @@ end
 if System.get_env("DNC_PERIODIC_TRACKING_REFRESH") == "true" do
   config :dnc_watchdog, :periodic_tracking_refresh,
     enabled: true,
-    interval_ms: String.to_integer(System.get_env("DNC_TRACKING_REFRESH_INTERVAL_MS") || "3600000"),
+    interval_ms:
+      String.to_integer(System.get_env("DNC_TRACKING_REFRESH_INTERVAL_MS") || "3600000"),
     run_on_start: true
 end

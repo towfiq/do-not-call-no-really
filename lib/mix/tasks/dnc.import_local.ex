@@ -66,6 +66,7 @@ defmodule Mix.Tasks.Dnc.ImportLocal do
     end)
 
     Mix.shell().info("")
+
     if summary.since do
       Mix.shell().info("Lookback since: #{summary.since}")
     end
@@ -93,6 +94,7 @@ defmodule Mix.Tasks.Dnc.ImportLocal do
 
     if summary.created_communications == 0 and Map.get(summary, :skipped_duplicates, 0) > 0 do
       Mix.shell().info("")
+
       Mix.shell().info(
         "All rows in this batch were already imported (duplicate fingerprints). " <>
           "A longer lookback only adds rows that are not already in the database."
@@ -108,6 +110,7 @@ defmodule Mix.Tasks.Dnc.ImportLocal do
     end
 
     Mix.shell().info("")
+
     Mix.shell().info(
       "Tip: set DNC_MY_PHONE=\"+1...\" and use --lookback-days 7 for incremental imports. Duplicates are skipped automatically. --limit only applies when no lookback is set."
     )

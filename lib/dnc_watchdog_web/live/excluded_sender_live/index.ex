@@ -18,6 +18,9 @@ defmodule DncWatchdogWeb.ExcludedSenderLive.Index do
     {:noreply,
      socket
      |> assign(:senders, Enforcement.list_excluded_senders())
-     |> put_flash(:info, "Sender removed from excluded list. Future imports will no longer auto-exclude them.")}
+     |> put_flash(
+       :info,
+       "Sender removed from excluded list. Future imports will no longer auto-exclude them."
+     )}
   end
 end

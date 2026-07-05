@@ -8,6 +8,25 @@ defmodule DncWatchdog.MixProject do
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
+      compilers: [:boundary] ++ Mix.compilers(),
+      boundary: [
+        default: [
+          check: [
+            apps: [
+              :phoenix,
+              :phoenix_live_view,
+              :phoenix_html,
+              :phoenix_ecto,
+              :ecto,
+              :ecto_sql,
+              :exqlite,
+              :finch,
+              :chromic_pdf,
+              {:mix, :runtime}
+            ]
+          ]
+        ]
+      ],
       aliases: aliases(),
       deps: deps()
     ]
@@ -60,7 +79,9 @@ defmodule DncWatchdog.MixProject do
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.5"},
       {:exqlite, "~> 0.27"},
-      {:chromic_pdf, "~> 1.17"}
+      {:chromic_pdf, "~> 1.17"},
+      {:boundary, "~> 0.10", runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 
@@ -82,6 +103,13 @@ defmodule DncWatchdog.MixProject do
         "tailwind dnc_watchdog --minify",
         "esbuild dnc_watchdog --minify",
         "phx.digest"
+      ],
+      "quality.check": [
+        "compile.boundary --warnings-as-errors",
+        "compile --warnings-as-errors",
+        "format --check-formatted",
+        "credo --min-priority high",
+        "test"
       ]
     ]
   end

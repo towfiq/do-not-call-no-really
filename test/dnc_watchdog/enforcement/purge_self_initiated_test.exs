@@ -10,7 +10,13 @@ defmodule DncWatchdog.Enforcement.PurgeSelfInitiatedTest do
 
   test "purge/1 deletes outgoing and from-my-phone rows" do
     incoming = communication_fixture(%{direction: "incoming", from_number: "8001234567"})
-    _outgoing = communication_fixture(%{direction: "outgoing", from_number: "4159719595", to_number: "7818661626"})
+
+    _outgoing =
+      communication_fixture(%{
+        direction: "outgoing",
+        from_number: "4159719595",
+        to_number: "7818661626"
+      })
 
     assert {:ok, summary} = PurgeSelfInitiated.purge(my_phone: "4159719595")
     assert summary.matched == 1

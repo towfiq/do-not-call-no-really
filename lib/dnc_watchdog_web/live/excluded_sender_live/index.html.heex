@@ -1,7 +1,8 @@
 <.header>
   Excluded senders
   <:subtitle>
-    Senders marked via <strong>Exclude sender</strong> stay off your violation review list, including on future imports.
+    Senders marked via <strong>Exclude sender</strong>
+    stay off your violation review list, including on future imports.
   </:subtitle>
   <:actions>
     <.link navigate={~p"/communications"}>
@@ -15,11 +16,12 @@
     <p class="font-semibold">No excluded senders yet.</p>
     <p class="mt-2">
       On <.link navigate={~p"/communications"} class="text-brand hover:underline">Messages</.link>,
-      click <strong>Exclude sender</strong> on a row to dismiss that number (or email) now and on future imports.
+      click <strong>Exclude sender</strong>
+      on a row to dismiss that number (or email) now and on future imports.
     </p>
   </div>
 <% else %>
-  <.table id="excluded-senders" rows={@senders} row_id={&("sender-#{&1.id}")}>
+  <.table id="excluded-senders" rows={@senders} row_id={&"sender-#{&1.id}"}>
     <:col :let={sender} label="Sender">{sender.display_peer}</:col>
     <:col :let={sender} label="Type">{sender.peer_type}</:col>
     <:col :let={sender} label="Added">{sender.inserted_at}</:col>

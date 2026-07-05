@@ -42,7 +42,8 @@ defmodule DncWatchdog.Enforcement.FilingLimits do
   small-claims filings over $2,500 were already recorded this calendar year.
   """
   @spec assess(non_neg_integer(), keyword()) :: assessment()
-  def assess(violation_count, opts \\ []) when is_integer(violation_count) and violation_count >= 0 do
+  def assess(violation_count, opts \\ [])
+      when is_integer(violation_count) and violation_count >= 0 do
     year = Keyword.get(opts, :calendar_year, Date.utc_today().year)
     high_filings = Keyword.get(opts, :high_small_claims_filings_this_year, 0)
 
@@ -105,7 +106,8 @@ defmodule DncWatchdog.Enforcement.FilingLimits do
   @doc """
   Like `assess/2` but always recommends a civil court track for complaint drafting.
   """
-  def civil_assess(violation_count, opts \\ []) when is_integer(violation_count) and violation_count >= 0 do
+  def civil_assess(violation_count, opts \\ [])
+      when is_integer(violation_count) and violation_count >= 0 do
     limits = assess(violation_count, opts)
     venue = civil_venue_for_amount(limits.total_damages)
 

@@ -26,15 +26,24 @@ defmodule Mix.Tasks.Dnc.CheckContact do
 
     if discovered == [] do
       Mix.shell().error("")
-      Mix.shell().error("No Contacts databases found under ~/Library/Application Support/AddressBook.")
+
+      Mix.shell().error(
+        "No Contacts databases found under ~/Library/Application Support/AddressBook."
+      )
+
       Mix.shell().error("Expected AddressBook-v22.abcddb (root or Sources/*/).")
-      Mix.shell().error("Grant Full Disk Access to Terminal/Cursor, or pass --contacts-db explicitly.")
+
+      Mix.shell().error(
+        "Grant Full Disk Access to Terminal/Cursor, or pass --contacts-db explicitly."
+      )
+
       exit({:shutdown, 1})
     end
 
     case Contacts.load() do
       {:ok, set, loaded} ->
         Mix.shell().info("")
+
         Mix.shell().info(
           "Loaded #{MapSet.size(set.phones)} phone key(s) and #{MapSet.size(set.emails)} email(s) from #{length(loaded)} readable database(s)"
         )
@@ -58,7 +67,11 @@ defmodule Mix.Tasks.Dnc.CheckContact do
 
       {:error, {:contacts_unreadable, errors}} ->
         Mix.shell().error("Could not read Contacts databases:")
-        Enum.each(errors, fn {path, reason} -> Mix.shell().error("  #{path}: #{inspect(reason)}") end)
+
+        Enum.each(errors, fn {path, reason} ->
+          Mix.shell().error("  #{path}: #{inspect(reason)}")
+        end)
+
         exit({:shutdown, 1})
     end
   end

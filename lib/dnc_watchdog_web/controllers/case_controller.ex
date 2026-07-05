@@ -19,7 +19,8 @@ defmodule DncWatchdogWeb.CaseController do
 
         case LetterPdf.generate(case_record.letter_draft, attachments) do
           {:ok, pdf} ->
-            filename = "#{LetterExporter.safe_company_filename(case_record.company_name)}_demand_letter.pdf"
+            filename =
+              "#{LetterExporter.safe_company_filename(case_record.company_name)}_demand_letter.pdf"
 
             conn
             |> put_resp_content_type("application/pdf")

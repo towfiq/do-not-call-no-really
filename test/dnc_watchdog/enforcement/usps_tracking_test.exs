@@ -105,7 +105,8 @@ defmodule DncWatchdog.Enforcement.UspsTrackingTest do
       json =
         Jason.encode!(%{
           "blocked" => false,
-          "text" => "Returned to Sender We attempted to deliver your item but it was returned to sender."
+          "text" =>
+            "Returned to Sender We attempted to deliver your item but it was returned to sender."
         })
 
       assert {:ok, parsed} = UspsTracking.parse_page_json(json)

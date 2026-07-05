@@ -189,7 +189,15 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
 
   defp body_where(_), do: "m.text IS NOT NULL AND m.text != ''"
 
-  defp search_hit([rowid, apple_date, body, attributed_body, is_from_me, handle_id, chat_identifier]) do
+  defp search_hit([
+         rowid,
+         apple_date,
+         body,
+         attributed_body,
+         is_from_me,
+         handle_id,
+         chat_identifier
+       ]) do
     decoded = resolve_body(body, attributed_body)
 
     %{
@@ -199,7 +207,8 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
       chat_identifier: Sqlite.cell_to_string(chat_identifier),
       is_from_me: is_from_me in [1, "1", true],
       text_length: String.length(Sqlite.cell_to_string(body)),
-      attributed_body_length: if(is_binary(attributed_body), do: byte_size(attributed_body), else: 0),
+      attributed_body_length:
+        if(is_binary(attributed_body), do: byte_size(attributed_body), else: 0),
       decoded_body: decoded
     }
   end

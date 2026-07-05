@@ -17,7 +17,14 @@ defmodule DncWatchdog.Enforcement.EvidenceAttachment do
   @doc false
   def changeset(attachment, attrs) do
     attachment
-    |> cast(attrs, [:filename, :content_type, :storage_path, :caption, :case_id, :communication_id])
+    |> cast(attrs, [
+      :filename,
+      :content_type,
+      :storage_path,
+      :caption,
+      :case_id,
+      :communication_id
+    ])
     |> validate_required([:filename, :storage_path, :case_id])
   end
 end

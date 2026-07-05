@@ -16,14 +16,20 @@
 
     <:actions>
       <.button phx-disable-with="Saving...">Save profile</.button>
-      <.button type="button" phx-click="import_from_contacts" class="bg-white text-zinc-700 ring-zinc-300">
+      <.button
+        type="button"
+        phx-click="import_from_contacts"
+        class="bg-white text-zinc-700 ring-zinc-300"
+      >
         Import from Contacts
       </.button>
     </:actions>
   </.simple_form>
 
   <p class="mt-4 text-sm text-zinc-600">
-    You can also set environment variables such as <code class="rounded bg-zinc-100 px-1">DNC_MY_ADDRESS</code>
-    and <code class="rounded bg-zinc-100 px-1">DNC_MY_PHONE</code> for CLI exports. Saved profile values take precedence over env vars in the web app.
+    You can also set environment variables such as
+    <code class="rounded bg-zinc-100 px-1">DNC_MY_ADDRESS</code>
+    and <code class="rounded bg-zinc-100 px-1">DNC_MY_PHONE</code>
+    for CLI exports. Saved profile values take precedence over env vars in the web app.
   </p>
 </div>

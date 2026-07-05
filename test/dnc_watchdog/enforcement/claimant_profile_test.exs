@@ -22,9 +22,7 @@ defmodule DncWatchdog.Enforcement.ClaimantProfileTest do
     comm = communication_fixture(%{case_id: case.id, violation_status: "violation"})
 
     body =
-      LetterDraft.render(case, [comm], [],
-        claimant_profile: Enforcement.get_claimant_profile()
-      )
+      LetterDraft.render(case, [comm], [], claimant_profile: Enforcement.get_claimant_profile())
 
     assert body =~ "456 Elm St"
     assert body =~ "jane@example.com"

@@ -1,4 +1,22 @@
 defmodule DncWatchdogWeb do
+  use Boundary,
+    deps: [
+      DncWatchdog,
+      Ecto.Changeset,
+      Ecto.Adapters.SQL,
+      Phoenix,
+      Phoenix.LiveView,
+      Phoenix.Component,
+      Phoenix.LiveComponent,
+      Phoenix.HTML,
+      Phoenix.Ecto,
+      Bandit,
+      Plug,
+      Gettext
+    ],
+    dirty_xrefs: [DncWatchdog.DataCase],
+    exports: :all
+
   @moduledoc """
   The entrypoint for defining your web interface, such
   as controllers, components, channels, and so on.

@@ -52,9 +52,15 @@ defmodule DncWatchdog.Enforcement.SearchFilter do
     notes_match = dynamic([c], fragment("instr(lower(?), ?) > 0", coalesce(c.notes, ""), ^n))
     status_match = dynamic([c], fragment("instr(lower(?), ?) > 0", c.status, ^n))
     step_match = dynamic([c], fragment("instr(lower(?), ?) > 0", c.workflow_step, ^n))
-    claimant_match = dynamic([c], fragment("instr(lower(?), ?) > 0", coalesce(c.claimant_name, ""), ^n))
-    phone_match = dynamic([c], fragment("instr(lower(?), ?) > 0", coalesce(c.claimant_phone, ""), ^n))
-    email_match = dynamic([c], fragment("instr(lower(?), ?) > 0", coalesce(c.claimant_email, ""), ^n))
+
+    claimant_match =
+      dynamic([c], fragment("instr(lower(?), ?) > 0", coalesce(c.claimant_name, ""), ^n))
+
+    phone_match =
+      dynamic([c], fragment("instr(lower(?), ?) > 0", coalesce(c.claimant_phone, ""), ^n))
+
+    email_match =
+      dynamic([c], fragment("instr(lower(?), ?) > 0", coalesce(c.claimant_email, ""), ^n))
 
     comm_phone_match =
       if phone_ids == [] do

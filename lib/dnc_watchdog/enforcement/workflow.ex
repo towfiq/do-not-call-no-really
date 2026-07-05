@@ -104,7 +104,10 @@ defmodule DncWatchdog.Enforcement.Workflow do
 
     errors =
       if attachments == [] do
-        ["Upload at least one screenshot or evidence attachment (recommended before sending)." | errors]
+        [
+          "Upload at least one screenshot or evidence attachment (recommended before sending)."
+          | errors
+        ]
       else
         errors
       end
@@ -125,9 +128,14 @@ defmodule DncWatchdog.Enforcement.Workflow do
 
     draft_ok? =
       case limits.recommended_venue do
-        "small_claims" -> case.court_filing_draft not in [nil, ""]
-        venue when venue in ["limited_civil", "unlimited_civil"] -> case.civil_complaint_draft not in [nil, ""]
-        _ -> false
+        "small_claims" ->
+          case.court_filing_draft not in [nil, ""]
+
+        venue when venue in ["limited_civil", "unlimited_civil"] ->
+          case.civil_complaint_draft not in [nil, ""]
+
+        _ ->
+          false
       end
 
     if draft_ok? do

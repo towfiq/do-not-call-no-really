@@ -25,7 +25,12 @@ defmodule DncWatchdog.Enforcement.Local.ContactsTest do
     dir = SqliteFixtures.temp_dir!()
     on_exit(fn -> File.rm_rf(dir) end)
 
-    path = SqliteFixtures.create_split_phone_contacts_db(Path.join(dir, "AddressBook-v22.abcddb"), "323", "4812617")
+    path =
+      SqliteFixtures.create_split_phone_contacts_db(
+        Path.join(dir, "AddressBook-v22.abcddb"),
+        "323",
+        "4812617"
+      )
 
     assert {:ok, set, [^path]} = Contacts.load(contacts_dbs: [path])
     assert MapSet.member?(set.phones, "3234812617")

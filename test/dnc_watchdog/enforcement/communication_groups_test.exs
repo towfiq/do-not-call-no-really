@@ -9,10 +9,34 @@ defmodule DncWatchdog.Enforcement.CommunicationGroupsTest do
     newest = ~N[2026-06-09 18:00:00]
 
     communications = [
-      %{id: 1, direction: "incoming", from_number: "8187432556", to_number: "4159719595", timestamp: older},
-      %{id: 2, direction: "incoming", from_number: "8187432556", to_number: "4159719595", timestamp: newer},
-      %{id: 3, direction: "incoming", from_number: "8001112222", to_number: "4159719595", timestamp: newer},
-      %{id: 4, direction: "outgoing", from_number: "4159719595", to_number: "8187432556", timestamp: newest}
+      %{
+        id: 1,
+        direction: "incoming",
+        from_number: "8187432556",
+        to_number: "4159719595",
+        timestamp: older
+      },
+      %{
+        id: 2,
+        direction: "incoming",
+        from_number: "8187432556",
+        to_number: "4159719595",
+        timestamp: newer
+      },
+      %{
+        id: 3,
+        direction: "incoming",
+        from_number: "8001112222",
+        to_number: "4159719595",
+        timestamp: newer
+      },
+      %{
+        id: 4,
+        direction: "outgoing",
+        from_number: "4159719595",
+        to_number: "8187432556",
+        timestamp: newest
+      }
     ]
 
     groups = CommunicationGroups.group_by_peer(communications)

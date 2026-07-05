@@ -56,7 +56,13 @@ defmodule DncWatchdog.Enforcement.LetterExporter do
   defp write_case_letter(output_dir, case_record, pdf?) do
     attachments = Enforcement.list_case_attachments(case_record.id)
 
-    write_exports(output_dir, case_record.company_name, case_record.letter_draft, attachments, pdf?)
+    write_exports(
+      output_dir,
+      case_record.company_name,
+      case_record.letter_draft,
+      attachments,
+      pdf?
+    )
   end
 
   defp write_exports(output_dir, company_name, body, attachments, pdf?) do

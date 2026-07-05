@@ -24,8 +24,16 @@ defmodule DncWatchdog.SqliteFixtures do
     {:ok, conn} = Exqlite.Sqlite3.open(path)
 
     Exqlite.Sqlite3.execute(conn, "CREATE TABLE handle (ROWID INTEGER PRIMARY KEY, id TEXT)")
-    Exqlite.Sqlite3.execute(conn, "CREATE TABLE chat (ROWID INTEGER PRIMARY KEY, chat_identifier TEXT)")
-    Exqlite.Sqlite3.execute(conn, "CREATE TABLE chat_message_join (chat_id INTEGER, message_id INTEGER)")
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      "CREATE TABLE chat (ROWID INTEGER PRIMARY KEY, chat_identifier TEXT)"
+    )
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      "CREATE TABLE chat_message_join (chat_id INTEGER, message_id INTEGER)"
+    )
 
     Exqlite.Sqlite3.execute(
       conn,
@@ -34,7 +42,11 @@ defmodule DncWatchdog.SqliteFixtures do
 
     Exqlite.Sqlite3.execute(conn, "INSERT INTO handle (ROWID, id) VALUES (1, '+18001234567')")
     Exqlite.Sqlite3.execute(conn, "INSERT INTO handle (ROWID, id) VALUES (2, '+15550001234')")
-    Exqlite.Sqlite3.execute(conn, "INSERT INTO chat (ROWID, chat_identifier) VALUES (1, '+18187432556')")
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      "INSERT INTO chat (ROWID, chat_identifier) VALUES (1, '+18187432556')"
+    )
 
     ns = apple_nanoseconds(incoming_date)
 

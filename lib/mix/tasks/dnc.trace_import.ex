@@ -31,9 +31,12 @@ defmodule Mix.Tasks.Dnc.TraceImport do
 
     case DncWatchdog.Enforcement.Local.Messages.read(path, import_opts) do
       {:ok, rows} ->
-        matches = Enum.filter(rows, fn row -> row.from_number == digits or row.to_number == digits end)
+        matches =
+          Enum.filter(rows, fn row -> row.from_number == digits or row.to_number == digits end)
 
-        Mix.shell().info("Messages.read returned #{length(rows)} row(s); #{length(matches)} match #{digits}")
+        Mix.shell().info(
+          "Messages.read returned #{length(rows)} row(s); #{length(matches)} match #{digits}"
+        )
 
         if matches == [] do
           Mix.shell().info("")
@@ -43,7 +46,11 @@ defmodule Mix.Tasks.Dnc.TraceImport do
 
         Enum.each(matches, fn row ->
           Mix.shell().info("")
-          Mix.shell().info("#{row.timestamp} #{row.direction} #{row.from_number} -> #{row.to_number}")
+
+          Mix.shell().info(
+            "#{row.timestamp} #{row.direction} #{row.from_number} -> #{row.to_number}"
+          )
+
           Mix.shell().info("  body: #{String.slice(row.body, 0, 120)}")
 
           case DncWatchdog.Enforcement.RowImporter.import_row(row) do

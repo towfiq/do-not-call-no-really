@@ -67,7 +67,8 @@ defmodule DncWatchdog.Enforcement.LetterPdf do
   @doc """
   Returns `:ok` when ChromicPDF is loaded and started, otherwise an error tuple.
   """
-  @spec ensure_chromic_pdf!() :: :ok | {:error, :chromic_pdf_unavailable | :chromic_pdf_not_started}
+  @spec ensure_chromic_pdf!() ::
+          :ok | {:error, :chromic_pdf_unavailable | :chromic_pdf_not_started}
   def ensure_chromic_pdf! do
     cond do
       not Code.ensure_loaded?(ChromicPDF) or not function_exported?(ChromicPDF, :print_to_pdf, 2) ->
@@ -264,7 +265,10 @@ defmodule DncWatchdog.Enforcement.LetterPdf do
 
   defp escape_html(text) when is_binary(text) do
     text
-    |> Phoenix.HTML.html_escape()
-    |> Phoenix.HTML.safe_to_string()
+    |> String.replace("&", "&amp;")
+    |> String.replace("<", "&lt;")
+    |> String.replace(">", "&gt;")
+    |> String.replace("\"", "&quot;")
+    |> String.replace("'", "&#39;")
   end
 end

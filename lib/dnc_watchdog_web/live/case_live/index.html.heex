@@ -24,7 +24,9 @@
   rows={@streams.cases}
   row_click={fn {_id, case} -> JS.navigate(~p"/cases/#{case}") end}
 >
-  <:col :let={{_id, case}} label="Defendant">{DncWatchdog.Enforcement.Case.display_name(case)}</:col>
+  <:col :let={{_id, case}} label="Defendant">
+    {DncWatchdog.Enforcement.Case.display_name(case)}
+  </:col>
   <:col :let={{_id, case}} label="Communications">{length(case.communications)}</:col>
   <:col :let={{_id, case}} label="Status">{case.status}</:col>
   <:col :let={{_id, case}} label="Workflow step">{case.workflow_step}</:col>

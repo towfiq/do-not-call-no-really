@@ -138,7 +138,8 @@ defmodule DncWatchdog.Enforcement.Local.Contacts do
         []
       else
         digits =
-          if country != "" and byte_size(composed) <= 10 and not String.starts_with?(composed, country) do
+          if country != "" and byte_size(composed) <= 10 and
+               not String.starts_with?(composed, country) do
             country <> composed
           else
             composed
@@ -149,7 +150,8 @@ defmodule DncWatchdog.Enforcement.Local.Contacts do
     end
   end
 
-  defp phone_lookup_keys(row), do: row |> List.first() |> Sqlite.cell_to_string() |> Phone.lookup_keys()
+  defp phone_lookup_keys(row),
+    do: row |> List.first() |> Sqlite.cell_to_string() |> Phone.lookup_keys()
 
   defp table_from_sql(sql) do
     case Regex.run(~r/\bFROM\s+([A-Za-z0-9_]+)/i, sql) do

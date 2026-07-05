@@ -90,7 +90,9 @@ defmodule DncWatchdog.Enforcement do
   defp maybe_filter_workflow_steps(query, _), do: query
 
   defp maybe_preload_communications(query, opts) do
-    if Keyword.get(opts, :preload_communications), do: preload(query, :communications), else: query
+    if Keyword.get(opts, :preload_communications),
+      do: preload(query, :communications),
+      else: query
   end
 
   defp maybe_preload_legal_entity(query, opts) do
@@ -126,6 +128,7 @@ defmodule DncWatchdog.Enforcement do
   def list_case_communications(case_id, opts \\ []) do
     case_id
     |> communications_query(opts)
+    |> preload(case: :legal_entity)
     |> Repo.all()
   end
 
@@ -363,7 +366,11 @@ defmodule DncWatchdog.Enforcement do
         {:error, :invalid_peer}
 
       {peer_type, peer_key, display_peer} ->
-        attrs = %{peer_type: Atom.to_string(peer_type), peer_key: peer_key, display_peer: display_peer}
+        attrs = %{
+          peer_type: Atom.to_string(peer_type),
+          peer_key: peer_key,
+          display_peer: display_peer
+        }
 
         case Repo.get_by(ExcludedSender, peer_key: peer_key) do
           %ExcludedSender{} = existing ->
@@ -673,9 +680,7 @@ defmodule DncWatchdog.Enforcement do
     profile = get_claimant_profile()
 
     draft =
-      LetterDraft.render(case, violations, attachments,
-        claimant_profile: profile
-      )
+      LetterDraft.render(case, violations, attachments, claimant_profile: profile)
 
     update_case(case, %{letter_draft: draft})
   end
@@ -716,7 +721,11 @@ defmodule DncWatchdog.Enforcement do
       draft =
         CivilComplaintDraft.render(case, violations, attachments,
           claimant_profile: profile,
-          filing_limits: FilingLimits.civil_assess(length(violations), calendar_year: limits.calendar_year, high_small_claims_filings_this_year: limits.small_claims_high_filings_this_year)
+          filing_limits:
+            FilingLimits.civil_assess(length(violations),
+              calendar_year: limits.calendar_year,
+              high_small_claims_filings_this_year: limits.small_claims_high_filings_this_year
+            )
         )
 
       update_case(case, %{civil_complaint_draft: draft})
@@ -729,7 +738,8 @@ defmodule DncWatchdog.Enforcement do
 
     FilingLimits.assess(length(violations),
       calendar_year: year,
-      high_small_claims_filings_this_year: count_high_small_claims_filings(year, exclude_case_id: case.id)
+      high_small_claims_filings_this_year:
+        count_high_small_claims_filings(year, exclude_case_id: case.id)
     )
   end
 
@@ -770,7 +780,8 @@ defmodule DncWatchdog.Enforcement do
     attachments = list_case_attachments(case.id)
     filing_limits = assess_case_filing_limits(case)
 
-    with :ok <- Workflow.validate_advance(case, violations, attachments, filing_limits: filing_limits),
+    with :ok <-
+           Workflow.validate_advance(case, violations, attachments, filing_limits: filing_limits),
          next_step <- Workflow.next_step(case.workflow_step),
          next_status <- Workflow.next_status(next_step) do
       update_case(case, %{workflow_step: next_step, status: next_status})
@@ -813,7 +824,13 @@ defmodule DncWatchdog.Enforcement do
   end
 
   defp litigation_requirements(case, filing_limits) do
-    if case.workflow_step in ["intake", "triage", "evidence_review", "draft_review", "ready_to_send"] do
+    if case.workflow_step in [
+         "intake",
+         "triage",
+         "evidence_review",
+         "draft_review",
+         "ready_to_send"
+       ] do
       []
     else
       draft_label =
@@ -849,7 +866,8 @@ defmodule DncWatchdog.Enforcement do
     end
   end
 
-  defp court_filing_detail(%Case{court_filed_at: nil}), do: "Record date, venue, and amount after filing"
+  defp court_filing_detail(%Case{court_filed_at: nil}),
+    do: "Record date, venue, and amount after filing"
 
   defp court_filing_detail(%Case{} = case) do
     venue = FilingLimits.venue_label(case.court_filed_venue || "")
@@ -976,7 +994,9 @@ defmodule DncWatchdog.Enforcement do
     end
   end
 
-  defp maybe_mark_delivered_workflow(%Case{workflow_step: "sent", mail_delivery_status: "delivered"} = case) do
+  defp maybe_mark_delivered_workflow(
+         %Case{workflow_step: "sent", mail_delivery_status: "delivered"} = case
+       ) do
     update_case(case, %{workflow_step: "delivered", status: "delivered"})
   end
 
@@ -986,7 +1006,8 @@ defmodule DncWatchdog.Enforcement do
     cases =
       from(c in Case,
         where: not is_nil(c.mail_tracking_number) and c.mail_tracking_number != "",
-        where: c.mail_delivery_status not in @terminal_mail_statuses or is_nil(c.mail_delivery_status)
+        where:
+          c.mail_delivery_status not in @terminal_mail_statuses or is_nil(c.mail_delivery_status)
       )
       |> Repo.all()
 
@@ -1009,7 +1030,8 @@ defmodule DncWatchdog.Enforcement do
 
   def unlink_case(%Case{} = case_record), do: CaseGroups.unlink_case(case_record)
 
-  def merge_case_into(%Case{} = target, source_id), do: CaseGroups.merge_case_into(target, source_id)
+  def merge_case_into(%Case{} = target, source_id),
+    do: CaseGroups.merge_case_into(target, source_id)
 
   def list_linkable_cases(%Case{} = case_record) do
     search_linkable_cases(case_record, "")

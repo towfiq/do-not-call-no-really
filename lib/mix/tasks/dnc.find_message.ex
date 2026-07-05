@@ -23,7 +23,10 @@ defmodule Mix.Tasks.Dnc.FindMessage do
       {:ok, []} ->
         Mix.shell().info("No rows found in chat.db for that number.")
         Mix.shell().info("")
-        Mix.shell().info("If the text appears in Messages.app, check Junk/Filtered and quit Messages before re-running.")
+
+        Mix.shell().info(
+          "If the text appears in Messages.app, check Junk/Filtered and quit Messages before re-running."
+        )
 
       {:ok, hits} ->
         Mix.shell().info("Found #{length(hits)} row(s):")
@@ -43,7 +46,10 @@ defmodule Mix.Tasks.Dnc.FindMessage do
             |> String.replace("\n", " ")
             |> String.slice(0, 120)
 
-          Mix.shell().info("  decoded: #{if preview == "", do: "(empty — decode failed)", else: preview}")
+          Mix.shell().info(
+            "  decoded: #{if preview == "", do: "(empty — decode failed)", else: preview}"
+          )
+
           Mix.shell().info("")
         end)
 

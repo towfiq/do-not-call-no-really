@@ -56,8 +56,8 @@ defmodule DncWatchdog.Enforcement.PostgresImporter do
           Map.put(acc, table, length(rows))
         end)
 
-        replace_schema_migrations(schema_migrations)
-        Ecto.Adapters.SQL.query!(Repo, "PRAGMA foreign_keys = ON")
+      replace_schema_migrations(schema_migrations)
+      Ecto.Adapters.SQL.query!(Repo, "PRAGMA foreign_keys = ON")
 
       total_rows = counts |> Map.values() |> Enum.sum()
       %{tables: counts, total_rows: total_rows}
@@ -106,7 +106,10 @@ defmodule DncWatchdog.Enforcement.PostgresImporter do
   defp coerce_field(key, value) when key in @boolean_fields, do: coerce_boolean(value)
   defp coerce_field(key, value) when key in @integer_fields, do: coerce_integer(value)
   defp coerce_field(key, value) when key in @datetime_fields, do: coerce_datetime(value)
-  defp coerce_field(key, value) when key in @naive_datetime_fields, do: coerce_naive_datetime(value)
+
+  defp coerce_field(key, value) when key in @naive_datetime_fields,
+    do: coerce_naive_datetime(value)
+
   defp coerce_field(key, value) when key in @date_fields, do: coerce_date(value)
   defp coerce_field(key, value) when key in @decimal_fields, do: coerce_decimal(value)
   defp coerce_field(_key, value), do: value

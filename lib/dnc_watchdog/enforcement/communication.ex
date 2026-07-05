@@ -116,4 +116,3 @@ defmodule DncWatchdog.Enforcement.Communication do
 
   def violation_statuses, do: @violation_statuses
 end
-

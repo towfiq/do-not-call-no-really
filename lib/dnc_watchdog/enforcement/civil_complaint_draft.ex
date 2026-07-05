@@ -50,16 +50,36 @@ defmodule DncWatchdog.Enforcement.CivilComplaintDraft do
 
   defp build_facts(case, violations, attachments, profile, limits, opts) do
     claimant_name =
-      ClaimantProfile.resolve(:name, Keyword.get(opts, :claimant_name), case.claimant_name, profile)
+      ClaimantProfile.resolve(
+        :name,
+        Keyword.get(opts, :claimant_name),
+        case.claimant_name,
+        profile
+      )
 
     claimant_address =
-      ClaimantProfile.resolve(:address, Keyword.get(opts, :claimant_address), case.claimant_address, profile)
+      ClaimantProfile.resolve(
+        :address,
+        Keyword.get(opts, :claimant_address),
+        case.claimant_address,
+        profile
+      )
 
     claimant_phone =
-      ClaimantProfile.resolve(:phone, Keyword.get(opts, :claimant_phone), case.claimant_phone, profile)
+      ClaimantProfile.resolve(
+        :phone,
+        Keyword.get(opts, :claimant_phone),
+        case.claimant_phone,
+        profile
+      )
 
     claimant_email =
-      ClaimantProfile.resolve(:email, Keyword.get(opts, :claimant_email), case.claimant_email, profile)
+      ClaimantProfile.resolve(
+        :email,
+        Keyword.get(opts, :claimant_email),
+        case.claimant_email,
+        profile
+      )
 
     county =
       ClaimantProfile.resolve(
@@ -120,7 +140,7 @@ defmodule DncWatchdog.Enforcement.CivilComplaintDraft do
 
     IMPORTANT: Generated software output, not legal advice. Review before filing.
     File at #{@civil_division_url}. Download statewide forms at #{@forms_url}.
-  #{limits_summary(facts.limits)}
+    #{limits_summary(facts.limits)}
     """
     |> String.trim()
   end
@@ -379,6 +399,7 @@ defmodule DncWatchdog.Enforcement.CivilComplaintDraft do
       |> Enum.map(fn {comm, idx} ->
         time = format_timestamp(comm.timestamp)
         body = String.slice(comm.body || "", 0, 60)
+
         "| #{idx} | #{time} | #{comm.channel} | #{comm.from_number} | #{format_money(FilingLimits.per_violation_damages())} | #{body} |"
       end)
       |> Enum.join("\n")
@@ -435,9 +456,12 @@ defmodule DncWatchdog.Enforcement.CivilComplaintDraft do
   defp defendant_address(_), do: ["[Defendant Street Address]", "[City, State Zip]"]
 
   defp single_line_address(lines) when is_list(lines), do: Enum.join(lines, ", ")
-  defp single_line_address(address) when is_binary(address), do: String.replace(address, "\n", ", ")
 
-  defp dnc_date(%Case{dnc_registration_date: %Date{} = date}, _opts, _profile), do: format_date(date)
+  defp single_line_address(address) when is_binary(address),
+    do: String.replace(address, "\n", ", ")
+
+  defp dnc_date(%Case{dnc_registration_date: %Date{} = date}, _opts, _profile),
+    do: format_date(date)
 
   defp dnc_date(%Case{} = case, opts, profile) do
     case ClaimantProfile.resolve(

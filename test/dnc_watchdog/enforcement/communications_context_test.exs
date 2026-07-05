@@ -20,7 +20,18 @@ defmodule DncWatchdog.Enforcement.CommunicationsContextTest do
     {:ok, newer} =
       Enforcement.create_communication(Map.put(attrs, :timestamp, ~N[2026-05-21 09:00:00]))
 
-    assert [^newer, ^older] = Enforcement.list_case_communications(attrs.case_id)
+    [first, second] = Enforcement.list_case_communications(attrs.case_id)
+    assert first.id == newer.id
+    assert second.id == older.id
+  end
+
+  test "list_case_communications/1 preloads case association" do
+    comm = communication_fixture()
+
+    [loaded] = Enforcement.list_case_communications(comm.case_id)
+
+    assert Ecto.assoc_loaded?(loaded.case)
+    assert loaded.case.id == comm.case_id
   end
 
   test "list_cases/1 can preload communications" do

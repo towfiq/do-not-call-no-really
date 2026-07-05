@@ -6,13 +6,14 @@ sqlite_defaults = [
 ]
 
 # Configure your database
-config :dnc_watchdog, DncWatchdog.Repo,
-  [
-    database: Path.expand("../priv/repo/dnc_watchdog_dev.db", __DIR__),
-    pool_size: 10,
-    stacktrace: true,
-    show_sensitive_data_on_connection_error: true
-  ] ++ sqlite_defaults
+config :dnc_watchdog,
+       DncWatchdog.Repo,
+       [
+         database: Path.expand("../priv/repo/dnc_watchdog_dev.db", __DIR__),
+         pool_size: 10,
+         stacktrace: true,
+         show_sensitive_data_on_connection_error: true
+       ] ++ sqlite_defaults
 
 # For development, we disable any cache and enable
 # debugging and code reloading.

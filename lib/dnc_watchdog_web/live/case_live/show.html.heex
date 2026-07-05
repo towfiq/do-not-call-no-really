@@ -15,7 +15,10 @@
 <div class="mt-4 grid gap-4 lg:grid-cols-2">
   <.list>
     <:item title="Defendant">{DncWatchdog.Enforcement.Case.display_name(@case)}</:item>
-    <:item :if={DncWatchdog.Enforcement.Case.display_name(@case) != @case.company_name} title="Import label">
+    <:item
+      :if={DncWatchdog.Enforcement.Case.display_name(@case) != @case.company_name}
+      title="Import label"
+    >
       {@case.company_name}
     </:item>
     <:item title="Status">{@case.status}</:item>
@@ -27,7 +30,9 @@
     <:item title="STOP contact date">{@case.stop_contact_date || "—"}</:item>
     <:item title="Small claims county">{@case.small_claims_county || "—"}</:item>
     <:item title="Settlement offer">{@case.settlement_amount || "Full statutory total"}</:item>
-    <:item title="Relief per violation">{@case.relief_amount_per_violation || "500.00 (default)"}</:item>
+    <:item title="Relief per violation">
+      {@case.relief_amount_per_violation || "500.00 (default)"}
+    </:item>
     <:item title="Notes">{@case.notes}</:item>
   </.list>
 
@@ -43,7 +48,7 @@
           ]} />
           <span>
             <span class="font-medium">{req.label}</span>
-            <span class="text-zinc-500"> — {req.detail}</span>
+            <span class="text-zinc-500"> —  {req.detail}</span>
           </span>
         </li>
       <% end %>
@@ -67,9 +72,16 @@
     </div>
   </div>
 
-  <form id="evidence-upload-form" phx-submit="upload_evidence" phx-change="validate_evidence" class="mt-4">
+  <form
+    id="evidence-upload-form"
+    phx-submit="upload_evidence"
+    phx-change="validate_evidence"
+    class="mt-4"
+  >
     <.live_file_input upload={@uploads.evidence} class="text-sm" />
-    <.button type="submit" class="mt-2" phx-disable-with="Uploading...">Upload selected files</.button>
+    <.button type="submit" class="mt-2" phx-disable-with="Uploading...">
+      Upload selected files
+    </.button>
   </form>
 
   <%= for entry <- @uploads.evidence.entries do %>
@@ -83,11 +95,15 @@
       <%= for att <- @attachments do %>
         <li class="flex items-center justify-between rounded border border-zinc-100 px-3 py-2 text-sm">
           <div>
-            <a href={attachment_url(att)} target="_blank" class="font-medium text-brand hover:underline">
+            <a
+              href={attachment_url(att)}
+              target="_blank"
+              class="font-medium text-brand hover:underline"
+            >
               {att.filename}
             </a>
             <%= if att.caption do %>
-              <span class="text-zinc-500"> — {att.caption}</span>
+              <span class="text-zinc-500"> —  {att.caption}</span>
             <% end %>
           </div>
           <button
@@ -147,21 +163,28 @@
     <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
       <div>
         <dt class="font-medium text-zinc-700">Violations / trial damages</dt>
-        <dd class="text-zinc-600">{@filing_limits.violation_count} × $1,500 = {format_money_decimal(@filing_limits.total_damages)}</dd>
+        <dd class="text-zinc-600">
+          {@filing_limits.violation_count} × $1,500 = {format_money_decimal(
+            @filing_limits.total_damages
+          )}
+        </dd>
       </div>
       <div>
         <dt class="font-medium text-zinc-700">Small claims amount</dt>
-        <dd class="text-zinc-600">{format_money_decimal(@filing_limits.small_claims_claim_amount)}</dd>
+        <dd class="text-zinc-600">
+          {format_money_decimal(@filing_limits.small_claims_claim_amount)}
+        </dd>
       </div>
       <div>
         <dt class="font-medium text-zinc-700">Recommended venue</dt>
         <dd class="text-zinc-600">{@filing_limits.recommended_venue_label}</dd>
       </div>
       <div>
-        <dt class="font-medium text-zinc-700">Small claims &gt;$2,500 slots ({@filing_limits.calendar_year})</dt>
+        <dt class="font-medium text-zinc-700">
+          Small claims &gt;$2,500 slots ({@filing_limits.calendar_year})
+        </dt>
         <dd class="text-zinc-600">
-          {@filing_limits.small_claims_high_filings_this_year} used,
-          {@filing_limits.small_claims_high_filings_remaining} remaining
+          {@filing_limits.small_claims_high_filings_this_year} used, {@filing_limits.small_claims_high_filings_remaining} remaining
         </dd>
       </div>
     </dl>
@@ -183,8 +206,7 @@
   </p>
   <%= if @case.court_filing_draft in [nil, ""] do %>
     <p class="mt-2 text-sm text-zinc-600">
-      Mark violations and add the defendant's legal entity address, then click
-      <strong>Generate small claims filing</strong>.
+      Mark violations and add the defendant's legal entity address, then click <strong>Generate small claims filing</strong>.
     </p>
   <% else %>
     <div class="mt-3 flex flex-wrap gap-2">
@@ -220,9 +242,15 @@
   <p class="mt-1 text-sm text-zinc-600">
     After you file, record the date, venue, and amount claimed. This tracks your annual small-claims limit.
   </p>
-  <form id="court-filing-form" phx-submit="save_court_filing" class="mt-4 grid gap-3 sm:grid-cols-2">
+  <form
+    id="court-filing-form"
+    phx-submit="save_court_filing"
+    class="mt-4 grid gap-3 sm:grid-cols-2"
+  >
     <div>
-      <label for="court_filing_filed_at" class="block text-sm font-medium text-zinc-700">Filing date</label>
+      <label for="court_filing_filed_at" class="block text-sm font-medium text-zinc-700">
+        Filing date
+      </label>
       <input
         type="date"
         name="court_filing[filed_at]"
@@ -232,7 +260,9 @@
       />
     </div>
     <div>
-      <label for="court_filing_venue" class="block text-sm font-medium text-zinc-700">Venue</label>
+      <label for="court_filing_venue" class="block text-sm font-medium text-zinc-700">
+        Venue
+      </label>
       <select
         name="court_filing[venue]"
         id="court_filing_venue"
@@ -247,7 +277,9 @@
       </select>
     </div>
     <div class="sm:col-span-2">
-      <label for="court_filing_amount" class="block text-sm font-medium text-zinc-700">Amount claimed</label>
+      <label for="court_filing_amount" class="block text-sm font-medium text-zinc-700">
+        Amount claimed
+      </label>
       <input
         type="number"
         name="court_filing[amount]"
@@ -281,7 +313,11 @@
     <% end %>
   </div>
 
-  <form id="mail-tracking-form" phx-submit="save_mail_tracking" class="mt-4 flex flex-wrap items-end gap-3">
+  <form
+    id="mail-tracking-form"
+    phx-submit="save_mail_tracking"
+    class="mt-4 flex flex-wrap items-end gap-3"
+  >
     <div class="min-w-[16rem] flex-1">
       <label for="mail_tracking_tracking_number" class="block text-sm font-medium text-zinc-700">
         Tracking number
@@ -324,7 +360,9 @@
       </div>
       <div class="sm:col-span-2">
         <dt class="font-medium text-zinc-700">Latest status</dt>
-        <dd class="text-zinc-600">{@case.mail_tracking_summary || "Not checked yet — click Refresh status"}</dd>
+        <dd class="text-zinc-600">
+          {@case.mail_tracking_summary || "Not checked yet — click Refresh status"}
+        </dd>
       </div>
     </dl>
   <% end %>

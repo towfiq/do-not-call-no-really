@@ -17,13 +17,49 @@ defmodule DncWatchdog.Enforcement.LetterDraft do
   def render(%Case{} = case, violations, attachments, opts \\ []) do
     profile = Keyword.get(opts, :claimant_profile)
 
-    claimant_name = ClaimantProfile.resolve(:name, Keyword.get(opts, :claimant_name), case.claimant_name, profile)
-    claimant_address = ClaimantProfile.resolve(:address, Keyword.get(opts, :claimant_address), case.claimant_address, profile)
-    claimant_phone = ClaimantProfile.resolve(:phone, Keyword.get(opts, :claimant_phone), case.claimant_phone, profile)
-    claimant_email = ClaimantProfile.resolve(:email, Keyword.get(opts, :claimant_email), case.claimant_email, profile)
+    claimant_name =
+      ClaimantProfile.resolve(
+        :name,
+        Keyword.get(opts, :claimant_name),
+        case.claimant_name,
+        profile
+      )
+
+    claimant_address =
+      ClaimantProfile.resolve(
+        :address,
+        Keyword.get(opts, :claimant_address),
+        case.claimant_address,
+        profile
+      )
+
+    claimant_phone =
+      ClaimantProfile.resolve(
+        :phone,
+        Keyword.get(opts, :claimant_phone),
+        case.claimant_phone,
+        profile
+      )
+
+    claimant_email =
+      ClaimantProfile.resolve(
+        :email,
+        Keyword.get(opts, :claimant_email),
+        case.claimant_email,
+        profile
+      )
+
     dnc_date = dnc_date(case, opts, profile)
     stop_date = stop_contact_date(case, opts)
-    county = ClaimantProfile.resolve(:small_claims_county, Keyword.get(opts, :small_claims_county), case.small_claims_county, profile)
+
+    county =
+      ClaimantProfile.resolve(
+        :small_claims_county,
+        Keyword.get(opts, :small_claims_county),
+        case.small_claims_county,
+        profile
+      )
+
     entity = case.legal_entity
     company_name = defendant_name(entity, case)
 
@@ -43,7 +79,16 @@ defmodule DncWatchdog.Enforcement.LetterDraft do
     channel_label = channel_label(sorted_violations)
     evidence_types = evidence_types(sorted_violations, attachments)
     willful_paragraph = willful_paragraph(stop_date, willful_count)
-    damages_breakdown = damages_breakdown(standard_count, standard_total, willful_count, willful_total, total_statutory)
+
+    damages_breakdown =
+      damages_breakdown(
+        standard_count,
+        standard_total,
+        willful_count,
+        willful_total,
+        total_statutory
+      )
+
     tcpa_quotes = tcpa_statutory_quotes_section(sorted_violations)
     appendix = violation_appendix(sorted_violations, attachments)
 
@@ -129,10 +174,16 @@ defmodule DncWatchdog.Enforcement.LetterDraft do
 
   defp defendant_name(_, _), do: "[Company Name]"
 
-  defp dnc_date(%Case{dnc_registration_date: %Date{} = date}, _opts, _profile), do: format_letter_date(date)
+  defp dnc_date(%Case{dnc_registration_date: %Date{} = date}, _opts, _profile),
+    do: format_letter_date(date)
 
   defp dnc_date(%Case{} = case, opts, profile) do
-    case ClaimantProfile.resolve(:dnc_registration_date, Keyword.get(opts, :dnc_registration_date), case.dnc_registration_date, profile) do
+    case ClaimantProfile.resolve(
+           :dnc_registration_date,
+           Keyword.get(opts, :dnc_registration_date),
+           case.dnc_registration_date,
+           profile
+         ) do
       %Date{} = date -> format_letter_date(date)
       value -> value
     end
@@ -226,7 +277,13 @@ defmodule DncWatchdog.Enforcement.LetterDraft do
     |> String.trim()
   end
 
-  defp damages_breakdown(standard_count, standard_total, willful_count, willful_total, total_statutory) do
+  defp damages_breakdown(
+         standard_count,
+         standard_total,
+         willful_count,
+         willful_total,
+         total_statutory
+       ) do
     lines =
       [
         "#{standard_count} Standard Violations × $500 = #{format_money(standard_total)}",
@@ -357,7 +414,9 @@ defmodule DncWatchdog.Enforcement.LetterDraft do
         sections
       end
 
-    sections |> Enum.join("") |> String.trim()
+    sections
+    |> Enum.join("")
+    |> String.trim()
     |> case do
       "" -> ""
       appendix -> "\n\n" <> appendix

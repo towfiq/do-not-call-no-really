@@ -6,6 +6,24 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
 
   alias DncWatchdog.Enforcement
 
+  test "shows legal entity name for linked case", %{conn: conn} do
+    case =
+      case_with_legal_entity_fixture(%{
+        company_name: "Caller 9254996086"
+      })
+
+    communication_fixture(%{
+      case_id: case.id,
+      body: "legal entity display test",
+      violation_status: "violation"
+    })
+
+    {:ok, _view, html} = live(conn, ~p"/communications")
+
+    assert html =~ "Equinox Roofing LLC"
+    assert html =~ "legal entity display test"
+  end
+
   test "lists imported communications with message body", %{conn: conn} do
     communication_fixture(%{body: "Hello from import test", violation_status: "violation"})
 
@@ -53,9 +71,23 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
   end
 
   test "group by sender filter shows sender sections", %{conn: conn} do
-    communication_fixture(%{from_number: "8001112222", body: "spam one", violation_status: "violation"})
-    communication_fixture(%{from_number: "8001112222", body: "spam two", violation_status: "violation"})
-    communication_fixture(%{from_number: "8009990000", body: "other line", violation_status: "violation"})
+    communication_fixture(%{
+      from_number: "8001112222",
+      body: "spam one",
+      violation_status: "violation"
+    })
+
+    communication_fixture(%{
+      from_number: "8001112222",
+      body: "spam two",
+      violation_status: "violation"
+    })
+
+    communication_fixture(%{
+      from_number: "8009990000",
+      body: "other line",
+      violation_status: "violation"
+    })
 
     {:ok, view, html} = live(conn, ~p"/communications")
 
@@ -90,10 +122,23 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
 
   test "exclude sender marks all communications from the same number", %{conn: conn} do
     first =
-      communication_fixture(%{from_number: "8001112222", violation_status: "pending", body: "spam 1"})
+      communication_fixture(%{
+        from_number: "8001112222",
+        violation_status: "pending",
+        body: "spam 1"
+      })
 
-    communication_fixture(%{from_number: "8001112222", violation_status: "violation", body: "spam 2"})
-    communication_fixture(%{from_number: "8009990000", violation_status: "pending", body: "other"})
+    communication_fixture(%{
+      from_number: "8001112222",
+      violation_status: "violation",
+      body: "spam 2"
+    })
+
+    communication_fixture(%{
+      from_number: "8009990000",
+      violation_status: "pending",
+      body: "other"
+    })
 
     {:ok, view, _html} = live(conn, ~p"/communications")
 
@@ -105,17 +150,29 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
     refute html =~ "spam 1"
     refute html =~ "spam 2"
     assert html =~ "other"
-    assert html =~ "Marked 2 communication(s) from 8001112222 as not a violation; sender saved for future imports"
+
+    assert html =~
+             "Marked 2 communication(s) from 8001112222 as not a violation; sender saved for future imports"
 
     assert Enforcement.count_communications(hide_excluded: true) == 1
   end
 
   test "filters communications by linked case workflow phase", %{conn: conn} do
     {:ok, intake_case} =
-      Enforcement.create_case(%{company_name: "Intake", status: "new", workflow_step: "intake", letter_draft: ""})
+      Enforcement.create_case(%{
+        company_name: "Intake",
+        status: "new",
+        workflow_step: "intake",
+        letter_draft: ""
+      })
 
     {:ok, sent_case} =
-      Enforcement.create_case(%{company_name: "Sent", status: "sent", workflow_step: "sent", letter_draft: ""})
+      Enforcement.create_case(%{
+        company_name: "Sent",
+        status: "sent",
+        workflow_step: "sent",
+        letter_draft: ""
+      })
 
     communication_fixture(%{case_id: intake_case.id, body: "intake only"})
     communication_fixture(%{case_id: sent_case.id, body: "sent only"})

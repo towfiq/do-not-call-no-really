@@ -23,20 +23,42 @@ defmodule DncWatchdogWeb.CaseLive.FormComponent do
         <.input field={@form[:claimant_name]} type="text" label="Your name (claimant)" />
         <.input field={@form[:claimant_address]} type="textarea" label="Your mailing address" />
         <p class="-mt-2 text-xs text-zinc-500">
-          Leave blank to use your saved profile from <.link navigate={~p"/settings"} class="text-brand hover:underline">Your profile</.link>.
+          Leave blank to use your saved profile from <.link
+            navigate={~p"/settings"}
+            class="text-brand hover:underline"
+          >Your profile</.link>.
         </p>
         <.input field={@form[:claimant_phone]} type="text" label="Your phone" />
         <.input field={@form[:claimant_email]} type="email" label="Your email" />
         <.input field={@form[:dnc_registration_date]} type="date" label="DNC registration date" />
         <.input field={@form[:stop_contact_date]} type="date" label="Date you said STOP (optional)" />
         <.input field={@form[:small_claims_county]} type="text" label="Small claims county" />
-        <.input field={@form[:settlement_amount]} type="number" label="Settlement offer ($)" step="0.01" />
-        <.input field={@form[:relief_amount_per_violation]} type="number" label="Relief per violation ($)" step="0.01" />
+        <.input
+          field={@form[:settlement_amount]}
+          type="number"
+          label="Settlement offer ($)"
+          step="0.01"
+        />
+        <.input
+          field={@form[:relief_amount_per_violation]}
+          type="number"
+          label="Relief per violation ($)"
+          step="0.01"
+        />
         <.input
           field={@form[:status]}
           type="select"
           label="Status"
-          options={["new", "investigating", "drafting_letter", "sent", "delivered", "litigating", "filed", "closed"]}
+          options={[
+            "new",
+            "investigating",
+            "drafting_letter",
+            "sent",
+            "delivered",
+            "litigating",
+            "filed",
+            "closed"
+          ]}
         />
         <.input
           field={@form[:workflow_step]}

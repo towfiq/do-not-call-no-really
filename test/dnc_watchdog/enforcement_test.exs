@@ -32,7 +32,13 @@ defmodule DncWatchdog.EnforcementTest do
     end
 
     test "create_case/1 with valid data creates a case" do
-      valid_attrs = %{status: "new", company_name: "some company_name", workflow_step: "intake", notes: "some notes", letter_draft: "some letter_draft"}
+      valid_attrs = %{
+        status: "new",
+        company_name: "some company_name",
+        workflow_step: "intake",
+        notes: "some notes",
+        letter_draft: "some letter_draft"
+      }
 
       assert {:ok, %Case{} = case} = Enforcement.create_case(valid_attrs)
       assert case.status == "new"
@@ -48,7 +54,14 @@ defmodule DncWatchdog.EnforcementTest do
 
     test "update_case/2 with valid data updates the case" do
       case = case_fixture()
-      update_attrs = %{status: "investigating", company_name: "some updated company_name", workflow_step: "triage", notes: "some updated notes", letter_draft: "some updated letter_draft"}
+
+      update_attrs = %{
+        status: "investigating",
+        company_name: "some updated company_name",
+        workflow_step: "triage",
+        notes: "some updated notes",
+        letter_draft: "some updated letter_draft"
+      }
 
       assert {:ok, %Case{} = case} = Enforcement.update_case(case, update_attrs)
       assert case.status == "investigating"

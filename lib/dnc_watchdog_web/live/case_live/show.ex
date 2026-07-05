@@ -34,8 +34,14 @@ defmodule DncWatchdogWeb.CaseLive.Show do
   def handle_event("apply_filters", %{"filters" => filters}, socket) do
     {:noreply,
      socket
-     |> assign(:violations_only, DncWatchdogWeb.FilterParams.filter_checked?(filters, "violations_only"))
-     |> assign(:hide_excluded, !DncWatchdogWeb.FilterParams.filter_checked?(filters, "include_excluded"))
+     |> assign(
+       :violations_only,
+       DncWatchdogWeb.FilterParams.filter_checked?(filters, "violations_only")
+     )
+     |> assign(
+       :hide_excluded,
+       !DncWatchdogWeb.FilterParams.filter_checked?(filters, "include_excluded")
+     )
      |> reload_communications()}
   end
 
@@ -65,7 +71,10 @@ defmodule DncWatchdogWeb.CaseLive.Show do
          socket
          |> reload_communications()
          |> assign(:requirements, Enforcement.workflow_requirements(socket.assigns.case))
-         |> put_flash(:info, "Marked #{count} communication(s) from #{peer} as not a violation; sender saved for future imports")}
+         |> put_flash(
+           :info,
+           "Marked #{count} communication(s) from #{peer} as not a violation; sender saved for future imports"
+         )}
 
       {:error, :empty_peer} ->
         {:noreply, put_flash(socket, :error, "No sender number on this row")}
@@ -98,7 +107,10 @@ defmodule DncWatchdogWeb.CaseLive.Show do
          socket
          |> load_case(socket.assigns.case.id)
          |> assign_link_case_search("", [])
-         |> put_flash(:info, "Linked with #{DncWatchdog.Enforcement.Case.display_name(source)} (case #{source.id})")}
+         |> put_flash(
+           :info,
+           "Linked with #{DncWatchdog.Enforcement.Case.display_name(source)} (case #{source.id})"
+         )}
 
       {:error, :same_case} ->
         {:noreply, put_flash(socket, :error, "Cannot link a case to itself")}
@@ -180,7 +192,8 @@ defmodule DncWatchdogWeb.CaseLive.Show do
          |> put_flash(:info, "Small-claims filing draft generated")}
 
       {:error, :no_violations} ->
-        {:noreply, put_flash(socket, :error, "Mark at least one violation before generating a filing draft")}
+        {:noreply,
+         put_flash(socket, :error, "Mark at least one violation before generating a filing draft")}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Could not generate court filing draft")}
@@ -196,7 +209,12 @@ defmodule DncWatchdogWeb.CaseLive.Show do
          |> put_flash(:info, "Civil complaint draft generated")}
 
       {:error, :no_violations} ->
-        {:noreply, put_flash(socket, :error, "Mark at least one violation before generating a civil complaint")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Mark at least one violation before generating a civil complaint"
+         )}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Could not generate civil complaint draft")}
@@ -247,6 +265,7 @@ defmodule DncWatchdogWeb.CaseLive.Show do
     uploaded =
       consume_uploaded_entries(socket, :evidence, fn %{path: path}, entry ->
         binary = File.read!(path)
+
         attachment =
           Enforcement.store_evidence_upload!(
             case_id,
@@ -276,7 +295,11 @@ defmodule DncWatchdogWeb.CaseLive.Show do
      |> put_flash(:info, "Attachment removed")}
   end
 
-  def handle_event("save_mail_tracking", %{"mail_tracking" => %{"tracking_number" => number}}, socket) do
+  def handle_event(
+        "save_mail_tracking",
+        %{"mail_tracking" => %{"tracking_number" => number}},
+        socket
+      ) do
     case Enforcement.save_mail_tracking_number(socket.assigns.case, number) do
       {:ok, updated_case} ->
         {:noreply,

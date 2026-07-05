@@ -52,7 +52,11 @@ defmodule DncWatchdog.Enforcement.PurgeContactsTest do
     comm = communication_fixture(%{direction: "incoming", from_number: "6504653718"})
 
     refute ContactFilter.contact_row?(
-             %{direction: comm.direction, from_number: comm.from_number, to_number: comm.to_number},
+             %{
+               direction: comm.direction,
+               from_number: comm.from_number,
+               to_number: comm.to_number
+             },
              contacts
            )
 

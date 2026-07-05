@@ -12,7 +12,7 @@ defmodule DncWatchdog.Enforcement.RowImporter do
   def import_rows(rows) do
     excluded_keys = Enforcement.excluded_peer_keys_set()
 
-      Enum.reduce(
+    Enum.reduce(
       rows,
       %{rows: 0, created_cases: 0, created_communications: 0, skipped_duplicates: 0, failed: 0},
       fn row, acc ->
@@ -21,8 +21,7 @@ defmodule DncWatchdog.Enforcement.RowImporter do
             %{
               rows: acc.rows + 1,
               created_cases: acc.created_cases + if(case_created?, do: 1, else: 0),
-              created_communications:
-                acc.created_communications + if(duplicate?, do: 0, else: 1),
+              created_communications: acc.created_communications + if(duplicate?, do: 0, else: 1),
               skipped_duplicates: acc.skipped_duplicates + if(duplicate?, do: 1, else: 0),
               failed: acc.failed
             }
@@ -88,7 +87,8 @@ defmodule DncWatchdog.Enforcement.RowImporter do
     Map.put(row, :to_number, if(my_phone != "", do: my_phone, else: "local"))
   end
 
-  defp ensure_to_number(%{direction: "outgoing", from_number: from} = row) when from in [nil, ""] do
+  defp ensure_to_number(%{direction: "outgoing", from_number: from} = row)
+       when from in [nil, ""] do
     my_phone = Phone.normalize_or_env(nil)
     Map.put(row, :from_number, if(my_phone != "", do: my_phone, else: from))
   end
@@ -138,7 +138,13 @@ defmodule DncWatchdog.Enforcement.RowImporter do
 
   defp incoming_peer(_), do: nil
 
-  defp company_label(%{company: company, from_number: from, direction: direction, to_number: to, channel: channel}) do
+  defp company_label(%{
+         company: company,
+         from_number: from,
+         direction: direction,
+         to_number: to,
+         channel: channel
+       }) do
     company = company |> to_string() |> String.trim()
     normalized_from = Phone.normalize(from)
     normalized_to = Phone.normalize(to)
@@ -161,13 +167,21 @@ defmodule DncWatchdog.Enforcement.RowImporter do
     end
   end
 
-  defp detect_reasons(%{direction: "incoming", channel: channel, duration_seconds: duration, body: body}) do
+  defp detect_reasons(%{
+         direction: "incoming",
+         channel: channel,
+         duration_seconds: duration,
+         body: body
+       }) do
     terms = @marketing_terms |> Enum.filter(&String.contains?(String.downcase(body || ""), &1))
 
     []
     |> maybe_add("incoming contact from unapproved number", true)
     |> maybe_add("contains marketing language: #{Enum.join(terms, ", ")}", terms != [])
-    |> maybe_add("short call pattern common in robocall campaigns", channel == "call" and duration < 15)
+    |> maybe_add(
+      "short call pattern common in robocall campaigns",
+      channel == "call" and duration < 15
+    )
   end
 
   defp detect_reasons(_), do: []

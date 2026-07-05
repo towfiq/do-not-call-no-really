@@ -66,7 +66,9 @@ defmodule DncWatchdog.Enforcement.SqliteTest do
     assert List.last(rows) == [120]
   end
 
-  test "with_connection/2 falls back to direct readonly when snapshot copy fails", %{source: source} do
+  test "with_connection/2 falls back to direct readonly when snapshot copy fails", %{
+    source: source
+  } do
     Process.put(:dnc_watchdog_force_snapshot_failure, true)
 
     try do

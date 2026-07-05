@@ -12,6 +12,7 @@ defmodule Mix.Tasks.Dnc.MeCard do
     case MeCard.read() do
       {:ok, card} ->
         Mix.shell().info("Me card found:")
+
         Enum.each([:name, :address, :phone, :email], fn key ->
           value = Map.get(card, key)
 
@@ -28,7 +29,11 @@ defmodule Mix.Tasks.Dnc.MeCard do
 
       {:error, {:contacts_unreadable, errors}} ->
         Mix.shell().error("Could not read Contacts databases:")
-        Enum.each(errors, fn {path, reason} -> Mix.shell().error("  #{path}: #{inspect(reason)}") end)
+
+        Enum.each(errors, fn {path, reason} ->
+          Mix.shell().error("  #{path}: #{inspect(reason)}")
+        end)
+
         Mix.shell().error("Grant Full Disk Access to Terminal or Cursor and try again.")
     end
   end

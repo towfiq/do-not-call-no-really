@@ -20,7 +20,10 @@ defmodule DncWatchdog.Enforcement.LocalImporterTest do
     }
   end
 
-  test "import_local/1 imports from fixture sqlite databases", %{messages_db: messages_db, calls_db: calls_db} do
+  test "import_local/1 imports from fixture sqlite databases", %{
+    messages_db: messages_db,
+    calls_db: calls_db
+  } do
     summary =
       LocalImporter.import_local(
         messages_db: messages_db,
@@ -39,7 +42,10 @@ defmodule DncWatchdog.Enforcement.LocalImporterTest do
     assert Enum.any?(summary.logs, fn {:ok, _, _, _} -> true end)
   end
 
-  test "import_local/1 with lookback_days skips older fixture rows", %{messages_db: messages_db, calls_db: calls_db} do
+  test "import_local/1 with lookback_days skips older fixture rows", %{
+    messages_db: messages_db,
+    calls_db: calls_db
+  } do
     summary =
       LocalImporter.import_local(
         messages_db: messages_db,

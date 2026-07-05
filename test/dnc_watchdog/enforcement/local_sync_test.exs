@@ -29,7 +29,10 @@ defmodule DncWatchdog.Enforcement.LocalSyncTest do
     )
   end
 
-  test "first sync stores last_synced_at and imports rows", %{messages_db: messages_db, calls_db: calls_db} do
+  test "first sync stores last_synced_at and imports rows", %{
+    messages_db: messages_db,
+    calls_db: calls_db
+  } do
     assert %LocalImportSync{last_synced_at: nil} = LocalSync.get_state()
 
     assert {:ok, %{summary: summary, state: state}} =

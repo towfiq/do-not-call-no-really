@@ -14,6 +14,7 @@ defmodule Mix.Tasks.Dnc.ImportCsv do
     Mix.shell().info("Communications stored: #{summary.created_communications}")
     Mix.shell().info("Duplicates skipped: #{Map.get(summary, :skipped_duplicates, 0)}")
     Mix.shell().info("")
+
     Mix.shell().info(
       "Note: multiple CSV rows with the same company (or blank company) attach to one case."
     )
@@ -23,4 +24,3 @@ defmodule Mix.Tasks.Dnc.ImportCsv do
     Mix.shell().error("Usage: mix dnc.import_csv path/to/communications.csv")
   end
 end
-

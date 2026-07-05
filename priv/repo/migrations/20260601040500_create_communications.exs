@@ -22,4 +22,3 @@ defmodule DncWatchdog.Repo.Migrations.CreateCommunications do
     create index(:communications, [:company])
   end
 end
-

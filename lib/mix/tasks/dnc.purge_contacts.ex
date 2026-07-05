@@ -19,16 +19,26 @@ defmodule Mix.Tasks.Dnc.PurgeContacts do
 
     case DncWatchdog.Enforcement.PurgeContacts.purge(import_opts) do
       {:error, :contacts_not_found} ->
-        Mix.shell().error("No Contacts databases found under ~/Library/Application Support/AddressBook.")
+        Mix.shell().error(
+          "No Contacts databases found under ~/Library/Application Support/AddressBook."
+        )
+
         System.halt(1)
 
       {:error, :contacts_empty} ->
-        Mix.shell().error("Contacts databases were found but no phone numbers or emails were loaded.")
+        Mix.shell().error(
+          "Contacts databases were found but no phone numbers or emails were loaded."
+        )
+
         System.halt(1)
 
       {:error, {:contacts_unreadable, errors}} ->
         Mix.shell().error("Could not read Contacts databases:")
-        Enum.each(errors, fn {path, reason} -> Mix.shell().error("  #{path}: #{inspect(reason)}") end)
+
+        Enum.each(errors, fn {path, reason} ->
+          Mix.shell().error("  #{path}: #{inspect(reason)}")
+        end)
+
         Mix.shell().error("Grant Full Disk Access to Terminal or Cursor and try again.")
         System.halt(1)
 

@@ -54,16 +54,36 @@ defmodule DncWatchdog.Enforcement.CourtFilingDraft do
 
   defp build_facts(case, violations, attachments, profile, limits, opts) do
     claimant_name =
-      ClaimantProfile.resolve(:name, Keyword.get(opts, :claimant_name), case.claimant_name, profile)
+      ClaimantProfile.resolve(
+        :name,
+        Keyword.get(opts, :claimant_name),
+        case.claimant_name,
+        profile
+      )
 
     claimant_address =
-      ClaimantProfile.resolve(:address, Keyword.get(opts, :claimant_address), case.claimant_address, profile)
+      ClaimantProfile.resolve(
+        :address,
+        Keyword.get(opts, :claimant_address),
+        case.claimant_address,
+        profile
+      )
 
     claimant_phone =
-      ClaimantProfile.resolve(:phone, Keyword.get(opts, :claimant_phone), case.claimant_phone, profile)
+      ClaimantProfile.resolve(
+        :phone,
+        Keyword.get(opts, :claimant_phone),
+        case.claimant_phone,
+        profile
+      )
 
     claimant_email =
-      ClaimantProfile.resolve(:email, Keyword.get(opts, :claimant_email), case.claimant_email, profile)
+      ClaimantProfile.resolve(
+        :email,
+        Keyword.get(opts, :claimant_email),
+        case.claimant_email,
+        profile
+      )
 
     county =
       ClaimantProfile.resolve(
@@ -129,7 +149,7 @@ defmodule DncWatchdog.Enforcement.CourtFilingDraft do
     everything before filing. Complete official forms from #{@forms_url}. Confirm
     filing fees, hours, and procedures at #{@court_website}.
     Recommended venue: #{facts.limits.recommended_venue_label}.
-  #{limits_summary(facts.limits)}
+    #{limits_summary(facts.limits)}
     """
     |> String.trim()
   end
@@ -371,8 +391,12 @@ defmodule DncWatchdog.Enforcement.CourtFilingDraft do
 
     tracking_exhibit =
       if facts.case.mail_tracking_number not in [nil, ""] do
-        status = facts.case.mail_tracking_summary || facts.case.mail_delivery_status || "see tracking"
-        ["- Exhibit B: USPS certified mail tracking (#{facts.case.mail_tracking_number}) — #{status}"]
+        status =
+          facts.case.mail_tracking_summary || facts.case.mail_delivery_status || "see tracking"
+
+        [
+          "- Exhibit B: USPS certified mail tracking (#{facts.case.mail_tracking_number}) — #{status}"
+        ]
       else
         []
       end
@@ -415,6 +439,7 @@ defmodule DncWatchdog.Enforcement.CourtFilingDraft do
       |> Enum.map(fn {comm, idx} ->
         time = format_timestamp(comm.timestamp)
         body = String.slice(comm.body || "", 0, 60)
+
         "| #{idx} | #{time} | #{comm.channel} | #{comm.from_number} | #{format_money(FilingLimits.per_violation_damages())} | #{body} |"
       end)
       |> Enum.join("\n")
@@ -519,9 +544,12 @@ defmodule DncWatchdog.Enforcement.CourtFilingDraft do
   defp address_line(_, _), do: "[Address]"
 
   defp single_line_address(lines) when is_list(lines), do: Enum.join(lines, ", ")
-  defp single_line_address(address) when is_binary(address), do: String.replace(address, "\n", ", ")
 
-  defp dnc_date(%Case{dnc_registration_date: %Date{} = date}, _opts, _profile), do: format_date(date)
+  defp single_line_address(address) when is_binary(address),
+    do: String.replace(address, "\n", ", ")
+
+  defp dnc_date(%Case{dnc_registration_date: %Date{} = date}, _opts, _profile),
+    do: format_date(date)
 
   defp dnc_date(%Case{} = case, opts, profile) do
     case ClaimantProfile.resolve(

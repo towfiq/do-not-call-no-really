@@ -7,7 +7,7 @@ defmodule DncWatchdog.Enforcement.CourtFilingTrackingTest do
   test "count_high_small_claims_filings/2 counts recorded small claims filings over $2,500" do
     year = Date.utc_today().year
 
-  case_a =
+    case_a =
       case_fixture(%{company_name: "A"})
       |> then(fn c ->
         {:ok, c} =

@@ -18,7 +18,11 @@ defmodule DncWatchdog.Enforcement.CaseGroupsTest do
 
     {:ok, comm_b} =
       Enforcement.create_communication(
-        communication_attrs(%{case_id: case_b.id, from_number: "8029928875", body: "February text"})
+        communication_attrs(%{
+          case_id: case_b.id,
+          from_number: "8029928875",
+          body: "February text"
+        })
       )
 
     assert {:ok, _} = CaseGroups.link_cases(case_a, case_b)
@@ -63,9 +67,15 @@ defmodule DncWatchdog.Enforcement.CaseGroupsTest do
     result_ids = Enum.map(results, & &1.id) |> MapSet.new()
     assert MapSet.equal?(result_ids, MapSet.new([case_b.id, case_c.id]))
 
-    assert Enum.any?(Enforcement.search_linkable_cases(case_a, "802992"), &(&1.company_name == "Caller 8029928875"))
+    assert Enum.any?(
+             Enforcement.search_linkable_cases(case_a, "802992"),
+             &(&1.company_name == "Caller 8029928875")
+           )
 
-    refute Enum.any?(Enforcement.search_linkable_cases(case_a, "Unrelated"), &(&1.id == case_a.id))
+    refute Enum.any?(
+             Enforcement.search_linkable_cases(case_a, "Unrelated"),
+             &(&1.id == case_a.id)
+           )
   end
 
   test "unlink_case/1 stops grouping communications" do

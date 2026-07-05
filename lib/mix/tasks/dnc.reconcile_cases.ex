@@ -9,7 +9,9 @@ defmodule Mix.Tasks.Dnc.ReconcileCases do
 
     case DncWatchdog.Enforcement.reconcile_incoming_peer_case_assignments() do
       %{peers: peers, reassigned: reassigned} ->
-        Mix.shell().info("Reconciled #{peers} peer(s); moved #{reassigned} communication(s) onto canonical cases.")
+        Mix.shell().info(
+          "Reconciled #{peers} peer(s); moved #{reassigned} communication(s) onto canonical cases."
+        )
     end
   end
 end

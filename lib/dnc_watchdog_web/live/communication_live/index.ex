@@ -120,7 +120,10 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
         {:noreply,
          socket
          |> reload_communications()
-         |> put_flash(:info, "Marked #{count} communication(s) from #{peer} as not a violation; sender saved for future imports")}
+         |> put_flash(
+           :info,
+           "Marked #{count} communication(s) from #{peer} as not a violation; sender saved for future imports"
+         )}
 
       {:error, :empty_peer} ->
         {:noreply, put_flash(socket, :error, "No sender number on this row")}

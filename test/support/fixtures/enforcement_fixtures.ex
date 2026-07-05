@@ -22,6 +22,31 @@ defmodule DncWatchdog.EnforcementFixtures do
     case
   end
 
+  @doc """
+  Case with a linked legal entity whose `legal_name` differs from `company_name`.
+  """
+  def case_with_legal_entity_fixture(case_attrs \\ %{}, entity_attrs \\ %{}) do
+    case =
+      case_fixture(Map.merge(%{company_name: "Caller 9254996086"}, case_attrs))
+
+    {:ok, case} =
+      DncWatchdog.Enforcement.upsert_case_legal_entity(
+        case,
+        Map.merge(
+          %{
+            legal_name: "Equinox Roofing LLC",
+            street: "123 Main St",
+            city: "San Francisco",
+            state: "CA",
+            zip: "94105"
+          },
+          entity_attrs
+        )
+      )
+
+    case
+  end
+
   def communication_attrs(overrides \\ %{}) do
     {:ok, case} =
       DncWatchdog.Enforcement.create_case(%{

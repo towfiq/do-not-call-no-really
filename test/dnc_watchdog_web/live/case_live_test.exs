@@ -4,8 +4,20 @@ defmodule DncWatchdogWeb.CaseLiveTest do
   import Phoenix.LiveViewTest
   import DncWatchdog.EnforcementFixtures
 
-  @create_attrs %{status: "new", company_name: "some company_name", workflow_step: "intake", notes: "some notes", letter_draft: "some letter_draft"}
-  @update_attrs %{status: "investigating", company_name: "some updated company_name", workflow_step: "triage", notes: "some updated notes", letter_draft: "some updated letter_draft"}
+  @create_attrs %{
+    status: "new",
+    company_name: "some company_name",
+    workflow_step: "intake",
+    notes: "some notes",
+    letter_draft: "some letter_draft"
+  }
+  @update_attrs %{
+    status: "investigating",
+    company_name: "some updated company_name",
+    workflow_step: "triage",
+    notes: "some updated notes",
+    letter_draft: "some updated letter_draft"
+  }
   @invalid_attrs %{status: "new", company_name: nil, workflow_step: "intake"}
 
   defp create_case(_) do
@@ -100,6 +112,20 @@ defmodule DncWatchdogWeb.CaseLiveTest do
       refute html =~ "Hidden Intake Co"
     end
 
+    test "shows legal entity name in Defendant column", %{conn: conn} do
+      case =
+        case_with_legal_entity_fixture(%{
+          company_name: "Caller 9254996086"
+        })
+
+      communication_fixture(%{case_id: case.id, violation_status: "violation"})
+
+      {:ok, _view, html} = live(conn, ~p"/cases")
+
+      assert html =~ "Equinox Roofing LLC"
+      refute html =~ "Caller 9254996086"
+    end
+
     test "filters cases by search query", %{conn: conn} do
       match = case_fixture(%{company_name: "Searchable Widgets LLC"})
       communication_fixture(%{case_id: match.id, violation_status: "violation"})
@@ -128,6 +154,57 @@ defmodule DncWatchdogWeb.CaseLiveTest do
 
       assert html =~ "Show Case"
       assert html =~ case.status
+    end
+
+    test "displays communications with case link", %{conn: conn, case: case} do
+      {:ok, _show_live, html} = live(conn, ~p"/cases/#{case}")
+
+      assert html =~ "communications-case-#{case.id}"
+      assert html =~ case.company_name
+    end
+
+    test "apply_filters controls visible communications", %{conn: conn, case: case} do
+      communication_fixture(%{
+        case_id: case.id,
+        violation_status: "excluded",
+        body: "excluded msg"
+      })
+
+      communication_fixture(%{case_id: case.id, violation_status: "pending", body: "pending msg"})
+
+      {:ok, view, html} = live(conn, ~p"/cases/#{case}")
+
+      assert html =~ "Limited time offer"
+      assert html =~ "pending msg"
+      refute html =~ "excluded msg"
+
+      html =
+        view
+        |> form("#case-display-filters", %{
+          "filters" => %{
+            "violations_only" => "true",
+            "include_excluded" => "false"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Limited time offer"
+      refute html =~ "pending msg"
+      refute html =~ "excluded msg"
+
+      html =
+        view
+        |> form("#case-display-filters", %{
+          "filters" => %{
+            "violations_only" => "false",
+            "include_excluded" => "true"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Limited time offer"
+      assert html =~ "pending msg"
+      assert html =~ "excluded msg"
     end
 
     test "advances workflow step", %{conn: conn, case: case} do
@@ -186,7 +263,9 @@ defmodule DncWatchdogWeb.CaseLiveTest do
       assert html =~ "Certified mail tracking"
 
       view
-      |> form("#mail-tracking-form", mail_tracking: %{tracking_number: "9400 1118 9922 3197 4284 90"})
+      |> form("#mail-tracking-form",
+        mail_tracking: %{tracking_number: "9400 1118 9922 3197 4284 90"}
+      )
       |> render_submit()
 
       html = render(view)
@@ -208,7 +287,9 @@ defmodule DncWatchdogWeb.CaseLiveTest do
 
       on_exit(fn -> Application.put_env(:dnc_watchdog, :usps_tracking, previous) end)
 
-      {:ok, case} = DncWatchdog.Enforcement.save_mail_tracking_number(case, "9400111899223197428490")
+      {:ok, case} =
+        DncWatchdog.Enforcement.save_mail_tracking_number(case, "9400111899223197428490")
+
       {:ok, view, _html} = live(conn, ~p"/cases/#{case}")
 
       view |> element("button", "Refresh status") |> render_click()

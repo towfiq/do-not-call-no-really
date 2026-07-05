@@ -14,7 +14,10 @@ defmodule DncWatchdog.Enforcement.Sqlite do
   def with_connection(source_path, callback) when is_function(callback, 1) do
     case snapshot_source(source_path) do
       {:ok, snapshot_path} ->
-        with_readonly_connection(snapshot_path, callback, cleanup: snapshot_path, on_open_error: nil)
+        with_readonly_connection(snapshot_path, callback,
+          cleanup: snapshot_path,
+          on_open_error: nil
+        )
 
       {:error, {:source_not_found, _} = reason} ->
         {:error, reason}
@@ -23,9 +26,7 @@ defmodule DncWatchdog.Enforcement.Sqlite do
         with_readonly_connection(source_path, callback,
           cleanup: nil,
           on_open_error: fn open_reason ->
-            {:error,
-             {:database_open_failed,
-              %{snapshot: snapshot_reason, direct: open_reason}}}
+            {:error, {:database_open_failed, %{snapshot: snapshot_reason, direct: open_reason}}}
           end
         )
     end
@@ -142,7 +143,7 @@ defmodule DncWatchdog.Enforcement.Sqlite do
   end
 
   defp force_snapshot_failure? do
-    Code.ensure_loaded?(Mix) and Mix.env() == :test and
+    Application.get_env(:dnc_watchdog, :allow_test_sqlite_hooks, false) and
       Process.get(:dnc_watchdog_force_snapshot_failure) == true
   end
 

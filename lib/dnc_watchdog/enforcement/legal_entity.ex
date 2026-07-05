@@ -41,7 +41,9 @@ defmodule DncWatchdog.Enforcement.LegalEntity do
     lines =
       [
         entity.street,
-        [entity.city, entity.state, entity.zip] |> Enum.reject(&(&1 in [nil, ""])) |> Enum.join(", ")
+        [entity.city, entity.state, entity.zip]
+        |> Enum.reject(&(&1 in [nil, ""]))
+        |> Enum.join(", ")
       ]
       |> Enum.reject(&(&1 in [nil, ""]))
 

@@ -44,6 +44,7 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
     include_messages = Keyword.get(opts, :messages, true)
     include_calls = Keyword.get(opts, :calls, true)
     limit = Keyword.get(opts, :limit)
+
     my_phone =
       opts
       |> Keyword.get(:my_phone)
@@ -64,7 +65,7 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
         case Contacts.load(contacts_dbs: Paths.contacts_dbs(contacts_paths)) do
           {:ok, set, paths} ->
             logs =
-              if paths == [] or MapSet.size(set.phones) == 0 and MapSet.size(set.emails) == 0 do
+              if paths == [] or (MapSet.size(set.phones) == 0 and MapSet.size(set.emails) == 0) do
                 [
                   {:contacts_loaded, MapSet.size(set.phones), MapSet.size(set.emails), paths},
                   {:contacts_empty,
@@ -88,7 +89,12 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
         {ContactFilter.empty_set(), [{:contacts_disabled, "Contact filtering disabled"}]}
       end
 
-    reader_opts = [limit: limit, my_phone: my_phone, since: since, lookback_days: Keyword.get(opts, :lookback_days)]
+    reader_opts = [
+      limit: limit,
+      my_phone: my_phone,
+      since: since,
+      lookback_days: Keyword.get(opts, :lookback_days)
+    ]
 
     {message_rows, messages_path, message_log, message_skipped_lookback} =
       if include_messages do
@@ -105,13 +111,11 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
         if path do
           read_source(CallHistory, path, reader_opts)
         else
-          {[],
-           nil,
+          {[], nil,
            [
              {:error,
               "Call History database not found. Checked: #{inspect(Paths.default_call_history_paths())}"}
-           ],
-           0}
+           ], 0}
         end
       else
         {[], nil, [], 0}
@@ -120,6 +124,7 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
     skipped_lookback = message_skipped_lookback + call_skipped_lookback
 
     rows = message_rows ++ call_rows
+
     {rows_after_contacts, skipped_contacts} =
       maybe_filter_contacts(rows, skip_contacts, contact_set)
 

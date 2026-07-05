@@ -49,8 +49,7 @@ defmodule DncWatchdogWeb.CaseComponents do
               name="filters[violations_only]"
               value="true"
               checked={@violations_only}
-            />
-            Violations only
+            /> Violations only
           </label>
 
           <label class="filter-checkbox">
@@ -60,8 +59,7 @@ defmodule DncWatchdogWeb.CaseComponents do
               name="filters[include_excluded]"
               value="true"
               checked={!@hide_excluded}
-            />
-            Include excluded
+            /> Include excluded
           </label>
 
           <label :if={@show_group_by} class="filter-checkbox">
@@ -71,8 +69,7 @@ defmodule DncWatchdogWeb.CaseComponents do
               name="filters[group_by_sender]"
               value="true"
               checked={@group_by_sender}
-            />
-            Group by sender
+            /> Group by sender
           </label>
 
           <label :if={@show_spam} class="filter-checkbox">
@@ -82,8 +79,7 @@ defmodule DncWatchdogWeb.CaseComponents do
               name="filters[include_spam]"
               value="true"
               checked={!@hide_spam}
-            />
-            Include spam
+            /> Include spam
           </label>
 
           <label :if={@show_workflow} class="filter-checkbox">
@@ -173,7 +169,9 @@ defmodule DncWatchdogWeb.CaseComponents do
               phx-value-id={result.id}
               class="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-zinc-50"
             >
-              <span class="font-medium text-zinc-900">{DncWatchdog.Enforcement.Case.display_name(result)}</span>
+              <span class="font-medium text-zinc-900">
+                {DncWatchdog.Enforcement.Case.display_name(result)}
+              </span>
               <span class="text-xs text-zinc-500">Case {result.id}</span>
             </button>
           </li>
