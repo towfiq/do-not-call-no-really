@@ -2,6 +2,7 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
   use DncWatchdogWeb, :live_view
 
   alias DncWatchdog.Enforcement
+  alias DncWatchdog.Enforcement.Case
   alias DncWatchdogWeb.FilterParams
 
   @impl true
@@ -59,33 +60,24 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
   end
 
   @impl true
-  def handle_event("toggle_group_by_sender", _, socket) do
-    {:noreply,
-     socket
-     |> assign(:group_by_sender, !socket.assigns.group_by_sender)
-     |> reload_communications()}
-  end
+  def handle_event("apply_filters", %{"filters" => filters}, socket) do
+    workflow = Map.get(filters, "workflow", socket.assigns.workflow_phase)
 
-  @impl true
-  def handle_event("toggle_violations_only", _, socket) do
-    {:noreply,
-     socket
-     |> assign(:violations_only, !socket.assigns.violations_only)
-     |> reload_communications()}
-  end
+    socket =
+      socket
+      |> assign(:violations_only, FilterParams.filter_checked?(filters, "violations_only"))
+      |> assign(:hide_excluded, !FilterParams.filter_checked?(filters, "include_excluded"))
+      |> assign(:hide_spam, !FilterParams.filter_checked?(filters, "include_spam"))
+      |> assign(:group_by_sender, FilterParams.filter_checked?(filters, "group_by_sender"))
 
-  def handle_event("toggle_hide_excluded", _, socket) do
-    {:noreply,
-     socket
-     |> assign(:hide_excluded, !socket.assigns.hide_excluded)
-     |> reload_communications()}
-  end
-
-  def handle_event("toggle_hide_spam", _, socket) do
-    {:noreply,
-     socket
-     |> assign(:hide_spam, !socket.assigns.hide_spam)
-     |> reload_communications()}
+    if workflow != socket.assigns.workflow_phase do
+      {:noreply,
+       push_patch(socket,
+         to: FilterParams.path(~p"/communications", workflow, socket.assigns.search_query)
+       )}
+    else
+      {:noreply, reload_communications(socket)}
+    end
   end
 
   def handle_event("set_violation_status", %{"id" => id, "status" => status}, socket) do
@@ -229,8 +221,8 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
     ]
   end
 
-  def group_title(%{latest: %{case: %{company_name: name}}}) when is_binary(name) and name != "" do
-    name
+  def group_title(%{latest: %{case: %Case{} = case_record}}) do
+    Case.display_name(case_record)
   end
 
   def group_title(%{label: label}), do: label

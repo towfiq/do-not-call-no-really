@@ -14,7 +14,10 @@
 
 <div class="mt-4 grid gap-4 lg:grid-cols-2">
   <.list>
-    <:item title="Company name">{@case.company_name}</:item>
+    <:item title="Defendant">{DncWatchdog.Enforcement.Case.display_name(@case)}</:item>
+    <:item :if={DncWatchdog.Enforcement.Case.display_name(@case) != @case.company_name} title="Import label">
+      {@case.company_name}
+    </:item>
     <:item title="Status">{@case.status}</:item>
     <:item title="Workflow step">{@case.workflow_step}</:item>
     <:item title="Claimant">{@case.claimant_name || "—"} ({@case.claimant_phone || "—"})</:item>
@@ -341,7 +344,7 @@
         <li class="flex flex-wrap items-center justify-between gap-2 rounded border border-zinc-100 px-3 py-2 text-sm">
           <div>
             <.link navigate={~p"/cases/#{linked}"} class="font-medium text-brand hover:underline">
-              {linked.company_name}
+              {DncWatchdog.Enforcement.Case.display_name(linked)}
             </.link>
             <span class="text-zinc-500"> — case #{linked.id}</span>
           </div>
@@ -372,77 +375,37 @@
   <.link_case_typeahead query={@link_case_query} results={@link_case_results} />
 </div>
 
-<div class="mt-8">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <h2 class="text-lg font-semibold">Related communications</h2>
-    <%= if @linked_cases != [] do %>
-      <span class="text-xs text-zinc-500">Includes {length(@linked_cases) + 1} linked case(s)</span>
-    <% end %>
-    <div class="flex flex-wrap gap-2">
-      <button
-        type="button"
-        phx-click="toggle_hide_excluded"
-        class={[
-          "rounded px-3 py-1 text-xs font-semibold ring-1",
-          @hide_excluded && "bg-brand/10 text-brand ring-brand/30",
-          !@hide_excluded && "bg-white text-zinc-600 ring-zinc-300"
-        ]}
-      >
-        {if @hide_excluded, do: "Hiding non-violations", else: "Showing all statuses"}
-      </button>
-      <button
-        type="button"
-        phx-click="toggle_violations_only"
-        class={[
-          "rounded px-3 py-1 text-xs font-semibold ring-1",
-          @violations_only && "bg-rose-100 text-rose-800 ring-rose-300",
-          !@violations_only && "bg-white text-zinc-600 ring-zinc-300"
-        ]}
-      >
-        {if @violations_only, do: "Violations only", else: "Include pending review"}
-      </button>
+<div class="mt-6">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <div>
+      <h2 class="text-base font-semibold text-zinc-900">Related communications</h2>
+      <%= if @linked_cases != [] do %>
+        <p class="text-xs text-zinc-500">Includes {length(@linked_cases) + 1} linked case(s)</p>
+      <% end %>
     </div>
   </div>
 
+  <div class="mt-3">
+    <.display_filter_form
+      id="case-display-filters"
+      violations_only={@violations_only}
+      hide_excluded={@hide_excluded}
+      show_group_by={false}
+      show_spam={false}
+    />
+  </div>
+
   <%= if @communications == [] do %>
-    <p class="mt-4 text-sm text-zinc-600">
-      No communications match the current filters. Import with
-      <code class="rounded bg-zinc-100 px-1">mix dnc.import_local</code>
-      or change filter toggles above.
+    <p class="mt-3 text-sm text-zinc-600">
+      No communications match the current filters. Adjust filters above and click Apply filters.
     </p>
   <% else %>
-    <.table id="communications" rows={@communications} row_id={&("comm-#{&1.id}")}>
-      <:col :let={comm} label="Date & time">{format_timestamp(comm.timestamp)}</:col>
-      <:col :let={comm} label="Status"><.violation_badge status={comm.violation_status} /></:col>
-      <:col :let={comm} label="Violation">
-        <.violation_button communication={comm} />
-      </:col>
-      <:col :let={comm} label="Not a violation">
-        <.not_violation_button communication={comm} />
-      </:col>
-      <:col :let={comm} label="Sender">
-        <.exclude_sender_button communication={comm} />
-      </:col>
-      <:col :let={comm} label="Channel">{comm.channel}</:col>
-      <:col :let={comm} label="Case">
-        <%= if comm.case_id == @case.id do %>
-          <span class="text-zinc-500">This case</span>
-        <% else %>
-          <.link navigate={~p"/cases/#{comm.case_id}"} class="text-brand hover:underline">
-            Case {comm.case_id}
-          </.link>
-        <% end %>
-      </:col>
-      <:col :let={comm} label="From">{comm.from_number}</:col>
-      <:col :let={comm} label="To">{comm.to_number}</:col>
-      <:col :let={comm} label="Message">
-        <%= if comm.channel == "sms" and comm.body not in [nil, ""] do %>
-          {comm.body}
-        <% else %>
-          —
-        <% end %>
-      </:col>
-    </.table>
+    <.communication_rows_table
+      communications={@communications}
+      id_prefix={"case-#{@case.id}"}
+      compact
+      class="mt-3 table-compact"
+    />
   <% end %>
 </div>
 

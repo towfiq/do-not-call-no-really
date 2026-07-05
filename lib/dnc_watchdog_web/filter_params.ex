@@ -36,4 +36,8 @@ defmodule DncWatchdogWeb.FilterParams do
 
   defp maybe_put(params, _key, value, blank) when value in [nil, "", blank], do: params
   defp maybe_put(params, key, value, _blank), do: Map.put(params, key, value)
+
+  def filter_checked?(filters, key) when is_map(filters) do
+    Map.get(filters, key) == "true"
+  end
 end

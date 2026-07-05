@@ -43,4 +43,15 @@ defmodule DncWatchdog.Enforcement.CaseChangesetTest do
     refute changeset.valid?
     assert %{company_name: [_ | _]} = errors_on(changeset)
   end
+
+  test "display_name/1 prefers legal entity name" do
+    entity = %DncWatchdog.Enforcement.LegalEntity{legal_name: "Equinox Roofing LLC"}
+
+    assert Case.display_name(%Case{company_name: "Caller 9254996086", legal_entity: entity}) ==
+             "Equinox Roofing LLC"
+  end
+
+  test "display_name/1 falls back to company_name" do
+    assert Case.display_name(%Case{company_name: "Caller 9254996086"}) == "Caller 9254996086"
+  end
 end

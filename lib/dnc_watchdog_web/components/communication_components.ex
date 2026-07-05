@@ -2,13 +2,12 @@ defmodule DncWatchdogWeb.CommunicationComponents do
   @moduledoc false
   use Phoenix.Component
 
-  import DncWatchdogWeb.CoreComponents
-
   use Phoenix.VerifiedRoutes,
     endpoint: DncWatchdogWeb.Endpoint,
     router: DncWatchdogWeb.Router,
     statics: DncWatchdogWeb.static_paths()
 
+  alias DncWatchdog.Enforcement.Case
   alias DncWatchdog.Enforcement.ContactFilter
 
   attr :communication, :map, required: true
@@ -63,7 +62,7 @@ defmodule DncWatchdogWeb.CommunicationComponents do
       phx-value-spam={if @spam?, do: "false", else: "true"}
       phx-target={@target}
       class={[
-        "rounded px-2 py-1 text-xs font-semibold ring-1 whitespace-nowrap",
+        "rounded px-1.5 py-0.5 text-xs font-medium ring-1 whitespace-nowrap",
         @spam? && "bg-fuchsia-100 text-fuchsia-800 ring-fuchsia-300",
         !@spam? && "bg-white text-zinc-600 ring-zinc-300 hover:bg-fuchsia-50"
       ]}
@@ -89,7 +88,7 @@ defmodule DncWatchdogWeb.CommunicationComponents do
         phx-value-id={@communication.id}
         data-confirm={exclude_sender_confirm(@peer)}
         phx-target={@target}
-        class="rounded px-2 py-1 text-xs font-semibold text-zinc-700 ring-1 ring-zinc-300 hover:bg-zinc-100"
+        class="action-chip text-zinc-700"
         title="Mark all calls and texts from this sender as not a violation"
       >
         Exclude sender
@@ -135,7 +134,7 @@ defmodule DncWatchdogWeb.CommunicationComponents do
       phx-value-status={@value}
       phx-target={@target}
       class={[
-        "rounded px-2 py-1 text-xs font-semibold ring-1 whitespace-nowrap",
+        "rounded px-1.5 py-0.5 text-xs font-medium ring-1 whitespace-nowrap",
         @active && @class,
         !@active && @inactive_class
       ]}
@@ -178,46 +177,57 @@ defmodule DncWatchdogWeb.CommunicationComponents do
   attr :communications, :list, required: true
   attr :id_prefix, :string, required: true
   attr :class, :string, default: nil
+  attr :compact, :boolean, default: false
+  attr :target, :any, default: nil
 
   def communication_rows_table(assigns) do
     ~H"""
-    <div class={@class}>
-      <.table
-        id={"communications-#{@id_prefix}"}
-        rows={@communications}
-        row_id={&("comm-#{&1.id}")}
-      >
-      <:col :let={comm} label="Date & time">{format_timestamp(comm.timestamp)}</:col>
-      <:col :let={comm} label="Status">
-        <.violation_badge status={comm.violation_status} spam={comm.spam} />
-      </:col>
-      <:col :let={comm} label="Spam">
-        <.spam_button communication={comm} />
-      </:col>
-      <:col :let={comm} label="Violation">
-        <.violation_button communication={comm} />
-      </:col>
-      <:col :let={comm} label="Not a violation">
-        <.not_violation_button communication={comm} />
-      </:col>
-      <:col :let={comm} label="Sender">
-        <.exclude_sender_button communication={comm} />
-      </:col>
-      <:col :let={comm} label="Case">
-        <%= if comm.case do %>
-          <.link navigate={~p"/cases/#{comm.case}"} class="text-brand hover:underline">
-            {comm.case.company_name}
-          </.link>
-        <% else %>
-          —
-        <% end %>
-      </:col>
-      <:col :let={comm} label="Channel">{comm.channel}</:col>
-      <:col :let={comm} label="Dir">{comm.direction}</:col>
-      <:col :let={comm} label="From">{comm.from_number}</:col>
-      <:col :let={comm} label="To">{comm.to_number}</:col>
-      <:col :let={comm} label="Message">{preview_body(comm)}</:col>
-      </.table>
+    <div class={[@class, @compact && "table-compact overflow-x-auto px-3 pb-2"]}>
+      <table id={"communications-#{@id_prefix}"} class="w-full min-w-[48rem]">
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Status</th>
+            <th>Triage</th>
+            <th>Case</th>
+            <th>From</th>
+            <th>Type</th>
+            <th>Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for comm <- @communications do %>
+            <tr id={"comm-#{comm.id}"}>
+              <td>{format_timestamp(comm.timestamp)}</td>
+              <td><.violation_badge status={comm.violation_status} spam={comm.spam} /></td>
+              <td>
+                <div class="flex flex-wrap gap-1">
+                  <.spam_button communication={comm} target={@target} />
+                  <.violation_button communication={comm} target={@target} />
+                  <.not_violation_button communication={comm} target={@target} />
+                  <.exclude_sender_button communication={comm} target={@target} />
+                </div>
+              </td>
+              <td class="max-w-[10rem] truncate">
+                <%= if comm.case do %>
+                  <.link
+                    navigate={~p"/cases/#{comm.case}"}
+                    class="text-brand hover:underline"
+                    title={comm.case.company_name}
+                  >
+                    {Case.display_name(comm.case)}
+                  </.link>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+              <td class="whitespace-nowrap">{comm.from_number}</td>
+              <td class="whitespace-nowrap text-zinc-500">{comm.channel} · {comm.direction}</td>
+              <td class="max-w-md truncate" title={preview_body(comm)}>{preview_body(comm)}</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
     </div>
     """
   end

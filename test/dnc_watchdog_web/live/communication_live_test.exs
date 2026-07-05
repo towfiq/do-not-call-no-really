@@ -13,9 +13,10 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
 
     assert html =~ "Messages"
     assert html =~ "Hello from import test"
-    assert html =~ "Grouped by sender"
+    assert html =~ "Group by sender"
     assert html =~ "Include spam"
-    assert html =~ "Hiding excluded"
+    assert html =~ "Include excluded"
+    assert html =~ "Apply filters"
     assert html =~ "Sync from Mac"
     assert html =~ "Last sync: Never synced"
   end
@@ -37,15 +38,21 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
 
     html =
       view
-      |> element("button", "Include spam")
-      |> render_click()
+      |> form("#display-filters", %{
+        "filters" => %{
+          "violations_only" => "false",
+          "include_excluded" => "false",
+          "group_by_sender" => "true",
+          "include_spam" => "false"
+        }
+      })
+      |> render_submit()
 
-    assert html =~ "Hiding spam"
     refute html =~ "mark me"
     assert html =~ "keep me"
   end
 
-  test "group by sender toggle shows sender sections", %{conn: conn} do
+  test "group by sender filter shows sender sections", %{conn: conn} do
     communication_fixture(%{from_number: "8001112222", body: "spam one", violation_status: "violation"})
     communication_fixture(%{from_number: "8001112222", body: "spam two", violation_status: "violation"})
     communication_fixture(%{from_number: "8009990000", body: "other line", violation_status: "violation"})
@@ -53,16 +60,23 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
     {:ok, view, html} = live(conn, ~p"/communications")
 
     assert html =~ "8001112222"
-    assert html =~ "2 communication(s)"
     assert html =~ "8009990000"
+    assert html =~ "spam one"
 
     html =
       view
-      |> element("button", "Grouped by sender")
-      |> render_click()
+      |> form("#display-filters", %{
+        "filters" => %{
+          "violations_only" => "false",
+          "include_excluded" => "false",
+          "group_by_sender" => "false",
+          "include_spam" => "true"
+        }
+      })
+      |> render_submit()
 
-    assert html =~ "Flat list"
     refute html =~ "2 communication(s)"
+    assert html =~ "spam one"
   end
 
   test "hide excluded filter removes non-violations", %{conn: conn} do
@@ -73,9 +87,6 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
     assert html =~ "spam offer"
     refute html =~ "friend hello"
   end
-
-  alias DncWatchdog.Enforcement
-  import DncWatchdog.EnforcementFixtures
 
   test "exclude sender marks all communications from the same number", %{conn: conn} do
     first =
@@ -116,8 +127,16 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
 
     html =
       view
-      |> element("button", "Triage")
-      |> render_click()
+      |> form("#display-filters", %{
+        "filters" => %{
+          "violations_only" => "false",
+          "include_excluded" => "false",
+          "group_by_sender" => "true",
+          "include_spam" => "true",
+          "workflow" => "triage"
+        }
+      })
+      |> render_submit()
 
     assert html =~ "intake only"
     refute html =~ "sent only"

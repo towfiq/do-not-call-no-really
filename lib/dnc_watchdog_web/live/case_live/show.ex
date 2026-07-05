@@ -31,22 +31,12 @@ defmodule DncWatchdogWeb.CaseLive.Show do
   end
 
   @impl true
-  def handle_event("toggle_violations_only", _, socket) do
-    socket =
-      socket
-      |> assign(:violations_only, !socket.assigns.violations_only)
-      |> reload_communications()
-
-    {:noreply, socket}
-  end
-
-  def handle_event("toggle_hide_excluded", _, socket) do
-    socket =
-      socket
-      |> assign(:hide_excluded, !socket.assigns.hide_excluded)
-      |> reload_communications()
-
-    {:noreply, socket}
+  def handle_event("apply_filters", %{"filters" => filters}, socket) do
+    {:noreply,
+     socket
+     |> assign(:violations_only, DncWatchdogWeb.FilterParams.filter_checked?(filters, "violations_only"))
+     |> assign(:hide_excluded, !DncWatchdogWeb.FilterParams.filter_checked?(filters, "include_excluded"))
+     |> reload_communications()}
   end
 
   def handle_event("set_violation_status", %{"id" => id, "status" => status}, socket) do
@@ -108,7 +98,7 @@ defmodule DncWatchdogWeb.CaseLive.Show do
          socket
          |> load_case(socket.assigns.case.id)
          |> assign_link_case_search("", [])
-         |> put_flash(:info, "Linked with #{source.company_name} (case #{source.id})")}
+         |> put_flash(:info, "Linked with #{DncWatchdog.Enforcement.Case.display_name(source)} (case #{source.id})")}
 
       {:error, :same_case} ->
         {:noreply, put_flash(socket, :error, "Cannot link a case to itself")}

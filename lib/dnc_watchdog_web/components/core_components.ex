@@ -231,7 +231,7 @@ defmodule DncWatchdogWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "phx-submit-loading:opacity-75 rounded-lg bg-zinc-900 hover:bg-zinc-700 py-2 px-3",
+        "phx-submit-loading:opacity-75 rounded-md bg-zinc-900 hover:bg-zinc-700 py-1.5 px-3",
         "text-sm font-semibold leading-6 text-white active:text-white/80",
         @class
       ]}
@@ -427,16 +427,19 @@ defmodule DncWatchdogWeb.CoreComponents do
 
   def header(assigns) do
     ~H"""
-    <header class={[@actions != [] && "flex items-center justify-between gap-6", @class]}>
-      <div>
-        <h1 class="text-lg font-semibold leading-8 text-zinc-800">
+    <header class={[
+      @actions != [] && "flex flex-wrap items-start justify-between gap-3",
+      @class
+    ]}>
+      <div class="min-w-0">
+        <h1 class="text-xl font-semibold tracking-tight text-zinc-900">
           {render_slot(@inner_block)}
         </h1>
-        <p :if={@subtitle != []} class="mt-2 text-sm leading-6 text-zinc-600">
+        <p :if={@subtitle != []} class="mt-1 text-sm text-zinc-500">
           {render_slot(@subtitle)}
         </p>
       </div>
-      <div class="flex-none">{render_slot(@actions)}</div>
+      <div :if={@actions != []} class="page-header-actions shrink-0">{render_slot(@actions)}</div>
     </header>
     """
   end

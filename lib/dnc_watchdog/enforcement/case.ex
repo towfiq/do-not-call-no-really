@@ -7,6 +7,7 @@ defmodule DncWatchdog.Enforcement.Case do
   @mail_delivery_statuses ~w(pending pre_shipment in_transit out_for_delivery delivered returned alert unknown)
 
   alias DncWatchdog.Enforcement.CaseGroup
+  alias DncWatchdog.Enforcement.LegalEntity
 
   schema "cases" do
     field :status, :string
@@ -120,4 +121,24 @@ defmodule DncWatchdog.Enforcement.Case do
   end
 
   def mail_delivery_statuses, do: @mail_delivery_statuses
+
+  @doc """
+  UI-facing case label. Uses the linked legal entity name when present,
+  otherwise falls back to the import `company_name` (e.g. Caller {phone}).
+  """
+  def display_name(%__MODULE__{legal_entity: %LegalEntity{legal_name: name}})
+      when is_binary(name) and name != "" do
+    name
+  end
+
+  def display_name(%__MODULE__{legal_entity: %Ecto.Association.NotLoaded{}, company_name: name})
+      when is_binary(name) and name != "" do
+    name
+  end
+
+  def display_name(%__MODULE__{company_name: name}) when is_binary(name) and name != "" do
+    name
+  end
+
+  def display_name(_), do: "Unknown case"
 end

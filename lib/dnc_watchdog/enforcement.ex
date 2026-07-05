@@ -133,7 +133,7 @@ defmodule DncWatchdog.Enforcement do
     opts
     |> Keyword.put_new(:limit, 1_000)
     |> communications_query()
-    |> preload(:case)
+    |> preload(case: :legal_entity)
     |> Repo.all()
   end
 
@@ -1033,6 +1033,7 @@ defmodule DncWatchdog.Enforcement do
       |> SearchFilter.apply_case_search(trimmed)
       |> order_by([c], desc: c.inserted_at)
       |> limit(^limit)
+      |> preload(:legal_entity)
       |> Repo.all()
     end
   end
