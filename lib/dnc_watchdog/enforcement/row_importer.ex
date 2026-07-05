@@ -35,9 +35,7 @@ defmodule DncWatchdog.Enforcement.RowImporter do
   end
 
   def import_row(row, excluded_keys \\ Enforcement.excluded_peer_keys_set()) do
-    company = company_label(row)
-
-    with {:ok, case_record, case_created?} <- find_or_create_case(company),
+    with {:ok, case_record, case_created?} <- find_or_create_case(row),
          {:ok, duplicate?} <- import_row_for_case(case_record, row, excluded_keys) do
       {:ok, %{case_created: case_created?, duplicate: duplicate?}}
     end
@@ -55,12 +53,14 @@ defmodule DncWatchdog.Enforcement.RowImporter do
       |> Map.put(:reasons, reasons)
       |> Map.put(:violation_status, violation_status_for(row, excluded_keys))
       |> Map.update!(:timestamp, &coerce_timestamp/1)
+      |> normalize_import_numbers()
       |> ensure_to_number()
 
     fingerprint = Communication.fingerprint(attrs)
 
-    case Enforcement.get_communication_by_fingerprint(fingerprint) do
-      %Communication{} ->
+    case Enforcement.find_communication_duplicate(attrs) do
+      %Communication{} = existing ->
+        Enforcement.backfill_communication_fingerprint(existing, fingerprint)
         {:ok, true}
 
       nil ->
@@ -74,6 +74,15 @@ defmodule DncWatchdog.Enforcement.RowImporter do
     end
   end
 
+  defp normalize_import_numbers(row) do
+    row
+    |> Map.update!(:from_number, &Phone.normalize/1)
+    |> Map.update!(:to_number, &normalize_import_to_number/1)
+  end
+
+  defp normalize_import_to_number("local"), do: "local"
+  defp normalize_import_to_number(number), do: Phone.normalize(number)
+
   defp ensure_to_number(%{direction: "incoming", to_number: to} = row) when to in [nil, ""] do
     my_phone = Phone.normalize_or_env(nil)
     Map.put(row, :to_number, if(my_phone != "", do: my_phone, else: "local"))
@@ -86,14 +95,16 @@ defmodule DncWatchdog.Enforcement.RowImporter do
 
   defp ensure_to_number(row), do: row
 
-  defp find_or_create_case(company_name) do
-    case Enforcement.list_cases() |> Enum.find(&(&1.company_name == company_name)) do
+  defp find_or_create_case(row) do
+    company = company_label(row)
+
+    case find_existing_case(row, company) do
       %{} = case_record ->
         {:ok, case_record, false}
 
       nil ->
         case Enforcement.create_case(%{
-               company_name: company_name,
+               company_name: company,
                status: "new",
                workflow_step: "intake",
                notes: "Auto-created from import",
@@ -105,13 +116,48 @@ defmodule DncWatchdog.Enforcement.RowImporter do
     end
   end
 
-  defp company_label(%{company: company, from_number: from, direction: direction}) do
+  defp find_existing_case(%{direction: "incoming"} = row, _company) do
+    case incoming_peer(row) do
+      peer when peer in [nil, ""] -> nil
+      peer -> Enforcement.find_case_for_incoming_peer(peer)
+    end
+  end
+
+  defp find_existing_case(_row, company) do
+    find_case_by_company_name(company)
+  end
+
+  defp find_case_by_company_name(company_name) do
+    Enforcement.list_cases()
+    |> Enum.find(&(&1.company_name == company_name))
+  end
+
+  defp incoming_peer(%{direction: "incoming", from_number: from}) do
+    from |> to_string() |> String.trim()
+  end
+
+  defp incoming_peer(_), do: nil
+
+  defp company_label(%{company: company, from_number: from, direction: direction, to_number: to, channel: channel}) do
     company = company |> to_string() |> String.trim()
+    normalized_from = Phone.normalize(from)
+    normalized_to = Phone.normalize(to)
 
     cond do
-      company != "" -> company
-      direction == "incoming" and from not in [nil, ""] -> "Caller #{from}"
-      true -> "Unknown Company"
+      direction == "incoming" and normalized_from != "" and (company == "" or channel == "call") ->
+        "Caller #{normalized_from}"
+
+      company != "" ->
+        company
+
+      direction == "incoming" and normalized_from != "" ->
+        "Caller #{normalized_from}"
+
+      direction == "outgoing" and normalized_to != "" ->
+        "Caller #{normalized_to}"
+
+      true ->
+        "Unknown Company"
     end
   end
 

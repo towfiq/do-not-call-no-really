@@ -21,6 +21,17 @@ defmodule DncWatchdog.Enforcement.Local.ContactsTest do
     assert MapSet.member?(set.emails, "friend@example.com")
   end
 
+  test "load/1 reads phones stored as area code and local number", %{} do
+    dir = SqliteFixtures.temp_dir!()
+    on_exit(fn -> File.rm_rf(dir) end)
+
+    path = SqliteFixtures.create_split_phone_contacts_db(Path.join(dir, "AddressBook-v22.abcddb"), "323", "4812617")
+
+    assert {:ok, set, [^path]} = Contacts.load(contacts_dbs: [path])
+    assert MapSet.member?(set.phones, "3234812617")
+    assert MapSet.member?(set.phones, "13234812617")
+  end
+
   test "load/1 returns empty set when no databases exist" do
     assert {:ok, set, []} = Contacts.load(contacts_dbs: [])
     assert MapSet.size(set.phones) == 0

@@ -86,17 +86,7 @@ defmodule DncWatchdog.Enforcement.Dedupe do
     }
   end
 
-  defp fingerprint_for(%Communication{} = comm) do
-    Communication.fingerprint(%{
-      timestamp: comm.timestamp,
-      channel: comm.channel,
-      direction: comm.direction,
-      from_number: comm.from_number,
-      to_number: comm.to_number,
-      duration_seconds: comm.duration_seconds,
-      body: comm.body
-    })
-  end
+  defp fingerprint_for(%Communication{} = comm), do: Communication.computed_fingerprint(comm)
 
   defp pick_keeper(group, fingerprint) do
     Enum.min_by(group, &keeper_sort_key(&1, fingerprint))

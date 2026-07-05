@@ -36,11 +36,32 @@ defmodule DncWatchdog.Enforcement.Communication do
       attrs[:direction] || attrs["direction"] || "",
       peer_key(attrs),
       Integer.to_string(attrs[:duration_seconds] || attrs["duration_seconds"] || 0),
-      attrs[:body] || attrs["body"] || ""
+      normalize_body(attrs[:body] || attrs["body"])
     ]
 
     :crypto.hash(:sha256, Enum.join(parts, "\x1e"))
     |> Base.encode16(case: :lower)
+  end
+
+  @doc """
+  Computes the import fingerprint for an existing communication record.
+  """
+  def computed_fingerprint(%__MODULE__{} = communication) do
+    fingerprint(%{
+      timestamp: communication.timestamp,
+      channel: communication.channel,
+      direction: communication.direction,
+      from_number: communication.from_number,
+      to_number: communication.to_number,
+      duration_seconds: communication.duration_seconds,
+      body: communication.body
+    })
+  end
+
+  defp normalize_body(nil), do: ""
+
+  defp normalize_body(body) when is_binary(body) do
+    body |> String.replace("\r\n", "\n") |> String.trim()
   end
 
   defp peer_key(attrs) do

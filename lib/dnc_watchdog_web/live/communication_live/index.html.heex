@@ -2,8 +2,17 @@
   Messages & Calls
   <:subtitle>
     {@filtered_count} shown of {@total_count} total. Mark violations, optionally hide excluded/spam, then build cases.
+    Last sync: {last_sync_label(@local_sync_state)}.
   </:subtitle>
   <:actions>
+    <.button
+      type="button"
+      phx-click="sync_local"
+      phx-disable-with="Syncing…"
+      disabled={@local_syncing}
+    >
+      {if @local_syncing, do: "Syncing…", else: "Sync from Mac"}
+    </.button>
     <button
       type="button"
       phx-click="toggle_group_by_sender"
@@ -67,8 +76,7 @@
   <div class="mt-6 rounded-lg border border-zinc-200 bg-zinc-50 p-6 text-sm text-zinc-700">
     <p class="font-semibold">No messages or calls match the current filters.</p>
     <p class="mt-2">
-      Run <code class="rounded bg-white px-1">mix dnc.import_local</code>
-      or adjust filters above. Use
+      Click <strong>Sync from Mac</strong> to import new messages and calls from this computer, or adjust filters above. Use
       <strong>Violation</strong> / <strong>Not a violation</strong> on each row to triage imports.
     </p>
   </div>

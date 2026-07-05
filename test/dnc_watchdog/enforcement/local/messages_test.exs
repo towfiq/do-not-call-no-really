@@ -87,6 +87,19 @@ defmodule DncWatchdog.Enforcement.Local.MessagesTest do
     assert attributed.direction == "incoming"
   end
 
+  test "read/2 deduplicates messages linked to multiple chats" do
+    dir = SqliteFixtures.temp_dir!()
+    on_exit(fn -> File.rm_rf(dir) end)
+
+    path =
+      SqliteFixtures.create_messages_db(Path.join(dir, "chat.db"),
+        duplicate_join_date: ~U[2026-06-09 15:30:00Z]
+      )
+
+    assert {:ok, rows} = Messages.read(path, limit: 10, my_phone: "5550001234")
+    assert Enum.count(rows, &String.contains?(&1.body, "Duplicate join test")) == 1
+  end
+
   test "search/3 finds rows by phone fragment" do
     dir = SqliteFixtures.temp_dir!()
     on_exit(fn -> File.rm_rf(dir) end)

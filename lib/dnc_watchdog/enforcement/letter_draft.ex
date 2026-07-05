@@ -290,13 +290,27 @@ defmodule DncWatchdog.Enforcement.LetterDraft do
   defp maybe_add_type(types, true, label), do: types ++ [label]
   defp maybe_add_type(types, false, _label), do: types
 
+  defp communication_summary(%{channel: "call", body: body, duration_seconds: duration}) do
+    trimmed = String.trim(body || "")
+
+    if trimmed != "" do
+      String.slice(trimmed, 0, 80)
+    else
+      "Phone call (#{duration}s)"
+    end
+  end
+
+  defp communication_summary(%{body: body}) do
+    String.slice(body || "", 0, 80)
+  end
+
   defp violation_appendix(violations, attachments) do
     events_table =
       violations
       |> Enum.map(fn comm ->
         time = format_timestamp(comm.timestamp)
-        body = String.slice(comm.body || "", 0, 80)
-        "| #{time} | #{comm.channel} | #{comm.from_number} | #{body} |"
+        summary = communication_summary(comm)
+        "| #{time} | #{comm.channel} | #{comm.from_number} | #{summary} |"
       end)
       |> Enum.join("\n")
 

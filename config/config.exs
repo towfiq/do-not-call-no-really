@@ -27,6 +27,15 @@ config :dnc_watchdog, :periodic_tracking_refresh,
   interval_ms: 3_600_000,
   run_on_start: false
 
+config :dnc_watchdog, :local_sync,
+  lookback_days: 7,
+  overlap_seconds: 3600,
+  messages: true,
+  calls: true,
+  skip_contacts: true,
+  skip_self_initiated: true,
+  limit: 5_000
+
 # Configures the endpoint
 config :dnc_watchdog, DncWatchdogWeb.Endpoint,
   url: [host: "localhost"],

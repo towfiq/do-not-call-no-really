@@ -16,6 +16,8 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
     assert html =~ "Grouped by sender"
     assert html =~ "Include spam"
     assert html =~ "Hiding excluded"
+    assert html =~ "Sync from Mac"
+    assert html =~ "Last sync: Never synced"
   end
 
   test "mark spam and hide spam filter work independently of excluded sender", %{conn: conn} do

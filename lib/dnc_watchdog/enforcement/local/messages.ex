@@ -27,6 +27,7 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
                  {:ok, rows} ->
                    rows =
                      rows
+                     |> Enum.uniq_by(fn [message_id | _] -> message_id end)
                      |> Enum.map(&to_row(&1, my_phone))
                      |> Enum.reject(&(&1.body == ""))
 
@@ -107,6 +108,7 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
 
     """
     SELECT
+      m.ROWID AS message_id,
       m.date AS apple_date,
       m.text AS body,
       #{attributed_body_select(schema)} AS attributed_body,
@@ -202,7 +204,7 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
     }
   end
 
-  defp to_row([apple_date, body, attributed_body, is_from_me, handle], my_phone) do
+  defp to_row([_message_id, apple_date, body, attributed_body, is_from_me, handle], my_phone) do
     from_me? = is_from_me in [1, "1", true]
     peer = Phone.normalize(handle)
     my = Phone.normalize(my_phone)

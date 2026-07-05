@@ -127,6 +127,8 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
       maybe_filter_self_initiated(rows_after_contacts, skip_self_initiated, my_phone)
 
     summary = RowImporter.import_rows(rows_to_import)
+    reconcile = DncWatchdog.Enforcement.reconcile_incoming_peer_case_assignments()
+    dedupe = DncWatchdog.Enforcement.Dedupe.dedupe_communications()
 
     Map.merge(summary, %{
       messages_path: messages_path,
@@ -138,6 +140,10 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
       skipped_lookback: skipped_lookback,
       since: since,
       lookback_days: Keyword.get(opts, :lookback_days),
+      reconciled_peers: reconcile.peers,
+      reassigned_communications: reconcile.reassigned,
+      dedupe_deleted: dedupe.deleted,
+      dedupe_groups: dedupe.duplicate_groups,
       logs: message_log ++ call_log ++ contact_log
     })
   end

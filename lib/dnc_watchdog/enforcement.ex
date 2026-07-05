@@ -200,6 +200,84 @@ defmodule DncWatchdog.Enforcement do
     Repo.get_by(Communication, source_fingerprint: fingerprint)
   end
 
+  @doc """
+  Finds an existing communication matching import attrs, including rows with
+  stale or missing `source_fingerprint` values.
+  """
+  def find_communication_duplicate(attrs) when is_map(attrs) do
+    fingerprint = Communication.fingerprint(attrs)
+
+    case get_communication_by_fingerprint(fingerprint) do
+      %Communication{} = comm ->
+        comm
+
+      nil ->
+        attrs
+        |> duplicate_candidates()
+        |> Enum.find(&(Communication.computed_fingerprint(&1) == fingerprint))
+    end
+  end
+
+  def backfill_communication_fingerprint(%Communication{} = comm, fingerprint) do
+    if comm.source_fingerprint == fingerprint do
+      {:ok, comm}
+    else
+      update_communication(comm, %{source_fingerprint: fingerprint})
+    end
+  end
+
+  defp duplicate_candidates(attrs) do
+    timestamp = attrs[:timestamp] || attrs["timestamp"]
+    channel = attrs[:channel] || attrs["channel"]
+    direction = attrs[:direction] || attrs["direction"]
+    peer = import_peer(attrs)
+
+    query =
+      Communication
+      |> where([c], c.timestamp == ^timestamp)
+      |> where([c], c.channel == ^channel)
+      |> where([c], c.direction == ^direction)
+
+    if peer == "" do
+      Repo.all(query)
+    else
+      keys = Phone.lookup_keys(peer)
+
+      match =
+        Enum.reduce(keys, dynamic(false), fn key, acc ->
+          dynamic(
+            [c],
+            ^acc or
+              fragment(
+                "replace(replace(replace(replace(replace(replace(?, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', '') = ?",
+                c.from_number,
+                ^key
+              ) or
+              fragment(
+                "replace(replace(replace(replace(replace(replace(?, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', '') = ?",
+                c.to_number,
+                ^key
+              )
+          )
+        end)
+
+      query |> where(^match) |> Repo.all()
+    end
+  end
+
+  defp import_peer(attrs) do
+    direction = attrs[:direction] || attrs["direction"]
+
+    peer =
+      case direction do
+        "incoming" -> attrs[:from_number] || attrs["from_number"]
+        "outgoing" -> attrs[:to_number] || attrs["to_number"]
+        _ -> ""
+      end
+
+    Phone.normalize(peer)
+  end
+
   def create_communication(attrs \\ %{}) do
     %Communication{}
     |> Communication.changeset(attrs)
@@ -337,16 +415,197 @@ defmodule DncWatchdog.Enforcement do
             (c.direction == "outgoing" and fragment("lower(?)", c.to_number) == ^email)
     else
       normalized = Phone.normalize(peer)
+      keys = Phone.lookup_keys(normalized)
 
-      from c in Communication,
-        where:
-          (c.direction == "incoming" and c.from_number == ^normalized) or
-            (c.direction == "outgoing" and c.to_number == ^normalized)
+      match =
+        Enum.reduce(keys, dynamic(false), fn key, acc ->
+          dynamic(
+            [c],
+            ^acc or
+              fragment(
+                "replace(replace(replace(replace(replace(replace(?, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', '') = ?",
+                c.from_number,
+                ^key
+              ) or
+              fragment(
+                "replace(replace(replace(replace(replace(replace(?, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', '') = ?",
+                c.to_number,
+                ^key
+              )
+          )
+        end)
+
+      from c in Communication, where: ^match
     end
   end
 
   def list_violation_communications(case_id) do
     list_case_communications(case_id, hide_excluded: true, violations_only: true)
+  end
+
+  @doc """
+  Finds an existing case for an incoming caller/sender phone or email peer.
+  """
+  def find_case_for_incoming_peer(peer) when is_binary(peer) do
+    peer = String.trim(peer)
+
+    cond do
+      peer == "" ->
+        nil
+
+      ContactFilter.email_peer?(peer) ->
+        find_case_for_incoming_email(peer)
+
+      true ->
+        find_case_for_incoming_phone(peer)
+    end
+  end
+
+  def find_case_for_incoming_peer(_), do: nil
+
+  @doc """
+  Moves communications from the same incoming peer onto one canonical case.
+
+  Fixes imports where Call History used a display name while SMS used `Caller {phone}`.
+  """
+  def reconcile_incoming_peer_case_assignments do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    peers =
+      Communication
+      |> where([c], c.direction == "incoming")
+      |> select([c], c.from_number)
+      |> Repo.all()
+      |> Enum.map(&Phone.normalize/1)
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.uniq()
+
+    Enum.reduce(peers, %{peers: 0, reassigned: 0}, fn peer, acc ->
+      case reconcile_incoming_peer(peer, now) do
+        {0, _} -> acc
+        {count, _} -> %{acc | peers: acc.peers + 1, reassigned: acc.reassigned + count}
+      end
+    end)
+  end
+
+  defp find_case_for_incoming_phone(peer) do
+    normalized = Phone.normalize(peer)
+
+    if normalized == "" do
+      nil
+    else
+      caller_label = "Caller #{normalized}"
+
+      case Repo.get_by(Case, company_name: caller_label) do
+        %Case{} = case_record ->
+          case_record
+
+        nil ->
+          case incoming_peer_case_id(normalized) do
+            nil -> nil
+            case_id -> Repo.get(Case, case_id)
+          end
+      end
+    end
+  end
+
+  defp find_case_for_incoming_email(email) do
+    email = String.downcase(email)
+
+    case_id =
+      Communication
+      |> where([c], c.direction == "incoming")
+      |> where([c], fragment("lower(?)", c.from_number) == ^email)
+      |> order_by([c], asc: c.case_id)
+      |> limit(1)
+      |> select([c], c.case_id)
+      |> Repo.one()
+
+    if case_id, do: Repo.get(Case, case_id)
+  end
+
+  defp incoming_peer_case_id(normalized) do
+    keys = Phone.lookup_keys(normalized)
+
+    match =
+      Enum.reduce(keys, dynamic(false), fn key, acc ->
+        dynamic(
+          [c],
+          ^acc or
+            fragment(
+              "replace(replace(replace(replace(replace(replace(?, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', '') = ?",
+              c.from_number,
+              ^key
+            )
+        )
+      end)
+
+    Communication
+    |> where([c], c.direction == "incoming")
+    |> where(^match)
+    |> order_by([c], asc: c.case_id)
+    |> limit(1)
+    |> select([c], c.case_id)
+    |> Repo.one()
+  end
+
+  defp reconcile_incoming_peer(peer, now) do
+    query = peer_query(peer)
+
+    case_ids =
+      query
+      |> select([c], c.case_id)
+      |> Repo.all()
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+
+    case case_ids do
+      [] ->
+        {0, nil}
+
+      [_single] ->
+        {0, nil}
+
+      ids ->
+        canonical_id = canonical_case_id(peer, ids)
+
+        {count, _} =
+          query
+          |> where([c], c.case_id != ^canonical_id)
+          |> Repo.update_all(set: [case_id: canonical_id, updated_at: now])
+
+        {count, canonical_id}
+    end
+  end
+
+  defp canonical_case_id(peer, case_ids) do
+    normalized = Phone.normalize(peer)
+    caller_label = if normalized != "", do: "Caller #{normalized}", else: nil
+    cases = Repo.all(from c in Case, where: c.id in ^case_ids, order_by: [asc: c.id])
+
+    case Enum.find(cases, &(caller_label && &1.company_name == caller_label)) do
+      %Case{id: id} ->
+        id
+
+      nil ->
+        case Enum.find(cases, &caller_case_name?/1) do
+          %Case{id: id} ->
+            id
+
+          nil ->
+            case Enum.find(cases, &display_name_case?/1) do
+              %Case{id: id} -> id
+              nil -> hd(cases).id
+            end
+        end
+    end
+  end
+
+  defp caller_case_name?(%Case{company_name: "Caller " <> _}), do: true
+  defp caller_case_name?(_), do: false
+
+  defp display_name_case?(%Case{company_name: name}) do
+    name not in ["", "Unknown Company"] and not caller_case_name?(%Case{company_name: name})
   end
 
   def change_legal_entity(%LegalEntity{} = entity \\ %LegalEntity{}, attrs \\ %{}) do

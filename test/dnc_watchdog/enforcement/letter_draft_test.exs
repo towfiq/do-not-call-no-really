@@ -70,6 +70,33 @@ defmodule DncWatchdog.Enforcement.LetterDraftTest do
     refute body =~ "willful and knowing"
   end
 
+  test "render/4 mentions calls and texts when both are violations" do
+    case = case_fixture()
+
+    sms =
+      communication_fixture(%{
+        case_id: case.id,
+        channel: "sms",
+        violation_status: "violation",
+        body: "Limited time offer"
+      })
+
+    call =
+      communication_fixture(%{
+        case_id: case.id,
+        channel: "call",
+        violation_status: "violation",
+        body: "",
+        duration_seconds: 9,
+        timestamp: ~N[2026-05-21 10:00:00]
+      })
+
+    body = LetterDraft.render(case, [sms, call], [])
+
+    assert body =~ "calls and text messages"
+    assert body =~ "Phone call (9s)"
+  end
+
   test "render/4 includes willful paragraph and damages after STOP date" do
     case =
       case_fixture(%{

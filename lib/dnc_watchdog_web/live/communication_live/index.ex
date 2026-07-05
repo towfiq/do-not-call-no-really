@@ -17,7 +17,9 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
        filtered_count: 0,
        total_count: 0,
        communications: [],
-       communication_groups: []
+       communication_groups: [],
+       local_sync_state: DncWatchdog.Enforcement.LocalSync.get_state(),
+       local_syncing: false
      )}
   end
 
@@ -136,6 +138,67 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
     end
   end
 
+  def handle_event("sync_local", _, socket) do
+    if socket.assigns.local_syncing do
+      {:noreply, socket}
+    else
+      parent = self()
+
+      {:noreply,
+       socket
+       |> assign(:local_syncing, true)
+       |> start_async(:local_sync, fn ->
+         allow_repo_sandbox(parent)
+         DncWatchdog.Enforcement.LocalSync.sync()
+       end)}
+    end
+  end
+
+  @impl true
+  def handle_async(:local_sync, {:ok, {:ok, %{summary: summary, state: state}}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:local_syncing, false)
+     |> assign(:local_sync_state, state)
+     |> reload_communications()
+     |> put_flash(:info, DncWatchdog.Enforcement.LocalSync.summary_message(summary))}
+  end
+
+  def handle_async(:local_sync, {:ok, {:error, reason}}, socket) do
+    state = DncWatchdog.Enforcement.LocalSync.get_state()
+
+    {:noreply,
+     socket
+     |> assign(:local_syncing, false)
+     |> assign(:local_sync_state, state)
+     |> put_flash(:error, "Sync failed: #{reason}")}
+  end
+
+  def handle_async(:local_sync, {:exit, reason}, socket) do
+    {:noreply,
+     socket
+     |> assign(:local_syncing, false)
+     |> put_flash(:error, "Sync failed: #{inspect(reason)}")}
+  end
+
+  def handle_async(:local_sync, _result, socket) do
+    {:noreply,
+     socket
+     |> assign(:local_syncing, false)
+     |> put_flash(:error, "Sync failed unexpectedly")}
+  end
+
+  defp allow_repo_sandbox(parent) do
+    if sandbox_repo?() do
+      Ecto.Adapters.SQL.Sandbox.allow(DncWatchdog.Repo, parent, self())
+    end
+  end
+
+  defp sandbox_repo? do
+    Application.get_env(:dnc_watchdog, DncWatchdog.Repo, [])
+    |> Keyword.get(:pool) == Ecto.Adapters.SQL.Sandbox
+  end
+
   defp reload_communications(socket) do
     opts = list_opts(socket)
 
@@ -171,4 +234,6 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
   end
 
   def group_title(%{label: label}), do: label
+
+  def last_sync_label(state), do: DncWatchdog.Enforcement.LocalSync.format_last_sync(state)
 end

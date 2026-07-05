@@ -30,4 +30,15 @@ defmodule DncWatchdog.Enforcement.Local.PathsTest do
 
     assert Paths.discover_contacts_dbs_under(dir) == [legacy, modern]
   end
+
+  test "discover_contacts_dbs_under/1 finds databases under Sources without recursive wildcard" do
+    dir = SqliteFixtures.temp_dir!()
+    on_exit(fn -> File.rm_rf(dir) end)
+
+    modern = Path.join([dir, "Sources", "UUID-123", "AddressBook-v22.abcddb"])
+    File.mkdir_p!(Path.dirname(modern))
+    File.write!(modern, "")
+
+    assert Paths.discover_contacts_dbs_under(dir) == [modern]
+  end
 end

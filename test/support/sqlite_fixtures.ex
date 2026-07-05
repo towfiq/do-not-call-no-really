@@ -77,6 +77,27 @@ defmodule DncWatchdog.SqliteFixtures do
       )
     end
 
+    duplicate_join_date = Keyword.get(opts, :duplicate_join_date)
+
+    if duplicate_join_date do
+      dup_ns = apple_nanoseconds(duplicate_join_date)
+
+      Exqlite.Sqlite3.execute(
+        conn,
+        "INSERT INTO chat (ROWID, chat_identifier) VALUES (2, '+18001234567')"
+      )
+
+      Exqlite.Sqlite3.execute(
+        conn,
+        "INSERT INTO message (ROWID, date, text, is_from_me, handle_id) VALUES (5, #{dup_ns}, 'Duplicate join test', 0, 1)"
+      )
+
+      Exqlite.Sqlite3.execute(
+        conn,
+        "INSERT INTO chat_message_join (chat_id, message_id) VALUES (2, 5)"
+      )
+    end
+
     Exqlite.Sqlite3.close(conn)
     path
   end
@@ -154,7 +175,15 @@ defmodule DncWatchdog.SqliteFixtures do
 
     Exqlite.Sqlite3.execute(
       conn,
-      "CREATE TABLE ZABCDPHONENUMBER (Z_PK INTEGER PRIMARY KEY, ZFULLNUMBER TEXT)"
+      """
+      CREATE TABLE ZABCDPHONENUMBER (
+        Z_PK INTEGER PRIMARY KEY,
+        ZFULLNUMBER TEXT,
+        ZAREACODE TEXT,
+        ZLOCALNUMBER TEXT,
+        ZCOUNTRYCODE TEXT
+      )
+      """
     )
 
     Exqlite.Sqlite3.execute(
@@ -177,6 +206,39 @@ defmodule DncWatchdog.SqliteFixtures do
         "INSERT INTO ZABCDEMAILADDRESS (Z_PK, ZADDRESS) VALUES (#{idx}, '#{email}')"
       )
     end)
+
+    Exqlite.Sqlite3.close(conn)
+    path
+  end
+
+  def create_split_phone_contacts_db(path, area, local, country \\ "1") do
+    {:ok, conn} = Exqlite.Sqlite3.open(path)
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      """
+      CREATE TABLE ZABCDPHONENUMBER (
+        Z_PK INTEGER PRIMARY KEY,
+        ZFULLNUMBER TEXT,
+        ZAREACODE TEXT,
+        ZLOCALNUMBER TEXT,
+        ZCOUNTRYCODE TEXT
+      )
+      """
+    )
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      """
+      INSERT INTO ZABCDPHONENUMBER (Z_PK, ZFULLNUMBER, ZAREACODE, ZLOCALNUMBER, ZCOUNTRYCODE)
+      VALUES (1, NULL, '#{area}', '#{local}', '#{country}')
+      """
+    )
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      "CREATE TABLE ZABCDEMAILADDRESS (Z_PK INTEGER PRIMARY KEY, ZADDRESS TEXT)"
+    )
 
     Exqlite.Sqlite3.close(conn)
     path
