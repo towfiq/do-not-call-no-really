@@ -4,6 +4,11 @@ defmodule DncWatchdog.Enforcement.LocalSync do
 
   Stores the last successful sync time and only imports rows newer than that
   cutoff (with a configurable overlap buffer).
+
+  Continuity can deliver both SMS and Call History to the Mac hours or days
+  after the event. Incremental sync therefore uses multi-day overlap windows
+  (`:overlap_seconds` for messages, `:call_overlap_seconds` for calls) so
+  delayed copies are still imported; duplicates are skipped via fingerprint.
   """
 
   import Ecto.Query, warn: false
@@ -13,7 +18,9 @@ defmodule DncWatchdog.Enforcement.LocalSync do
   alias DncWatchdog.Enforcement.LocalImportSync
   alias DncWatchdog.Repo
 
-  @default_overlap_seconds 3600
+  # 3 days — Continuity SMS and Call History can lag well behind the event time.
+  @default_overlap_seconds 259_200
+  @default_call_overlap_seconds 259_200
 
   @doc """
   Returns the persisted sync state, or an empty struct when never synced.
@@ -29,7 +36,12 @@ defmodule DncWatchdog.Enforcement.LocalSync do
   Imports messages and calls from local macOS databases.
 
   On the first run, uses `:lookback_days` from `:local_sync` config. Later runs
-  import only rows at or after the previous sync (minus overlap).
+  import only rows at or after the previous sync (minus overlap). Messages and
+  calls both use multi-day overlaps by default to tolerate delayed Continuity.
+
+  Pass `lookback_days: N` (or an explicit `since:`) to force a fixed window and
+  ignore the incremental last-sync cutoff — useful when Continuity delivered
+  older rows after a sync already advanced `last_synced_at`.
   """
   def sync(opts \\ []) do
     started_at = DateTime.utc_now() |> DateTime.truncate(:second)
@@ -62,12 +74,28 @@ defmodule DncWatchdog.Enforcement.LocalSync do
     created = Map.get(summary, :created_communications, 0)
     duplicates = Map.get(summary, :skipped_duplicates, 0)
     skipped_contacts = Map.get(summary, :skipped_contacts, 0)
+    message_rows = Map.get(summary, :message_rows, 0)
+    call_rows = Map.get(summary, :call_rows, 0)
     logs = Map.get(summary, :logs, [])
 
-    ["Imported #{created} new communication(s)"]
-    |> maybe_add_part(duplicates > 0, "#{duplicates} duplicate(s) skipped")
-    |> maybe_add_part(skipped_contacts > 0, "#{skipped_contacts} from contacts skipped")
+    newest_call_at = Map.get(summary, :newest_call_at)
+
+    ["Imported #{created} new"]
+    |> maybe_add_part(true, "scanned #{message_rows} message(s) + #{call_rows} call(s)")
+    |> maybe_add_part(duplicates > 0, "#{duplicates} duplicate(s)")
+    |> maybe_add_part(
+      Enum.any?(logs, &match?({:contacts_disabled, _}, &1)),
+      "including contacts"
+    )
+    |> maybe_add_part(
+      skipped_contacts > 0,
+      "#{skipped_contacts} contact(s) skipped — enable Include contacts to import them"
+    )
     |> append_contacts_warning(logs)
+    |> maybe_add_part(
+      is_binary(newest_call_at) and newest_call_at != "",
+      "newest Mac call #{newest_call_at}"
+    )
     |> Enum.join(" · ")
   end
 
@@ -85,24 +113,45 @@ defmodule DncWatchdog.Enforcement.LocalSync do
   defp build_import_opts(state, overrides) do
     config =
       Application.get_env(:dnc_watchdog, :local_sync, [])
-      |> Keyword.drop([:overlap_seconds])
+      |> Keyword.drop([:overlap_seconds, :call_overlap_seconds])
 
-    config
-    |> Keyword.merge(overrides)
-    |> LocalImportOptions.build()
-    |> apply_since(state.last_synced_at)
+    merged = Keyword.merge(config, overrides)
+    built = LocalImportOptions.build(merged)
+
+    cond do
+      explicit_lookback_days?(overrides) ->
+        # Explicit window wins over incremental last-sync cutoff.
+        built
+        |> Keyword.put(:calls_since, built[:since])
+        |> Keyword.put(:limit, nil)
+
+      Keyword.has_key?(overrides, :since) ->
+        built
+        |> Keyword.put_new(:calls_since, built[:since])
+        |> Keyword.put(:limit, nil)
+
+      true ->
+        apply_since(built, state.last_synced_at)
+    end
+  end
+
+  defp explicit_lookback_days?(opts) do
+    case Keyword.get(opts, :lookback_days) do
+      days when is_integer(days) and days > 0 -> true
+      _ -> false
+    end
   end
 
   defp apply_since(opts, nil), do: opts
 
   defp apply_since(opts, %DateTime{} = last_synced_at) do
-    since =
-      last_synced_at
-      |> DateTime.to_naive()
-      |> NaiveDateTime.add(-overlap_seconds(), :second)
+    base = DateTime.to_naive(last_synced_at)
+    since = NaiveDateTime.add(base, -overlap_seconds(), :second)
+    calls_since = NaiveDateTime.add(base, -call_overlap_seconds(), :second)
 
     opts
     |> Keyword.put(:since, since)
+    |> Keyword.put(:calls_since, calls_since)
     |> Keyword.put(:lookback_days, nil)
     |> Keyword.put(:limit, nil)
   end
@@ -110,6 +159,11 @@ defmodule DncWatchdog.Enforcement.LocalSync do
   defp overlap_seconds do
     Application.get_env(:dnc_watchdog, :local_sync, [])
     |> Keyword.get(:overlap_seconds, @default_overlap_seconds)
+  end
+
+  defp call_overlap_seconds do
+    Application.get_env(:dnc_watchdog, :local_sync, [])
+    |> Keyword.get(:call_overlap_seconds, @default_call_overlap_seconds)
   end
 
   defp run_import(opts) do

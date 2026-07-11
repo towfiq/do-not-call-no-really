@@ -14,6 +14,7 @@ defmodule DncWatchdogWeb.CaseLive.Show do
      socket
      |> assign(:violations_only, false)
      |> assign(:hide_excluded, true)
+     |> assign(:hide_contacts, true)
      |> assign(:usps_tracking_configured, Enforcement.usps_tracking_configured?())
      |> assign(:mail_tracking_refreshing, false)
      |> assign(:link_case_query, "")
@@ -41,6 +42,10 @@ defmodule DncWatchdogWeb.CaseLive.Show do
      |> assign(
        :hide_excluded,
        !DncWatchdogWeb.FilterParams.filter_checked?(filters, "include_excluded")
+     )
+     |> assign(
+       :hide_contacts,
+       !DncWatchdogWeb.FilterParams.filter_checked?(filters, "include_contacts")
      )
      |> reload_communications()}
   end
@@ -483,7 +488,8 @@ defmodule DncWatchdogWeb.CaseLive.Show do
     communications =
       Enforcement.list_case_communications(socket.assigns.case.id,
         violations_only: socket.assigns.violations_only,
-        hide_excluded: socket.assigns.hide_excluded
+        hide_excluded: socket.assigns.hide_excluded,
+        hide_contacts: socket.assigns.hide_contacts
       )
 
     assign(socket, :communications, communications)

@@ -4,10 +4,68 @@ defmodule DncWatchdog.Enforcement.Local.CallHistory do
   """
 
   alias DncWatchdog.Enforcement.Local.Lookback
+  alias DncWatchdog.Enforcement.Local.Paths
   alias DncWatchdog.Enforcement.Phone
   alias DncWatchdog.Enforcement.Sqlite
 
   @apple_epoch_seconds 978_307_200
+
+  @doc """
+  Diagnoses whether a phone appears in local Call History and what the newest
+  readable call timestamp is. Intended for the LiveView probe button.
+  """
+  def probe(phone, opts \\ []) do
+    needle = Phone.normalize(phone)
+    paths =
+      Paths.default_call_history_paths()
+      |> Enum.filter(&File.exists?/1)
+
+    if paths == [] do
+      {:error,
+       "Call History database not found. Checked: #{inspect(Paths.default_call_history_paths())}"}
+    else
+      reports =
+        Enum.map(paths, fn path ->
+          case read(path, opts) do
+            {:ok, rows} ->
+              newest =
+                case rows do
+                  [] -> "none"
+                  _ -> rows |> Enum.map(& &1.timestamp) |> Enum.max(NaiveDateTime) |> to_string()
+                end
+
+              empty =
+                Enum.count(rows, fn row ->
+                  Phone.normalize(row.from_number) == "" and Phone.normalize(row.to_number) == ""
+                end)
+
+              hits =
+                Enum.filter(rows, fn row ->
+                  Enum.any?([row.from_number, row.to_number, row.company], fn value ->
+                    normalized = Phone.normalize(to_string(value || ""))
+                    needle != "" and String.contains?(normalized, needle)
+                  end)
+                end)
+
+              hit_desc =
+                case hits do
+                  [] ->
+                    "0 hits"
+
+                  [hit | _] ->
+                    "#{length(hits)} hit(s); first #{hit.timestamp} from=#{hit.from_number} company=#{inspect(hit.company)}"
+                end
+
+              "#{Path.basename(path)}: #{length(rows)} rows, newest=#{newest}, empty_peer=#{empty}, #{hit_desc}"
+
+            {:error, reason} ->
+              "#{Path.basename(path)}: ERROR #{reason}"
+          end
+        end)
+
+      {:ok, "Call History probe for #{needle}: " <> Enum.join(reports, " · ")}
+    end
+  end
 
   def read(path, opts \\ []) do
     limit = Keyword.get(opts, :limit)
@@ -15,21 +73,25 @@ defmodule DncWatchdog.Enforcement.Local.CallHistory do
     since = Lookback.since_from_opts(opts)
 
     if File.exists?(path) do
-      case Sqlite.with_connection(path, fn conn ->
-             tables = Sqlite.list_tables(conn)
+      case Sqlite.with_connection(
+             path,
+             fn conn ->
+               tables = Sqlite.list_tables(conn)
 
-             cond do
-               "ZCALLRECORD" in tables ->
-                 query_zcallrecord(conn, limit, my_phone, since)
+               cond do
+                 "ZCALLRECORD" in tables ->
+                   query_zcallrecord(conn, limit, my_phone, since)
 
-               "call" in tables ->
-                 query_call_table(conn, limit, my_phone, since)
+                 "call" in tables ->
+                   query_call_table(conn, limit, my_phone, since)
 
-               true ->
-                 {:error,
-                  "Unexpected Call History schema in #{path}. Tables: #{inspect(tables)}. Adjust lib/dnc_watchdog/enforcement/local/call_history.ex"}
-             end
-           end) do
+                 true ->
+                   {:error,
+                    "Unexpected Call History schema in #{path}. Tables: #{inspect(tables)}. Adjust lib/dnc_watchdog/enforcement/local/call_history.ex"}
+               end
+             end,
+             prefer_live: true
+           ) do
         {:error, {:database_open_failed, reason}} ->
           {:error,
            "Could not open Call History DB (permission/encryption/lock?). Details: #{inspect(reason)}"}

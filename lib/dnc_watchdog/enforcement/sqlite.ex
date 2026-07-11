@@ -7,15 +7,26 @@ defmodule DncWatchdog.Enforcement.Sqlite do
   1. Prefer copying the database (and `-wal`/`-shm` sidecars when present) to a temp file.
   2. Open copies with SQLite `mode=ro` and `immutable=1`, and enable `PRAGMA query_only = ON`.
   3. When copying fails (for example macOS "not owner" on protected Library files), fall back to
-     opening the original path read-only (`immutable=1` + `query_only`) without writing to it.
+     opening the original path read-only with `mode=ro` (not `immutable=1`) so the live WAL is
+     visible — recent Continuity calls often exist only in the WAL until checkpointed.
   4. Temp copies are deleted when the connection closes.
   """
 
-  def with_connection(source_path, callback) when is_function(callback, 1) do
+  def with_connection(source_path, callback, opts \\ [])
+      when is_function(callback, 1) and is_list(opts) do
+    if Keyword.get(opts, :prefer_live, false) do
+      with_live_or_snapshot(source_path, callback)
+    else
+      with_snapshot_or_live(source_path, callback)
+    end
+  end
+
+  defp with_snapshot_or_live(source_path, callback) do
     case snapshot_source(source_path) do
       {:ok, snapshot_path} ->
         with_readonly_connection(snapshot_path, callback,
           cleanup: snapshot_path,
+          immutable: true,
           on_open_error: nil
         )
 
@@ -25,6 +36,8 @@ defmodule DncWatchdog.Enforcement.Sqlite do
       {:error, snapshot_reason} ->
         with_readonly_connection(source_path, callback,
           cleanup: nil,
+          # Live DB: must read WAL. immutable=1 ignores WAL and returns a stale checkpoint.
+          immutable: false,
           on_open_error: fn open_reason ->
             {:error, {:database_open_failed, %{snapshot: snapshot_reason, direct: open_reason}}}
           end
@@ -32,12 +45,43 @@ defmodule DncWatchdog.Enforcement.Sqlite do
     end
   end
 
+  defp with_live_or_snapshot(source_path, callback) do
+    unless File.exists?(source_path) do
+      {:error, {:source_not_found, source_path}}
+    else
+      case with_readonly_connection(source_path, callback,
+             cleanup: nil,
+             immutable: false,
+             on_open_error: nil
+           ) do
+        {:error, live_reason} ->
+          case snapshot_source(source_path) do
+            {:ok, snapshot_path} ->
+              with_readonly_connection(snapshot_path, callback,
+                cleanup: snapshot_path,
+                immutable: true,
+                on_open_error: fn open_reason ->
+                  {:error, {:database_open_failed, %{live: live_reason, snapshot: open_reason}}}
+                end
+              )
+
+            {:error, snapshot_reason} ->
+              {:error, {:database_open_failed, %{live: live_reason, snapshot: snapshot_reason}}}
+          end
+
+        other ->
+          other
+      end
+    end
+  end
+
   defp with_readonly_connection(path, callback, opts) do
     cleanup = Keyword.get(opts, :cleanup)
     on_open_error = Keyword.get(opts, :on_open_error)
+    immutable? = Keyword.get(opts, :immutable, true)
 
     try do
-      case open_readonly(path) do
+      case open_readonly(path, immutable?) do
         {:ok, conn} ->
           try do
             callback.(conn)
@@ -101,19 +145,34 @@ defmodule DncWatchdog.Enforcement.Sqlite do
   def cell_to_string(value) when is_float(value), do: Float.to_string(value)
   def cell_to_string(value), do: to_string(value)
 
-  defp open_readonly(path) do
-    uri = readonly_uri(path)
+  defp open_readonly(path, immutable?) do
+    uri = readonly_uri(path, immutable?)
 
     with {:ok, conn} <- Exqlite.Sqlite3.open(uri, filename: path),
+         :ok <- set_busy_timeout(conn),
          :ok <- enable_query_only!(conn) do
       {:ok, conn}
     end
   end
 
-  defp readonly_uri(path) do
+  defp readonly_uri(path, true = _immutable?) do
     absolute = Path.expand(path)
     encoded = URI.encode(absolute)
     "file:#{encoded}?mode=ro&immutable=1"
+  end
+
+  defp readonly_uri(path, false = _immutable?) do
+    absolute = Path.expand(path)
+    encoded = URI.encode(absolute)
+    # No immutable=1 — required to see uncheckpointed WAL rows on live Call History / Messages DBs.
+    "file:#{encoded}?mode=ro"
+  end
+
+  defp set_busy_timeout(conn) do
+    case Exqlite.Sqlite3.execute(conn, "PRAGMA busy_timeout = 5000") do
+      :ok -> :ok
+      {:error, reason} -> {:error, {:busy_timeout_failed, reason}}
+    end
   end
 
   defp enable_query_only!(conn) do

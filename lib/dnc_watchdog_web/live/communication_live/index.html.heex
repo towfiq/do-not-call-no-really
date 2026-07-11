@@ -6,14 +6,46 @@
     )}
   </:subtitle>
   <:actions>
-    <.button
-      type="button"
-      phx-click="sync_local"
-      phx-disable-with="Syncing…"
-      disabled={@local_syncing}
+    <form
+      id="sync-lookback-form"
+      phx-change="set_sync_options"
+      phx-submit="sync_local"
+      class="flex flex-wrap items-center gap-2"
     >
-      {if @local_syncing, do: "Syncing…", else: "Sync from Mac"}
-    </.button>
+      <label for="sync-lookback-days" class="sr-only">Sync lookback</label>
+      <select
+        id="sync-lookback-days"
+        name="lookback_days"
+        class="rounded-lg border-slate-300 py-1.5 pl-2 pr-8 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+      >
+        <option value="" selected={is_nil(@sync_lookback_days)}>Since last sync</option>
+        <option value="7" selected={@sync_lookback_days == 7}>Last 7 days</option>
+        <option value="14" selected={@sync_lookback_days == 14}>Last 14 days</option>
+        <option value="30" selected={@sync_lookback_days == 30}>Last 30 days</option>
+        <option value="90" selected={@sync_lookback_days == 90}>Last 90 days</option>
+      </select>
+      <label class="filter-checkbox">
+        <input type="hidden" name="include_contacts" value="false" />
+        <input
+          type="checkbox"
+          name="include_contacts"
+          value="true"
+          checked={@sync_include_contacts}
+        /> Include contacts
+      </label>
+      <.button type="submit" phx-disable-with="Syncing…" disabled={@local_syncing}>
+        {if @local_syncing, do: "Syncing…", else: "Sync from Mac"}
+      </.button>
+      <.button
+        type="button"
+        class="btn-secondary-sm"
+        phx-click="probe_call_history"
+        phx-value-phone={@search_query}
+        disabled={@local_syncing}
+      >
+        Probe Call History
+      </.button>
+    </form>
     <.link navigate={~p"/cases"} class="btn-secondary-sm inline-flex items-center">
       View cases
     </.link>
@@ -26,6 +58,7 @@
     violations_only={@violations_only}
     hide_excluded={@hide_excluded}
     hide_spam={@hide_spam}
+    hide_contacts={@hide_contacts}
     group_by_sender={@group_by_sender}
     workflow_phase={@workflow_phase}
     show_workflow={true}
@@ -47,36 +80,16 @@
   </div>
 <% else %>
   <%= if @group_by_sender do %>
-    <div class="mt-4 space-y-3">
-      <%= for group <- @communication_groups do %>
-        <section id={"sender-#{group.peer}"} class="panel">
-          <div class="panel-header">
-            <div class="min-w-0">
-              <h2 class="text-sm font-semibold text-slate-900">{group_title(group)}</h2>
-              <p class="text-xs text-slate-500">
-                {length(group.communications)} message{if length(group.communications) == 1,
-                  do: "",
-                  else: "s"} · latest {format_timestamp(group.latest.timestamp)}
-                <%= if group.latest.case do %>
-                  · Case {group.latest.case.id}
-                <% end %>
-              </p>
-            </div>
-            <%= if group.latest.case do %>
-              <.link
-                navigate={~p"/cases/#{group.latest.case}"}
-                class="text-xs font-medium text-brand hover:underline"
-              >
-                {DncWatchdog.Enforcement.Case.display_name(group.latest.case)}
-              </.link>
-            <% end %>
-          </div>
-          <.communication_rows_table
-            communications={group.communications}
-            id_prefix={"group-#{group.peer}"}
-            compact
-          />
-        </section>
+    <div class="inbox-shell">
+      <.inbox_thread_list
+        groups={@communication_groups}
+        selected_peer={@selected_peer}
+        group_title_fn={&group_title/1}
+      />
+      <%= if @selected_group do %>
+        <.inbox_thread_detail group={@selected_group} group_title_fn={&group_title/1} />
+      <% else %>
+        <div class="inbox-empty-detail">Select a sender to review messages.</div>
       <% end %>
     </div>
   <% else %>

@@ -96,6 +96,12 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
       lookback_days: Keyword.get(opts, :lookback_days)
     ]
 
+    call_reader_opts =
+      case Keyword.get(opts, :calls_since) do
+        nil -> reader_opts
+        calls_since -> Keyword.put(reader_opts, :since, calls_since)
+      end
+
     {message_rows, messages_path, message_log, message_skipped_lookback} =
       if include_messages do
         path = Paths.messages_db(Keyword.get(opts, :messages_db))
@@ -106,17 +112,7 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
 
     {call_rows, calls_path, call_log, call_skipped_lookback} =
       if include_calls do
-        path = Paths.call_history_db(Keyword.get(opts, :calls_db))
-
-        if path do
-          read_source(CallHistory, path, reader_opts)
-        else
-          {[], nil,
-           [
-             {:error,
-              "Call History database not found. Checked: #{inspect(Paths.default_call_history_paths())}"}
-           ], 0}
-        end
+        read_call_sources(opts, call_reader_opts)
       else
         {[], nil, [], 0}
       end
@@ -140,6 +136,7 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
       calls_path: calls_path,
       message_rows: length(message_rows),
       call_rows: length(call_rows),
+      newest_call_at: newest_timestamp(call_rows),
       skipped_contacts: skipped_contacts,
       skipped_self_initiated: skipped_self_initiated,
       skipped_lookback: skipped_lookback,
@@ -151,6 +148,50 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
       dedupe_groups: dedupe.duplicate_groups,
       logs: message_log ++ call_log ++ contact_log
     })
+  end
+
+  defp read_call_sources(opts, call_reader_opts) do
+    paths =
+      case Keyword.get(opts, :calls_db) do
+        nil ->
+          Paths.default_call_history_paths()
+          |> Enum.filter(&File.exists?/1)
+
+        path when is_binary(path) ->
+          [path]
+
+        paths when is_list(paths) ->
+          paths
+      end
+
+    case paths do
+      [] ->
+        {[], nil,
+         [
+           {:error,
+            "Call History database not found. Checked: #{inspect(Paths.default_call_history_paths())}"}
+         ], 0}
+
+      [path] ->
+        read_source(CallHistory, path, call_reader_opts)
+
+      many ->
+        Enum.reduce(many, {[], nil, [], 0}, fn path, {rows, first_path, logs, skipped} ->
+          {next_rows, ^path, next_logs, next_skipped} =
+            read_source(CallHistory, path, call_reader_opts)
+
+          {rows ++ next_rows, first_path || path, logs ++ next_logs, skipped + next_skipped}
+        end)
+    end
+  end
+
+  defp newest_timestamp([]), do: nil
+
+  defp newest_timestamp(rows) do
+    rows
+    |> Enum.map(& &1.timestamp)
+    |> Enum.max(NaiveDateTime)
+    |> NaiveDateTime.to_string()
   end
 
   defp maybe_filter_contacts(rows, true, contact_set) do

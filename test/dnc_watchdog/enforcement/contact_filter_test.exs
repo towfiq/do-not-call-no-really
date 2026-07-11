@@ -69,4 +69,15 @@ defmodule DncWatchdog.Enforcement.ContactFilterTest do
     assert skipped == 1
     assert hd(kept).from_number == "9999999999"
   end
+
+  test "reject_contact_communications/2 filters structs", %{contacts: contacts} do
+    communications = [
+      %{direction: "incoming", from_number: "8001234567", to_number: "1"},
+      %{direction: "incoming", from_number: "9999999999", to_number: "1"}
+    ]
+
+    kept = ContactFilter.reject_contact_communications(communications, contacts)
+    assert length(kept) == 1
+    assert hd(kept).from_number == "9999999999"
+  end
 end

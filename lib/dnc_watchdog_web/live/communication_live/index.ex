@@ -11,6 +11,7 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
        violations_only: false,
        hide_excluded: true,
        hide_spam: false,
+       hide_contacts: true,
        group_by_sender: true,
        workflow_phase: "all",
        search_query: "",
@@ -18,6 +19,10 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
        total_count: 0,
        communications: [],
        communication_groups: [],
+       selected_peer: nil,
+       selected_group: nil,
+       sync_lookback_days: nil,
+       sync_include_contacts: false,
        local_sync_state: DncWatchdog.Enforcement.LocalSync.get_state(),
        local_syncing: false
      )}
@@ -67,6 +72,7 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
       |> assign(:violations_only, FilterParams.filter_checked?(filters, "violations_only"))
       |> assign(:hide_excluded, !FilterParams.filter_checked?(filters, "include_excluded"))
       |> assign(:hide_spam, !FilterParams.filter_checked?(filters, "include_spam"))
+      |> assign(:hide_contacts, !FilterParams.filter_checked?(filters, "include_contacts"))
       |> assign(:group_by_sender, FilterParams.filter_checked?(filters, "group_by_sender"))
 
     if workflow != socket.assigns.workflow_phase do
@@ -132,20 +138,62 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
     end
   end
 
-  def handle_event("sync_local", _, socket) do
+  def handle_event("select_thread", %{"peer" => peer}, socket) do
+    group = Enum.find(socket.assigns.communication_groups, &(&1.peer == peer))
+
+    {:noreply,
+     socket
+     |> assign(:selected_peer, peer)
+     |> assign(:selected_group, group)}
+  end
+
+  def handle_event("set_sync_options", params, socket) do
+    {days, include_contacts?} = sync_options_from_params(params)
+
+    {:noreply,
+     socket
+     |> assign(:sync_lookback_days, days)
+     |> assign(:sync_include_contacts, include_contacts?)}
+  end
+
+  def handle_event("sync_local", params, socket) do
     if socket.assigns.local_syncing do
       {:noreply, socket}
     else
       parent = self()
+      {days, include_contacts?} = sync_options_from_params(params)
+      sync_opts = sync_opts(days, include_contacts?)
 
       {:noreply,
        socket
+       |> assign(:sync_lookback_days, days)
+       |> assign(:sync_include_contacts, include_contacts?)
        |> assign(:local_syncing, true)
        |> start_async(:local_sync, fn ->
          allow_repo_sandbox(parent)
-         DncWatchdog.Enforcement.LocalSync.sync()
+         DncWatchdog.Enforcement.LocalSync.sync(sync_opts)
        end)}
     end
+  end
+
+  def handle_event("probe_call_history", params, socket) do
+    phone =
+      params
+      |> Map.get("phone", socket.assigns.search_query)
+      |> to_string()
+      |> String.trim()
+
+    phone = if phone == "", do: "4158535343", else: phone
+
+    parent = self()
+
+    {:noreply,
+     socket
+     |> assign(:local_syncing, true)
+     |> start_async(:probe_call_history, fn ->
+       allow_repo_sandbox(parent)
+       DncWatchdog.Enforcement.Local.CallHistory.probe(phone, lookback_days: 30)
+     end)}
   end
 
   @impl true
@@ -182,6 +230,59 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
      |> put_flash(:error, "Sync failed unexpectedly")}
   end
 
+  def handle_async(:probe_call_history, {:ok, {:ok, report}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:local_syncing, false)
+     |> put_flash(:info, report)}
+  end
+
+  def handle_async(:probe_call_history, {:ok, {:error, reason}}, socket) do
+    {:noreply,
+     socket
+     |> assign(:local_syncing, false)
+     |> put_flash(:error, "Call History probe failed: #{reason}")}
+  end
+
+  def handle_async(:probe_call_history, {:exit, reason}, socket) do
+    {:noreply,
+     socket
+     |> assign(:local_syncing, false)
+     |> put_flash(:error, "Call History probe failed: #{inspect(reason)}")}
+  end
+
+  defp sync_options_from_params(params) do
+    days =
+      case Integer.parse(to_string(Map.get(params, "lookback_days", ""))) do
+        {n, _} when n > 0 -> n
+        _ -> nil
+      end
+
+    {days, include_contacts_param?(params)}
+  end
+
+  defp include_contacts_param?(params) do
+    case Map.get(params, "include_contacts") do
+      list when is_list(list) -> Enum.any?(list, &(&1 in ["true", true]))
+      value -> value in ["true", "on", true]
+    end
+  end
+
+  defp sync_opts(days, include_contacts?) do
+    []
+    |> maybe_put_lookback(days)
+    |> maybe_put_contacts(include_contacts?)
+  end
+
+  defp maybe_put_lookback(opts, days) when is_integer(days) and days > 0 do
+    Keyword.put(opts, :lookback_days, days)
+  end
+
+  defp maybe_put_lookback(opts, _), do: opts
+
+  defp maybe_put_contacts(opts, true), do: Keyword.put(opts, :skip_contacts, false)
+  defp maybe_put_contacts(opts, _), do: opts
+
   defp allow_repo_sandbox(parent) do
     if sandbox_repo?() do
       Ecto.Adapters.SQL.Sandbox.allow(DncWatchdog.Repo, parent, self())
@@ -206,11 +307,33 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
         []
       end
 
+    {selected_peer, selected_group} = select_group(socket.assigns[:selected_peer], groups)
+
     socket
     |> assign(:communications, communications)
     |> assign(:communication_groups, groups)
+    |> assign(:selected_peer, selected_peer)
+    |> assign(:selected_group, selected_group)
     |> assign(:filtered_count, Enforcement.count_communications(opts))
     |> assign(:total_count, total)
+  end
+
+  defp select_group(current_peer, groups) do
+    group =
+      cond do
+        is_binary(current_peer) ->
+          Enum.find(groups, &(&1.peer == current_peer))
+
+        true ->
+          nil
+      end
+
+    group = group || List.first(groups)
+
+    case group do
+      %{peer: peer} = g -> {peer, g}
+      _ -> {nil, nil}
+    end
   end
 
   defp list_opts(socket) do
@@ -218,6 +341,7 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
       violations_only: socket.assigns.violations_only,
       hide_excluded: socket.assigns.hide_excluded,
       hide_spam: socket.assigns.hide_spam,
+      hide_contacts: socket.assigns.hide_contacts,
       workflow_phase: socket.assigns.workflow_phase,
       search: socket.assigns.search_query
     ]

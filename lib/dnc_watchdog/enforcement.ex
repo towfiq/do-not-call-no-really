@@ -130,14 +130,22 @@ defmodule DncWatchdog.Enforcement do
     |> communications_query(opts)
     |> preload(case: :legal_entity)
     |> Repo.all()
+    |> maybe_hide_contact_communications(opts)
   end
 
   def list_communications(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 1_000)
+    hide_contacts? = Keyword.get(opts, :hide_contacts, false)
+
+    fetch_limit = if hide_contacts?, do: max(limit * 5, 5_000), else: limit
+
     opts
-    |> Keyword.put_new(:limit, 1_000)
+    |> Keyword.put(:limit, fetch_limit)
     |> communications_query()
     |> preload(case: :legal_entity)
     |> Repo.all()
+    |> maybe_hide_contact_communications(opts)
+    |> Enum.take(limit)
   end
 
   defp communications_query(case_id, opts) when is_integer(case_id) do
@@ -191,10 +199,51 @@ defmodule DncWatchdog.Enforcement do
 
   defp maybe_hide_spam(query, _), do: query
 
+  defp maybe_hide_contact_communications(communications, opts) do
+    if Keyword.get(opts, :hide_contacts, false) do
+      case contact_set_for_filter(opts) do
+        {:ok, contact_set} ->
+          ContactFilter.reject_contact_communications(communications, contact_set)
+
+        :error ->
+          communications
+      end
+    else
+      communications
+    end
+  end
+
+  defp contact_set_for_filter(opts) do
+    case Keyword.get(opts, :contact_set) do
+      set when is_map(set) ->
+        {:ok, set}
+
+      nil ->
+        case DncWatchdog.Enforcement.Local.Contacts.load() do
+          {:ok, set, _paths} ->
+            if MapSet.size(set.phones) == 0 and MapSet.size(set.emails) == 0 do
+              :error
+            else
+              {:ok, set}
+            end
+
+          {:error, _} ->
+            :error
+        end
+    end
+  end
+
   def count_communications(opts \\ []) do
-    Communication
-    |> apply_communication_filters(opts)
-    |> Repo.aggregate(:count, :id)
+    if Keyword.get(opts, :hide_contacts, false) do
+      opts
+      |> Keyword.put(:limit, 50_000)
+      |> list_communications()
+      |> length()
+    else
+      Communication
+      |> apply_communication_filters(opts)
+      |> Repo.aggregate(:count, :id)
+    end
   end
 
   def get_communication!(id), do: Repo.get!(Communication, id)

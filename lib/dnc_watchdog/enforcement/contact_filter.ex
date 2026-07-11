@@ -40,6 +40,21 @@ defmodule DncWatchdog.Enforcement.ContactFilter do
   end
 
   @doc """
+  Rejects persisted communications whose peer is in `contact_set`.
+  """
+  def reject_contact_communications(communications, contact_set) when is_list(communications) do
+    Enum.reject(communications, &contact_communication?(&1, contact_set))
+  end
+
+  def contact_communication?(communication, contact_set) do
+    contact_row?(row_from_communication(communication), contact_set)
+  end
+
+  def row_from_communication(%{direction: direction, from_number: from, to_number: to}) do
+    %{direction: direction, from_number: from || "", to_number: to || ""}
+  end
+
+  @doc """
   The other party on a communication (caller/sender for incoming, callee for outgoing).
   """
   def peer_for(%{direction: "incoming", from_number: from}), do: from

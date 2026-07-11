@@ -29,7 +29,9 @@ config :dnc_watchdog, :periodic_tracking_refresh,
 
 config :dnc_watchdog, :local_sync,
   lookback_days: 7,
-  overlap_seconds: 3600,
+  # Continuity can deliver SMS and Call History to the Mac hours/days after the event.
+  overlap_seconds: 259_200,
+  call_overlap_seconds: 259_200,
   messages: true,
   calls: true,
   skip_contacts: true,

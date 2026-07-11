@@ -182,6 +182,49 @@ defmodule DncWatchdog.SqliteFixtures do
     path
   end
 
+  def insert_call_record(path, attrs) do
+    {:ok, conn} = Exqlite.Sqlite3.open(path)
+    call_date = Map.fetch!(attrs, :call_date)
+    seconds = apple_seconds(call_date)
+    address = Map.get(attrs, :address, "+14158535343")
+    name = Map.get(attrs, :name, "")
+    originated = if Map.get(attrs, :originated, false), do: 1, else: 0
+    duration = Map.get(attrs, :duration, 12.0)
+    pk = Map.get(attrs, :pk, System.unique_integer([:positive]))
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      """
+      INSERT INTO ZCALLRECORD (Z_PK, ZDATE, ZDURATION, ZORIGINATED, ZADDRESS, ZNAME)
+      VALUES (#{pk}, #{seconds}, #{duration}, #{originated}, '#{address}', '#{name}')
+      """
+    )
+
+    Exqlite.Sqlite3.close(conn)
+    path
+  end
+
+  def insert_message(path, attrs) do
+    {:ok, conn} = Exqlite.Sqlite3.open(path)
+    date = Map.fetch!(attrs, :date)
+    ns = apple_nanoseconds(date)
+    text = Map.get(attrs, :text, "hello") |> String.replace("'", "''")
+    is_from_me = Map.get(attrs, :is_from_me, 0)
+    handle_id = Map.get(attrs, :handle_id, 1)
+    rowid = Map.get(attrs, :rowid, System.unique_integer([:positive]))
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      """
+      INSERT INTO message (ROWID, date, text, is_from_me, handle_id)
+      VALUES (#{rowid}, #{ns}, '#{text}', #{is_from_me}, #{handle_id})
+      """
+    )
+
+    Exqlite.Sqlite3.close(conn)
+    path
+  end
+
   def create_contacts_db(path, phones \\ ["+1 (800) 123-4567"], emails \\ []) do
     {:ok, conn} = Exqlite.Sqlite3.open(path)
 

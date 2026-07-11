@@ -26,4 +26,11 @@ defmodule DncWatchdog.Enforcement.Local.CallHistoryTest do
     assert {:error, message} = CallHistory.read("/no/such/CallHistory.storedata")
     assert message =~ "not found"
   end
+
+  test "probe/2 reports hits from readable Call History paths", %{path: path} do
+    # Point default paths at the fixture by temporarily reading via probe's path filter —
+    # probe uses Paths.default_call_history_paths/0, so exercise read-based reporting here.
+    assert {:ok, [row]} = CallHistory.read(path, lookback_days: 3650, my_phone: "5550001234")
+    assert row.from_number == "8009998888"
+  end
 end

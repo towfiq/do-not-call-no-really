@@ -176,6 +176,107 @@ defmodule DncWatchdogWeb.CommunicationComponents do
 
   def format_timestamp(value), do: to_string(value)
 
+  def inbox_date(%NaiveDateTime{} = dt) do
+    Calendar.strftime(dt, "%b %-d")
+  end
+
+  def inbox_date(value), do: format_timestamp(value)
+
+  attr :groups, :list, required: true
+  attr :selected_peer, :string, default: nil
+  attr :group_title_fn, :any, required: true
+
+  def inbox_thread_list(assigns) do
+    ~H"""
+    <div class="inbox-list" role="listbox" aria-label="Senders">
+      <%= for group <- @groups do %>
+        <button
+          type="button"
+          id={"inbox-thread-#{group.peer}"}
+          role="option"
+          aria-selected={@selected_peer == group.peer}
+          phx-click="select_thread"
+          phx-value-peer={group.peer}
+          class={["inbox-thread", @selected_peer == group.peer && "inbox-thread-active"]}
+        >
+          <div class="inbox-thread-main">
+            <p class="inbox-thread-title">{@group_title_fn.(group)}</p>
+            <p class="inbox-thread-preview">{preview_body(group.latest)}</p>
+          </div>
+          <div class="inbox-thread-meta">
+            <p class="inbox-thread-date">{inbox_date(group.latest.timestamp)}</p>
+            <span class="inbox-thread-count">{length(group.communications)}</span>
+            <div class="mt-1 flex justify-end">
+              <.violation_badge status={group.latest.violation_status} spam={group.latest.spam} />
+            </div>
+          </div>
+        </button>
+      <% end %>
+    </div>
+    """
+  end
+
+  attr :group, :map, required: true
+  attr :group_title_fn, :any, required: true
+  attr :target, :any, default: nil
+
+  def inbox_thread_detail(assigns) do
+    ~H"""
+    <div class="inbox-detail">
+      <div class="inbox-detail-header">
+        <div class="min-w-0">
+          <h2 class="text-sm font-semibold text-slate-900">{@group_title_fn.(@group)}</h2>
+          <p class="text-xs text-slate-500">
+            {length(@group.communications)} message{if length(@group.communications) == 1,
+              do: "",
+              else: "s"} · latest {format_timestamp(@group.latest.timestamp)}
+          </p>
+        </div>
+        <%= if @group.latest.case do %>
+          <.link
+            navigate={~p"/cases/#{@group.latest.case}"}
+            class="text-xs font-medium text-brand hover:underline"
+          >
+            {Case.display_name(@group.latest.case)}
+          </.link>
+        <% end %>
+      </div>
+      <div class="inbox-detail-body" id={"communications-inbox-#{@group.peer}"}>
+        <%= for comm <- @group.communications do %>
+          <article id={"comm-#{comm.id}"} class="inbox-message-card">
+            <div class="inbox-message-meta">
+              <div class="flex flex-wrap items-center gap-2">
+                <.violation_badge status={comm.violation_status} spam={comm.spam} />
+                <span class="text-xs text-slate-500">
+                  {format_timestamp(comm.timestamp)} · {comm.channel} · {comm.direction}
+                </span>
+              </div>
+              <div class="flex flex-wrap gap-1">
+                <.spam_button communication={comm} target={@target} />
+                <.violation_button communication={comm} target={@target} />
+                <.not_violation_button communication={comm} target={@target} />
+                <.exclude_sender_button communication={comm} target={@target} />
+              </div>
+            </div>
+            <p class="inbox-message-body">{full_body(comm)}</p>
+            <%= if comm.case do %>
+              <p class="mt-2 text-xs text-slate-500">
+                Case:
+                <.link
+                  navigate={~p"/cases/#{comm.case}"}
+                  class="font-medium text-brand hover:underline"
+                >
+                  {Case.display_name(comm.case)}
+                </.link>
+              </p>
+            <% end %>
+          </article>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
   attr :communications, :list, required: true
   attr :id_prefix, :string, required: true
   attr :class, :string, default: nil
@@ -225,7 +326,7 @@ defmodule DncWatchdogWeb.CommunicationComponents do
               </td>
               <td class="whitespace-nowrap">{comm.from_number}</td>
               <td class="whitespace-nowrap text-zinc-500">{comm.channel} · {comm.direction}</td>
-              <td class="max-w-md truncate" title={preview_body(comm)}>{preview_body(comm)}</td>
+              <td class="max-w-md whitespace-pre-wrap break-words text-sm">{full_body(comm)}</td>
             </tr>
           <% end %>
         </tbody>
@@ -234,17 +335,19 @@ defmodule DncWatchdogWeb.CommunicationComponents do
     """
   end
 
-  def preview_body(%{channel: "sms", body: body}) when is_binary(body) and body != "" do
-    truncate(body)
+  def preview_body(comm), do: truncate(full_body(comm), 90)
+
+  def full_body(%{channel: "sms", body: body}) when is_binary(body) and body != "" do
+    String.trim(body)
   end
 
-  def preview_body(%{channel: "call", duration_seconds: seconds}) do
+  def full_body(%{channel: "call", duration_seconds: seconds}) do
     "Call (#{seconds}s)"
   end
 
-  def preview_body(_), do: "—"
+  def full_body(_), do: "—"
 
-  defp truncate(text) do
-    if String.length(text) > 120, do: String.slice(text, 0, 117) <> "...", else: text
+  defp truncate(text, max) do
+    if String.length(text) > max, do: String.slice(text, 0, max - 3) <> "...", else: text
   end
 end

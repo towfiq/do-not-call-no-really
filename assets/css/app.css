@@ -280,4 +280,74 @@
   .stat-value {
     @apply mt-1 text-2xl font-semibold tracking-tight text-slate-900;
   }
+
+  .inbox-shell {
+    @apply mt-4 grid min-h-[32rem] overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm lg:grid-cols-[minmax(16rem,22rem)_1fr];
+  }
+
+  .inbox-list {
+    @apply flex max-h-[70vh] flex-col overflow-y-auto border-b border-slate-200 lg:max-h-none lg:border-b-0 lg:border-r;
+  }
+
+  .inbox-thread {
+    @apply flex w-full gap-3 border-b border-slate-100 px-4 py-3 text-left transition hover:bg-slate-50;
+    min-height: 5.25rem;
+    max-height: 5.25rem;
+  }
+
+  .inbox-thread-active {
+    @apply border-l-4 border-l-indigo-600 bg-indigo-50/70 pl-3 hover:bg-indigo-50/70;
+  }
+
+  .inbox-thread-main {
+    @apply min-w-0 flex-1;
+  }
+
+  .inbox-thread-title {
+    @apply truncate text-sm font-semibold text-slate-900;
+  }
+
+  .inbox-thread-preview {
+    @apply mt-0.5 line-clamp-2 text-sm leading-snug text-slate-500;
+  }
+
+  .inbox-thread-meta {
+    @apply shrink-0 text-right;
+  }
+
+  .inbox-thread-date {
+    @apply text-xs text-slate-400;
+  }
+
+  .inbox-thread-count {
+    @apply mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600;
+  }
+
+  .inbox-detail {
+    @apply flex min-h-0 min-w-0 flex-col;
+  }
+
+  .inbox-detail-header {
+    @apply flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 bg-slate-50/80 px-4 py-3;
+  }
+
+  .inbox-detail-body {
+    @apply min-h-0 flex-1 space-y-3 overflow-auto p-3;
+  }
+
+  .inbox-message-card {
+    @apply rounded-lg border border-slate-200 bg-white p-3 shadow-sm;
+  }
+
+  .inbox-message-meta {
+    @apply mb-2 flex flex-wrap items-start justify-between gap-2;
+  }
+
+  .inbox-message-body {
+    @apply whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-800;
+  }
+
+  .inbox-empty-detail {
+    @apply flex flex-1 items-center justify-center p-8 text-sm text-slate-500;
+  }
 }

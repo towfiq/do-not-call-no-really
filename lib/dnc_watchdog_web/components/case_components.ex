@@ -33,9 +33,11 @@ defmodule DncWatchdogWeb.CaseComponents do
   attr :violations_only, :boolean, required: true
   attr :hide_excluded, :boolean, required: true
   attr :hide_spam, :boolean, default: false
+  attr :hide_contacts, :boolean, default: true
   attr :group_by_sender, :boolean, default: true
   attr :show_group_by, :boolean, default: true
   attr :show_spam, :boolean, default: true
+  attr :show_contacts, :boolean, default: true
   attr :workflow_phase, :string, default: "all"
   attr :show_workflow, :boolean, default: false
 
@@ -84,6 +86,16 @@ defmodule DncWatchdogWeb.CaseComponents do
                 value="true"
                 checked={!@hide_spam}
               /> Include spam
+            </label>
+
+            <label :if={@show_contacts} class="filter-checkbox">
+              <input type="hidden" name="filters[include_contacts]" value="false" />
+              <input
+                type="checkbox"
+                name="filters[include_contacts]"
+                value="true"
+                checked={!@hide_contacts}
+              /> Include known contacts
             </label>
 
             <label :if={@show_workflow} class="filter-checkbox">

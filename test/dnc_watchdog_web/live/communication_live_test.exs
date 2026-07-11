@@ -52,9 +52,43 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
     assert html =~ "Group by sender"
     assert html =~ "Include spam"
     assert html =~ "Include excluded"
+    assert html =~ "Include known contacts"
     assert html =~ "Apply filters"
     assert html =~ "Sync from Mac"
+    assert html =~ "Since last sync"
+    assert html =~ "Last 30 days"
     assert html =~ "Last sync: Never synced"
+  end
+
+  test "sync lookback selection is retained for sync_local", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/communications")
+
+    html =
+      view
+      |> form("#sync-lookback-form", %{
+        "lookback_days" => "30",
+        "include_contacts" => "true"
+      })
+      |> render_change()
+
+    assert html =~ ~s(value="30")
+    assert html =~ "Include contacts"
+  end
+
+  test "sync_local submit reads include_contacts from the form", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/communications")
+
+    # Submit without a prior change event — options must come from the form payload.
+    view
+    |> form("#sync-lookback-form", %{
+      "lookback_days" => "7",
+      "include_contacts" => "true"
+    })
+    |> render_submit()
+
+    assigns = :sys.get_state(view.pid).socket.assigns
+    assert assigns.sync_lookback_days == 7
+    assert assigns.sync_include_contacts
   end
 
   test "mark spam and hide spam filter work independently of excluded sender", %{conn: conn} do
