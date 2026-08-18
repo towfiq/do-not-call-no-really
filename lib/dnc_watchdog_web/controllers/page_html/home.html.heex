@@ -6,13 +6,19 @@
 </.header>
 
 <div class="stat-grid">
-  <.link navigate={~p"/communications"} class="stat-card transition hover:border-indigo-200 hover:shadow-md">
+  <.link
+    navigate={~p"/communications"}
+    class="stat-card transition hover:border-indigo-200 hover:shadow-md"
+  >
     <p class="stat-label">Inbox</p>
     <p class="stat-value">Messages</p>
     <p class="mt-2 text-sm text-slate-500">Sync from Mac and triage violations</p>
   </.link>
 
-  <.link navigate={~p"/cases"} class="stat-card transition hover:border-indigo-200 hover:shadow-md">
+  <.link
+    navigate={~p"/cases"}
+    class="stat-card transition hover:border-indigo-200 hover:shadow-md"
+  >
     <p class="stat-label">Pipeline</p>
     <p class="stat-value">Cases</p>
     <p class="mt-2 text-sm text-slate-500">Track workflow, evidence, and filings</p>
@@ -27,7 +33,10 @@
     <p class="mt-2 text-sm text-slate-500">Senders skipped on future imports</p>
   </.link>
 
-  <.link navigate={~p"/settings"} class="stat-card transition hover:border-indigo-200 hover:shadow-md">
+  <.link
+    navigate={~p"/settings"}
+    class="stat-card transition hover:border-indigo-200 hover:shadow-md"
+  >
     <p class="stat-label">Account</p>
     <p class="stat-value">Profile</p>
     <p class="mt-2 text-sm text-slate-500">Claimant details for letters and filings</p>

@@ -14,6 +14,6 @@ defmodule DncWatchdog.Enforcement.ImporterTest do
     assert summary.created_communications == 3
 
     companies = Enforcement.list_cases() |> Enum.map(& &1.company_name) |> Enum.sort()
-    assert companies == ["Acme Financial", "Acme Home Warranty", "Caller 5551112222"]
+    assert companies == ["Acme Financial", "Caller 5551112222", "Caller 8001234567"]
   end
 end

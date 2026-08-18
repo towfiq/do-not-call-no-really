@@ -42,10 +42,6 @@ defmodule Mix.Tasks.Dnc.PurgeContacts do
         Mix.shell().error("Grant Full Disk Access to Terminal or Cursor and try again.")
         System.halt(1)
 
-      {:error, reason} ->
-        Mix.shell().error("Purge failed: #{inspect(reason)}")
-        System.halt(1)
-
       {:ok, summary} ->
         if dry_run? do
           Mix.shell().info("Dry run — no rows deleted.")

@@ -156,7 +156,6 @@ defmodule DncWatchdog.Enforcement.PostgresImporter do
   defp coerce_date(value) when is_binary(value), do: Date.from_iso8601!(value)
   defp coerce_date(%Date{} = value), do: value
 
-  defp coerce_decimal(nil), do: nil
   defp coerce_decimal(value) when is_binary(value), do: Decimal.new(value)
   defp coerce_decimal(value) when is_number(value), do: Decimal.new(to_string(value))
   defp coerce_decimal(%Decimal{} = value), do: value

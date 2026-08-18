@@ -16,6 +16,7 @@ defmodule DncWatchdog.Enforcement.Local.CallHistory do
   """
   def probe(phone, opts \\ []) do
     needle = Phone.normalize(phone)
+
     paths =
       Paths.default_call_history_paths()
       |> Enum.filter(&File.exists?/1)

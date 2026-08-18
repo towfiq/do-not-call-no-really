@@ -46,9 +46,7 @@ defmodule DncWatchdog.Enforcement.Sqlite do
   end
 
   defp with_live_or_snapshot(source_path, callback) do
-    unless File.exists?(source_path) do
-      {:error, {:source_not_found, source_path}}
-    else
+    if File.exists?(source_path) do
       case with_readonly_connection(source_path, callback,
              cleanup: nil,
              immutable: false,
@@ -72,6 +70,8 @@ defmodule DncWatchdog.Enforcement.Sqlite do
         other ->
           other
       end
+    else
+      {:error, {:source_not_found, source_path}}
     end
   end
 
@@ -164,6 +164,7 @@ defmodule DncWatchdog.Enforcement.Sqlite do
   defp readonly_uri(path, false = _immutable?) do
     absolute = Path.expand(path)
     encoded = URI.encode(absolute)
+
     # No immutable=1 — required to see uncheckpointed WAL rows on live Call History / Messages DBs.
     "file:#{encoded}?mode=ro"
   end
@@ -207,9 +208,7 @@ defmodule DncWatchdog.Enforcement.Sqlite do
   end
 
   defp do_snapshot_source(source_path) do
-    unless File.exists?(source_path) do
-      {:error, {:source_not_found, source_path}}
-    else
+    if File.exists?(source_path) do
       snapshot_path =
         Path.join(
           System.tmp_dir!(),
@@ -227,6 +226,8 @@ defmodule DncWatchdog.Enforcement.Sqlite do
       end
 
       {:ok, snapshot_path}
+    else
+      {:error, {:source_not_found, source_path}}
     end
   rescue
     error ->

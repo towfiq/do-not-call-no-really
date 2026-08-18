@@ -51,7 +51,7 @@
             ]} />
             <span>
               <span class="font-medium text-slate-900">{req.label}</span>
-              <span class="text-slate-500"> — {req.detail}</span>
+              <span class="text-slate-500">{" — "}{req.detail}</span>
             </span>
           </li>
         <% end %>
@@ -107,7 +107,7 @@
               {att.filename}
             </a>
             <%= if att.caption do %>
-              <span class="text-zinc-500"> —  {att.caption}</span>
+              <span class="text-zinc-500">{" — "}{att.caption}</span>
             <% end %>
           </div>
           <button

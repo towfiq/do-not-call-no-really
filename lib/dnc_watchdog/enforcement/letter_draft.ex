@@ -225,20 +225,14 @@ defmodule DncWatchdog.Enforcement.LetterDraft do
       |> maybe_add_quote(true, dnc_registry_quote())
       |> maybe_add_quote(true, private_right_of_action_quote())
 
-    case quotes do
-      [] ->
-        ""
+    """
 
-      items ->
-        """
+    Applicable Violations of Federal Law:
 
-        Applicable Violations of Federal Law:
+    Your conduct violates the following provisions of the Telephone Consumer Protection Act, 47 U.S.C. § 227:
 
-        Your conduct violates the following provisions of the Telephone Consumer Protection Act, 47 U.S.C. § 227:
-
-        #{Enum.join(items, "\n\n")}
-        """
-    end
+    #{Enum.join(quotes, "\n\n")}
+    """
   end
 
   defp maybe_add_quote(quotes, true, quote), do: quotes ++ [quote]

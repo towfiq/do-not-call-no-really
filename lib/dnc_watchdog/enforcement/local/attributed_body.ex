@@ -61,7 +61,7 @@ defmodule DncWatchdog.Enforcement.Local.AttributedBody do
   defp read_length_prefixed_text(_), do: nil
 
   defp take_text(rest, len) when byte_size(rest) >= len do
-    <<text::binary-size(len), _::binary>> = rest
+    <<text::binary-size(^len), _::binary>> = rest
 
     case String.valid?(text) do
       true -> text

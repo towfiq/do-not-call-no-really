@@ -197,7 +197,12 @@ defmodule DncWatchdog.Enforcement.LocalSyncTest do
   } do
     assert {:ok, _} =
              LocalSync.sync(
-               sync_opts(messages_db: messages_db, calls_db: calls_db, messages: false, calls: false)
+               sync_opts(
+                 messages_db: messages_db,
+                 calls_db: calls_db,
+                 messages: false,
+                 calls: false
+               )
              )
 
     # Seed a message from 10 days ago after sync advanced last_synced_at.
@@ -231,7 +236,12 @@ defmodule DncWatchdog.Enforcement.LocalSyncTest do
     # Incremental sync (1h overlap) should miss a 10-day-old message.
     assert {:ok, %{summary: missed}} =
              LocalSync.sync(
-               sync_opts(messages_db: messages_db, calls_db: calls_db, messages: true, calls: false)
+               sync_opts(
+                 messages_db: messages_db,
+                 calls_db: calls_db,
+                 messages: true,
+                 calls: false
+               )
              )
 
     assert missed.message_rows == 0

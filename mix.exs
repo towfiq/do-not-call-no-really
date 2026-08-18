@@ -32,6 +32,16 @@ defmodule DncWatchdog.MixProject do
     ]
   end
 
+  def cli do
+    [
+      preferred_envs: [
+        "quality.check": :test,
+        credo: :test,
+        test: :test
+      ]
+    ]
+  end
+
   # Configuration for the OTP application.
   #
   # Type `mix help compile.app` for more information.

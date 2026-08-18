@@ -45,14 +45,14 @@ defmodule DncWatchdog.Enforcement.SearchFilterTest do
   test "list_communications/1 filters by message body" do
     case_record = case_fixture()
     match = communication_fixture(%{case_id: case_record.id, body: "unique violation phrase"})
-    _other = communication_fixture(%{case_id: case_record.id, body: "hello there"})
+    other = communication_fixture(%{case_id: case_record.id, body: "hello there"})
 
     ids =
       Enforcement.list_communications(search: "violation phrase", hide_excluded: false)
       |> Enum.map(& &1.id)
 
     assert match.id in ids
-    refute _other.id in ids
+    refute other.id in ids
   end
 
   test "list_communications/1 filters by linked case company name" do

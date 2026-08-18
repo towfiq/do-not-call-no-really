@@ -41,7 +41,9 @@
     <span class="block max-w-[12rem] truncate" title={case.notes}>{case.notes}</span>
   </:col>
   <:col :let={{_id, case}} label="Letter draft">
-    <span class="block max-w-[12rem] truncate" title={case.letter_draft}>{case.letter_draft}</span>
+    <span class="block max-w-[12rem] truncate" title={case.letter_draft}>
+      {case.letter_draft}
+    </span>
   </:col>
   <:action :let={{_id, case}}>
     <div class="sr-only">

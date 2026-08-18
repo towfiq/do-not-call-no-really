@@ -14,7 +14,6 @@ defmodule DncWatchdogWeb do
       Plug,
       Gettext
     ],
-    dirty_xrefs: [DncWatchdog.DataCase],
     exports: :all
 
   @moduledoc """
