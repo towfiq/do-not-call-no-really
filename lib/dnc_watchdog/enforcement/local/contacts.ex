@@ -1,26 +1,15 @@
 defmodule DncWatchdog.Enforcement.Local.Contacts do
   @moduledoc """
   Loads phone numbers and emails from macOS Address Book SQLite databases.
+
+  Contacts whose organization/company name contains "dnc" (case-insensitive) are
+  omitted from the set so their communications stay eligible for import.
   """
 
   alias DncWatchdog.Enforcement.ContactFilter
   alias DncWatchdog.Enforcement.Local.Paths
   alias DncWatchdog.Enforcement.Phone
   alias DncWatchdog.Enforcement.Sqlite
-
-  @phone_queries [
-    """
-    SELECT ZFULLNUMBER, ZAREACODE, ZLOCALNUMBER, ZCOUNTRYCODE
-    FROM ZABCDPHONENUMBER
-    WHERE ZFULLNUMBER IS NOT NULL OR ZLOCALNUMBER IS NOT NULL
-    """,
-    "SELECT value FROM ABPersonPhoneNumber WHERE value IS NOT NULL"
-  ]
-
-  @email_queries [
-    "SELECT ZADDRESS FROM ZABCDEMAILADDRESS WHERE ZADDRESS IS NOT NULL",
-    "SELECT value FROM ABPersonEmail WHERE value IS NOT NULL"
-  ]
 
   def load(opts \\ []) do
     paths = Keyword.get(opts, :contacts_dbs) || Paths.contacts_dbs()
@@ -55,14 +44,14 @@ defmodule DncWatchdog.Enforcement.Local.Contacts do
       tables = Sqlite.list_tables(conn) |> MapSet.new()
 
       phones =
-        @phone_queries
+        phone_queries(tables)
         |> Enum.flat_map(fn sql -> query_phone_rows(conn, sql, tables) end)
         |> Enum.flat_map(&phone_lookup_keys/1)
         |> Enum.reject(&(&1 == ""))
         |> MapSet.new()
 
       emails =
-        @email_queries
+        email_queries(tables)
         |> Enum.flat_map(fn sql -> query_values(conn, sql, tables) end)
         |> Enum.map(&String.downcase/1)
         |> Enum.reject(&(&1 == ""))
@@ -158,5 +147,73 @@ defmodule DncWatchdog.Enforcement.Local.Contacts do
       [_, table] -> table
       _ -> nil
     end
+  end
+
+  defp phone_queries(tables) do
+    modern =
+      if MapSet.member?(tables, "ZABCDRECORD") do
+        """
+        SELECT p.ZFULLNUMBER, p.ZAREACODE, p.ZLOCALNUMBER, p.ZCOUNTRYCODE
+        FROM ZABCDPHONENUMBER p
+        LEFT JOIN ZABCDRECORD r ON p.ZOWNER = r.Z_PK
+        WHERE (p.ZFULLNUMBER IS NOT NULL OR p.ZLOCALNUMBER IS NOT NULL)
+          AND NOT (#{dnc_organization_sql("r.ZORGANIZATION")})
+        """
+      else
+        """
+        SELECT ZFULLNUMBER, ZAREACODE, ZLOCALNUMBER, ZCOUNTRYCODE
+        FROM ZABCDPHONENUMBER
+        WHERE ZFULLNUMBER IS NOT NULL OR ZLOCALNUMBER IS NOT NULL
+        """
+      end
+
+    legacy =
+      if MapSet.member?(tables, "ABPerson") do
+        """
+        SELECT p.value
+        FROM ABPersonPhoneNumber p
+        LEFT JOIN ABPerson person ON p.UID = person.ROWID
+        WHERE p.value IS NOT NULL
+          AND NOT (#{dnc_organization_sql("person.Organization")})
+        """
+      else
+        "SELECT value FROM ABPersonPhoneNumber WHERE value IS NOT NULL"
+      end
+
+    [modern, legacy]
+  end
+
+  defp email_queries(tables) do
+    modern =
+      if MapSet.member?(tables, "ZABCDRECORD") do
+        """
+        SELECT e.ZADDRESS
+        FROM ZABCDEMAILADDRESS e
+        LEFT JOIN ZABCDRECORD r ON e.ZOWNER = r.Z_PK
+        WHERE e.ZADDRESS IS NOT NULL
+          AND NOT (#{dnc_organization_sql("r.ZORGANIZATION")})
+        """
+      else
+        "SELECT ZADDRESS FROM ZABCDEMAILADDRESS WHERE ZADDRESS IS NOT NULL"
+      end
+
+    legacy =
+      if MapSet.member?(tables, "ABPerson") do
+        """
+        SELECT e.value
+        FROM ABPersonEmail e
+        LEFT JOIN ABPerson person ON e.UID = person.ROWID
+        WHERE e.value IS NOT NULL
+          AND NOT (#{dnc_organization_sql("person.Organization")})
+        """
+      else
+        "SELECT value FROM ABPersonEmail WHERE value IS NOT NULL"
+      end
+
+    [modern, legacy]
+  end
+
+  defp dnc_organization_sql(column) do
+    "instr(lower(coalesce(#{column}, '')), 'dnc') > 0"
   end
 end

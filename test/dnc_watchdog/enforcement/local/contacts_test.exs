@@ -41,4 +41,38 @@ defmodule DncWatchdog.Enforcement.Local.ContactsTest do
     assert {:ok, set, []} = Contacts.load(contacts_dbs: [])
     assert MapSet.size(set.phones) == 0
   end
+
+  test "load/1 omits phones and emails from contacts whose company contains dnc" do
+    dir = SqliteFixtures.temp_dir!()
+    on_exit(fn -> File.rm_rf(dir) end)
+
+    path =
+      SqliteFixtures.create_contacts_db(
+        Path.join(dir, "AddressBook-v22.abcddb"),
+        ["+1-800-123-4567"],
+        ["dnc-spammer@example.com"],
+        %{organization: "Acme DNC Violators LLC"}
+      )
+
+    assert {:ok, set, [^path]} = Contacts.load(contacts_dbs: [path])
+    refute MapSet.member?(set.phones, "8001234567")
+    refute MapSet.member?(set.emails, "dnc-spammer@example.com")
+  end
+
+  test "load/1 still includes contacts without dnc in the company name" do
+    dir = SqliteFixtures.temp_dir!()
+    on_exit(fn -> File.rm_rf(dir) end)
+
+    path =
+      SqliteFixtures.create_contacts_db(
+        Path.join(dir, "AddressBook-v22.abcddb"),
+        ["+1-800-123-4567"],
+        ["friend@example.com"],
+        %{organization: "Acme Roofing LLC"}
+      )
+
+    assert {:ok, set, [^path]} = Contacts.load(contacts_dbs: [path])
+    assert MapSet.member?(set.phones, "8001234567")
+    assert MapSet.member?(set.emails, "friend@example.com")
+  end
 end

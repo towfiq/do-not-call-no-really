@@ -108,6 +108,34 @@ defmodule DncWatchdog.Enforcement.LocalImporterTest do
     assert summary.created_communications == 1
   end
 
+  test "import_local/1 includes rows from contacts whose company contains dnc", %{
+    messages_db: messages_db,
+    calls_db: calls_db,
+    contacts_db: contacts_db
+  } do
+    contacts_db =
+      SqliteFixtures.create_contacts_db(
+        contacts_db,
+        ["+1-800-123-4567"],
+        [],
+        %{organization: "Spam DNC Caller Inc"}
+      )
+
+    summary =
+      LocalImporter.import_local(
+        messages_db: messages_db,
+        calls_db: calls_db,
+        contacts_dbs: [contacts_db],
+        skip_contacts: true,
+        my_phone: "5550001234",
+        limit: 50
+      )
+
+    assert summary.skipped_contacts == 0
+    assert summary.rows == 2
+    assert summary.created_communications == 2
+  end
+
   test "import_local/1 includes outgoing when skip_self_initiated is false", %{
     messages_db: messages_db,
     calls_db: calls_db

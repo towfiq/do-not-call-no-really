@@ -225,7 +225,17 @@ defmodule DncWatchdog.SqliteFixtures do
     path
   end
 
-  def create_contacts_db(path, phones \\ ["+1 (800) 123-4567"], emails \\ []) do
+  def create_contacts_db(path, phones \\ ["+1 (800) 123-4567"], emails \\ [], attrs \\ %{}) do
+    organization = Map.get(attrs, :organization)
+
+    if organization do
+      create_contacts_db_with_organization(path, phones, emails, organization)
+    else
+      create_simple_contacts_db(path, phones, emails)
+    end
+  end
+
+  defp create_simple_contacts_db(path, phones, emails) do
     {:ok, conn} = Exqlite.Sqlite3.open(path)
 
     Exqlite.Sqlite3.execute(
@@ -259,6 +269,70 @@ defmodule DncWatchdog.SqliteFixtures do
       Exqlite.Sqlite3.execute(
         conn,
         "INSERT INTO ZABCDEMAILADDRESS (Z_PK, ZADDRESS) VALUES (#{idx}, '#{email}')"
+      )
+    end)
+
+    Exqlite.Sqlite3.close(conn)
+    path
+  end
+
+  defp create_contacts_db_with_organization(path, phones, emails, organization) do
+    {:ok, conn} = Exqlite.Sqlite3.open(path)
+    org = String.replace(organization, "'", "''")
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      """
+      CREATE TABLE ZABCDRECORD (
+        Z_PK INTEGER PRIMARY KEY,
+        ZORGANIZATION TEXT
+      )
+      """
+    )
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      """
+      CREATE TABLE ZABCDPHONENUMBER (
+        Z_PK INTEGER PRIMARY KEY,
+        ZOWNER INTEGER,
+        ZFULLNUMBER TEXT,
+        ZAREACODE TEXT,
+        ZLOCALNUMBER TEXT,
+        ZCOUNTRYCODE TEXT
+      )
+      """
+    )
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      "CREATE TABLE ZABCDEMAILADDRESS (Z_PK INTEGER PRIMARY KEY, ZOWNER INTEGER, ZADDRESS TEXT)"
+    )
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      "INSERT INTO ZABCDRECORD (Z_PK, ZORGANIZATION) VALUES (1, '#{org}')"
+    )
+
+    Enum.with_index(phones, 1)
+    |> Enum.each(fn {phone, idx} ->
+      Exqlite.Sqlite3.execute(
+        conn,
+        """
+        INSERT INTO ZABCDPHONENUMBER (Z_PK, ZOWNER, ZFULLNUMBER)
+        VALUES (#{idx}, 1, '#{phone}')
+        """
+      )
+    end)
+
+    Enum.with_index(emails, 1)
+    |> Enum.each(fn {email, idx} ->
+      Exqlite.Sqlite3.execute(
+        conn,
+        """
+        INSERT INTO ZABCDEMAILADDRESS (Z_PK, ZOWNER, ZADDRESS)
+        VALUES (#{idx}, 1, '#{email}')
+        """
       )
     end)
 
