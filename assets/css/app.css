@@ -282,11 +282,13 @@
   }
 
   .inbox-shell {
-    @apply mt-4 grid min-h-[32rem] overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm lg:grid-cols-[minmax(16rem,22rem)_1fr];
+    @apply mt-4 grid overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm lg:grid-cols-[minmax(16rem,22rem)_1fr];
+    height: min(70vh, calc(100dvh - 18rem));
+    min-height: 24rem;
   }
 
   .inbox-list {
-    @apply flex max-h-[70vh] flex-col overflow-y-auto border-b border-slate-200 lg:max-h-none lg:border-b-0 lg:border-r;
+    @apply flex min-h-0 flex-col overflow-y-auto border-b border-slate-200 lg:border-b-0 lg:border-r;
   }
 
   .inbox-thread {
@@ -348,6 +350,6 @@
   }
 
   .inbox-empty-detail {
-    @apply flex flex-1 items-center justify-center p-8 text-sm text-slate-500;
+    @apply flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-8 text-sm text-slate-500;
   }
 }

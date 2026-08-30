@@ -19,6 +19,7 @@ defmodule DncWatchdog.Application do
         {Phoenix.PubSub, name: DncWatchdog.PubSub},
         {Finch, name: DncWatchdog.Finch},
         {ChromicPDF, chromic_pdf_config()},
+        DncWatchdog.Enforcement.ContactCache,
         DncWatchdogWeb.Endpoint
       ] ++ periodic_import_children() ++ periodic_tracking_refresh_children()
 

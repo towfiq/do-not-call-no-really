@@ -54,10 +54,19 @@ defmodule DncWatchdogWeb.CaseLive.Show do
     communication = Enforcement.get_communication!(id)
 
     case Enforcement.set_communication_violation_status(communication, status) do
-      {:ok, _} ->
+      {:ok, updated} ->
+        communications =
+          if communication_still_visible?(updated, socket.assigns) do
+            Enum.map(socket.assigns.communications, fn comm ->
+              if comm.id == updated.id, do: updated, else: comm
+            end)
+          else
+            Enum.reject(socket.assigns.communications, &(&1.id == updated.id))
+          end
+
         {:noreply,
          socket
-         |> reload_communications()
+         |> assign(:communications, communications)
          |> assign(:requirements, Enforcement.workflow_requirements(socket.assigns.case))
          |> put_flash(:info, "Updated violation status")}
 
@@ -485,14 +494,33 @@ defmodule DncWatchdogWeb.CaseLive.Show do
   end
 
   defp reload_communications(socket) do
-    communications =
-      Enforcement.list_case_communications(socket.assigns.case.id,
+    opts =
+      [
         violations_only: socket.assigns.violations_only,
         hide_excluded: socket.assigns.hide_excluded,
         hide_contacts: socket.assigns.hide_contacts
-      )
+      ]
+      |> maybe_put_contact_set()
+
+    communications = Enforcement.list_case_communications(socket.assigns.case.id, opts)
 
     assign(socket, :communications, communications)
+  end
+
+  defp maybe_put_contact_set(opts) do
+    if Keyword.get(opts, :hide_contacts, false) do
+      Keyword.put(opts, :contact_set, DncWatchdog.Enforcement.ContactCache.get_set())
+    else
+      opts
+    end
+  end
+
+  defp communication_still_visible?(communication, assigns) do
+    cond do
+      assigns.violations_only and communication.violation_status != "violation" -> false
+      assigns.hide_excluded and communication.violation_status == "excluded" -> false
+      true -> true
+    end
   end
 
   defp assign_link_case_search(socket, query, results) do

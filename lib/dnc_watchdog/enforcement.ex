@@ -22,6 +22,7 @@ defmodule DncWatchdog.Enforcement do
   alias DncWatchdog.Enforcement.Local.MeCard
   alias DncWatchdog.Enforcement.UspsTracking
   alias DncWatchdog.Enforcement.CaseGroups
+  alias DncWatchdog.Enforcement.ContactCache
   alias DncWatchdog.Enforcement.Workflow
   alias DncWatchdog.Enforcement.SearchFilter
 
@@ -219,30 +220,45 @@ defmodule DncWatchdog.Enforcement do
         {:ok, set}
 
       nil ->
-        case DncWatchdog.Enforcement.Local.Contacts.load() do
-          {:ok, set, _paths} ->
-            if MapSet.size(set.phones) == 0 and MapSet.size(set.emails) == 0 do
-              :error
-            else
-              {:ok, set}
-            end
+        set = ContactCache.get_set()
 
-          {:error, _} ->
-            :error
+        if MapSet.size(set.phones) == 0 and MapSet.size(set.emails) == 0 do
+          :error
+        else
+          {:ok, set}
         end
     end
   end
 
   def count_communications(opts \\ []) do
     if Keyword.get(opts, :hide_contacts, false) do
-      opts
-      |> Keyword.put(:limit, 50_000)
-      |> list_communications()
-      |> length()
+      count_hiding_contacts(opts)
     else
       Communication
       |> apply_communication_filters(opts)
       |> Repo.aggregate(:count, :id)
+    end
+  end
+
+  defp count_hiding_contacts(opts) do
+    rows =
+      opts
+      |> Keyword.put(:limit, 50_000)
+      |> communications_query()
+      |> select([c], {c.direction, c.from_number, c.to_number})
+      |> Repo.all()
+      |> Enum.map(fn {direction, from, to} ->
+        %{direction: direction, from_number: from || "", to_number: to || ""}
+      end)
+
+    case contact_set_for_filter(opts) do
+      {:ok, contact_set} ->
+        rows
+        |> Enum.reject(&ContactFilter.contact_row?(&1, contact_set))
+        |> length()
+
+      :error ->
+        length(rows)
     end
   end
 

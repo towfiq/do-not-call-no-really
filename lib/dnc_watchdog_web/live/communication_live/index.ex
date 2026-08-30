@@ -89,10 +89,10 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
     communication = Enforcement.get_communication!(id)
 
     case Enforcement.set_communication_violation_status(communication, status) do
-      {:ok, _} ->
+      {:ok, updated} ->
         {:noreply,
          socket
-         |> reload_communications()
+         |> apply_violation_status_update(updated)
          |> put_flash(:info, "Updated violation status")}
 
       {:error, _} ->
@@ -295,7 +295,7 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
   end
 
   defp reload_communications(socket) do
-    opts = list_opts(socket)
+    opts = list_opts(socket) |> maybe_put_contact_set()
 
     communications = Enforcement.list_communications(opts)
     total = Enforcement.count_communications([])
@@ -316,6 +316,84 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
     |> assign(:selected_group, selected_group)
     |> assign(:filtered_count, Enforcement.count_communications(opts))
     |> assign(:total_count, total)
+  end
+
+  defp apply_violation_status_update(socket, updated) do
+    if communication_visible?(updated, socket.assigns) do
+      patch_communication(socket, updated)
+    else
+      drop_communication(socket, updated.id)
+    end
+  end
+
+  defp communication_visible?(communication, assigns) do
+    cond do
+      assigns.violations_only and communication.violation_status != "violation" ->
+        false
+
+      assigns.hide_excluded and communication.violation_status == "excluded" ->
+        false
+
+      assigns.hide_spam and communication.spam ->
+        false
+
+      true ->
+        true
+    end
+  end
+
+  defp patch_communication(socket, updated) do
+    communications =
+      Enum.map(socket.assigns.communications, fn comm ->
+        if comm.id == updated.id do
+          %{updated | case: comm.case}
+        else
+          comm
+        end
+      end)
+
+    groups =
+      if socket.assigns.group_by_sender do
+        DncWatchdog.Enforcement.CommunicationGroups.group_by_peer(communications)
+      else
+        socket.assigns.communication_groups
+      end
+
+    {selected_peer, selected_group} = select_group(socket.assigns[:selected_peer], groups)
+
+    socket
+    |> assign(:communications, communications)
+    |> assign(:communication_groups, groups)
+    |> assign(:selected_peer, selected_peer)
+    |> assign(:selected_group, selected_group)
+  end
+
+  defp drop_communication(socket, id) do
+    communications = Enum.reject(socket.assigns.communications, &(&1.id == id))
+
+    groups =
+      if socket.assigns.group_by_sender do
+        DncWatchdog.Enforcement.CommunicationGroups.group_by_peer(communications)
+      else
+        []
+      end
+
+    {selected_peer, selected_group} = select_group(socket.assigns[:selected_peer], groups)
+
+    socket
+    |> assign(:communications, communications)
+    |> assign(:communication_groups, groups)
+    |> assign(:selected_peer, selected_peer)
+    |> assign(:selected_group, selected_group)
+    |> assign(:filtered_count, max(socket.assigns.filtered_count - 1, 0))
+  end
+
+  defp maybe_put_contact_set(opts) do
+    if Keyword.get(opts, :hide_contacts, false) do
+      Keyword.put(opts, :contact_set, DncWatchdog.Enforcement.ContactCache.get_set())
+    else
+      opts
+    end
   end
 
   defp select_group(current_peer, groups) do
