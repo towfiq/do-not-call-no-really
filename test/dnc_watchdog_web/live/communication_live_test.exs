@@ -269,4 +269,18 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
     assert html =~ "special search token"
     assert html =~ "ordinary message"
   end
+
+  test "search includes excluded messages", %{conn: conn} do
+    case_record = case_fixture()
+
+    communication_fixture(%{
+      case_id: case_record.id,
+      body: "Hey ELLA, this is Tina with Sandium.",
+      violation_status: "excluded"
+    })
+
+    {:ok, _view, html} = live(conn, ~p"/communications?q=tina")
+
+    assert html =~ "Tina with Sandium"
+  end
 end

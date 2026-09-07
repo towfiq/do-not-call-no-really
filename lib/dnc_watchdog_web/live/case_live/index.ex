@@ -103,7 +103,7 @@ defmodule DncWatchdogWeb.CaseLive.Index do
     [
       preload_communications: true,
       preload_legal_entity: true,
-      require_violations: true,
+      require_violations: socket.assigns.search_query == "",
       workflow_phase: socket.assigns.workflow_phase,
       search: socket.assigns.search_query
     ]

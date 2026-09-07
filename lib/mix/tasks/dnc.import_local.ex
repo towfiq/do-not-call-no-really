@@ -90,6 +90,11 @@ defmodule Mix.Tasks.Dnc.ImportLocal do
     Mix.shell().info("New cases created: #{summary.created_cases}")
     Mix.shell().info("Communications stored: #{summary.created_communications}")
     Mix.shell().info("Duplicates skipped: #{Map.get(summary, :skipped_duplicates, 0)}")
+
+    Mix.shell().info(
+      "Skipped (own number as caller): #{Map.get(summary, :skipped_own_number, 0)}"
+    )
+
     Mix.shell().info("Failed to store: #{Map.get(summary, :failed, 0)}")
 
     if summary.created_communications == 0 and Map.get(summary, :skipped_duplicates, 0) > 0 do

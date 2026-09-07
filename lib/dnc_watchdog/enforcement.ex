@@ -23,6 +23,7 @@ defmodule DncWatchdog.Enforcement do
   alias DncWatchdog.Enforcement.UspsTracking
   alias DncWatchdog.Enforcement.CaseGroups
   alias DncWatchdog.Enforcement.ContactCache
+  alias DncWatchdog.Enforcement.OwnNumber
   alias DncWatchdog.Enforcement.Workflow
   alias DncWatchdog.Enforcement.SearchFilter
 
@@ -513,25 +514,31 @@ defmodule DncWatchdog.Enforcement do
       normalized = Phone.normalize(peer)
       keys = Phone.lookup_keys(normalized)
 
-      match =
-        Enum.reduce(keys, dynamic(false), fn key, acc ->
-          dynamic(
-            [c],
-            ^acc or
-              fragment(
-                "replace(replace(replace(replace(replace(replace(?, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', '') = ?",
-                c.from_number,
-                ^key
-              ) or
-              fragment(
-                "replace(replace(replace(replace(replace(replace(?, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', '') = ?",
-                c.to_number,
-                ^key
-              )
-          )
-        end)
+      if keys == [] do
+        from c in Communication, where: false
+      else
+        match =
+          Enum.reduce(keys, dynamic(false), fn key, acc ->
+            dynamic(
+              [c],
+              ^acc or
+                (c.direction == "incoming" and
+                   fragment(
+                     "replace(replace(replace(replace(replace(replace(?, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', '') = ?",
+                     c.from_number,
+                     ^key
+                   )) or
+                (c.direction == "outgoing" and
+                   fragment(
+                     "replace(replace(replace(replace(replace(replace(?, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', '') = ?",
+                     c.to_number,
+                     ^key
+                   ))
+            )
+          end)
 
-      from c in Communication, where: ^match
+        from c in Communication, where: ^match
+      end
     end
   end
 
@@ -549,6 +556,9 @@ defmodule DncWatchdog.Enforcement do
       peer == "" ->
         nil
 
+      OwnNumber.own_number?(peer) ->
+        nil
+
       ContactFilter.email_peer?(peer) ->
         find_case_for_incoming_email(peer)
 
@@ -559,6 +569,15 @@ defmodule DncWatchdog.Enforcement do
 
   def find_case_for_incoming_peer(_), do: nil
 
+  def own_phone_keys_set, do: OwnNumber.keys_set()
+
+  def own_number?(peer, keys \\ nil), do: OwnNumber.own_number?(peer, keys)
+
+  @doc """
+  Splits communications that were collapsed onto a `Caller {my_phone}` case.
+  """
+  def unwind_own_number_case_assignments, do: OwnNumber.unwind_assignments()
+
   @doc """
   Moves communications from the same incoming peer onto one canonical case.
 
@@ -566,6 +585,7 @@ defmodule DncWatchdog.Enforcement do
   """
   def reconcile_incoming_peer_case_assignments do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
+    own_keys = OwnNumber.keys_set()
 
     peers =
       Communication
@@ -573,7 +593,7 @@ defmodule DncWatchdog.Enforcement do
       |> select([c], c.from_number)
       |> Repo.all()
       |> Enum.map(&Phone.normalize/1)
-      |> Enum.reject(&(&1 == ""))
+      |> Enum.reject(&(&1 == "" or OwnNumber.own_number?(&1, own_keys)))
       |> Enum.uniq()
 
     Enum.reduce(peers, %{peers: 0, reassigned: 0}, fn peer, acc ->

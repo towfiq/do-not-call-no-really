@@ -5,24 +5,37 @@ defmodule DncWatchdog.Enforcement.RowImporter do
 
   alias DncWatchdog.Enforcement
   alias DncWatchdog.Enforcement.Communication
+  alias DncWatchdog.Enforcement.OwnNumber
   alias DncWatchdog.Enforcement.Phone
 
   @marketing_terms ~w(offer special discount free trial insurance loan debt warranty limited time act now)
 
   def import_rows(rows) do
     excluded_keys = Enforcement.excluded_peer_keys_set()
+    own_keys = OwnNumber.keys_set()
 
     Enum.reduce(
       rows,
-      %{rows: 0, created_cases: 0, created_communications: 0, skipped_duplicates: 0, failed: 0},
+      %{
+        rows: 0,
+        created_cases: 0,
+        created_communications: 0,
+        skipped_duplicates: 0,
+        skipped_own_number: 0,
+        failed: 0
+      },
       fn row, acc ->
-        case import_row(row, excluded_keys) do
+        case import_row(row, excluded_keys, own_keys) do
+          {:ok, :skipped_own_number} ->
+            %{acc | rows: acc.rows + 1, skipped_own_number: acc.skipped_own_number + 1}
+
           {:ok, %{case_created: case_created?, duplicate: duplicate?}} ->
             %{
               rows: acc.rows + 1,
               created_cases: acc.created_cases + if(case_created?, do: 1, else: 0),
               created_communications: acc.created_communications + if(duplicate?, do: 0, else: 1),
               skipped_duplicates: acc.skipped_duplicates + if(duplicate?, do: 1, else: 0),
+              skipped_own_number: acc.skipped_own_number,
               failed: acc.failed
             }
 
@@ -34,9 +47,17 @@ defmodule DncWatchdog.Enforcement.RowImporter do
   end
 
   def import_row(row, excluded_keys \\ Enforcement.excluded_peer_keys_set()) do
-    with {:ok, case_record, case_created?} <- find_or_create_case(row),
-         {:ok, duplicate?} <- import_row_for_case(case_record, row, excluded_keys) do
-      {:ok, %{case_created: case_created?, duplicate: duplicate?}}
+    import_row(row, excluded_keys, OwnNumber.keys_set())
+  end
+
+  def import_row(row, excluded_keys, own_keys) do
+    if incoming_own_number?(row, own_keys) do
+      {:ok, :skipped_own_number}
+    else
+      with {:ok, case_record, case_created?} <- find_or_create_case(row),
+           {:ok, duplicate?} <- import_row_for_case(case_record, row, excluded_keys) do
+        {:ok, %{case_created: case_created?, duplicate: duplicate?}}
+      end
     end
   end
 
@@ -51,6 +72,7 @@ defmodule DncWatchdog.Enforcement.RowImporter do
       |> Map.put(:case_id, case_record.id)
       |> Map.put(:reasons, reasons)
       |> Map.put(:violation_status, violation_status_for(row, excluded_keys))
+      |> Map.put(:spam, Map.get(row, :spam, false))
       |> Map.update!(:timestamp, &coerce_timestamp/1)
       |> normalize_import_numbers()
       |> ensure_to_number()
@@ -60,6 +82,7 @@ defmodule DncWatchdog.Enforcement.RowImporter do
     case Enforcement.find_communication_duplicate(attrs) do
       %Communication{} = existing ->
         Enforcement.backfill_communication_fingerprint(existing, fingerprint)
+        maybe_backfill_spam(existing, attrs)
         {:ok, true}
 
       nil ->
@@ -94,6 +117,10 @@ defmodule DncWatchdog.Enforcement.RowImporter do
   end
 
   defp ensure_to_number(row), do: row
+
+  defp incoming_own_number?(row, own_keys) do
+    MapSet.size(own_keys) > 0 and OwnNumber.own_number?(incoming_peer(row), own_keys)
+  end
 
   defp find_or_create_case(row) do
     company = company_label(row)
@@ -192,6 +219,12 @@ defmodule DncWatchdog.Enforcement.RowImporter do
   defp violation_status_for(row, excluded_keys) do
     if Enforcement.excluded_sender_row?(row, excluded_keys), do: "excluded", else: "pending"
   end
+
+  defp maybe_backfill_spam(%Communication{spam: false} = existing, %{spam: true}) do
+    Enforcement.set_communication_spam(existing, true)
+  end
+
+  defp maybe_backfill_spam(_existing, _attrs), do: :ok
 
   defp coerce_timestamp(%NaiveDateTime{} = dt), do: dt
 

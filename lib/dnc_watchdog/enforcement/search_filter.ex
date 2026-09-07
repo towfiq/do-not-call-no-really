@@ -7,6 +7,7 @@ defmodule DncWatchdog.Enforcement.SearchFilter do
 
   alias DncWatchdog.Enforcement.Case
   alias DncWatchdog.Enforcement.Communication
+  alias DncWatchdog.Enforcement.LegalEntity
   alias DncWatchdog.Repo
 
   @doc """
@@ -46,10 +47,14 @@ defmodule DncWatchdog.Enforcement.SearchFilter do
 
   defp case_search_dynamic(search) do
     n = needle(search)
-    phone_ids = phone_matching_case_ids(search)
+    related_ids = related_case_ids(search)
 
     name_match = dynamic([c], fragment("instr(lower(?), ?) > 0", c.company_name, ^n))
     notes_match = dynamic([c], fragment("instr(lower(?), ?) > 0", coalesce(c.notes, ""), ^n))
+
+    letter_match =
+      dynamic([c], fragment("instr(lower(?), ?) > 0", coalesce(c.letter_draft, ""), ^n))
+
     status_match = dynamic([c], fragment("instr(lower(?), ?) > 0", c.status, ^n))
     step_match = dynamic([c], fragment("instr(lower(?), ?) > 0", c.workflow_step, ^n))
 
@@ -62,11 +67,11 @@ defmodule DncWatchdog.Enforcement.SearchFilter do
     email_match =
       dynamic([c], fragment("instr(lower(?), ?) > 0", coalesce(c.claimant_email, ""), ^n))
 
-    comm_phone_match =
-      if phone_ids == [] do
+    related_match =
+      if related_ids == [] do
         dynamic(false)
       else
-        dynamic([c], c.id in ^phone_ids)
+        dynamic([c], c.id in ^related_ids)
       end
 
     id_match =
@@ -77,8 +82,8 @@ defmodule DncWatchdog.Enforcement.SearchFilter do
 
     dynamic(
       [c],
-      ^name_match or ^notes_match or ^status_match or ^step_match or ^claimant_match or
-        ^phone_match or ^email_match or ^comm_phone_match or ^id_match
+      ^name_match or ^notes_match or ^letter_match or ^status_match or ^step_match or
+        ^claimant_match or ^phone_match or ^email_match or ^related_match or ^id_match
     )
   end
 
@@ -134,6 +139,19 @@ defmodule DncWatchdog.Enforcement.SearchFilter do
         )
       )
 
+    legal_name_match =
+      dynamic(
+        [c],
+        c.case_id in subquery(
+          from(case in Case,
+            join: entity in LegalEntity,
+            on: entity.id == case.legal_entity_id,
+            where: fragment("instr(lower(coalesce(?, '')), ?) > 0", entity.legal_name, ^n),
+            select: case.id
+          )
+        )
+      )
+
     case_id_match =
       case Integer.parse(normalize(search)) do
         {id, ""} -> dynamic([c], c.case_id == ^id)
@@ -143,8 +161,14 @@ defmodule DncWatchdog.Enforcement.SearchFilter do
     dynamic(
       [c],
       ^from_match or ^to_match or ^body_match or ^company_match or ^channel_match or
-        ^case_company_match or ^case_id_match
+        ^case_company_match or ^legal_name_match or ^case_id_match
     )
+  end
+
+  defp related_case_ids(search) do
+    (phone_matching_case_ids(search) ++
+       body_matching_case_ids(search) ++ legal_entity_matching_case_ids(search))
+    |> Enum.uniq()
   end
 
   defp phone_matching_case_ids(search) do
@@ -171,6 +195,29 @@ defmodule DncWatchdog.Enforcement.SearchFilter do
       |> select([comm], comm.case_id)
       |> Repo.all()
     end
+  end
+
+  defp body_matching_case_ids(search) do
+    n = needle(search)
+
+    Communication
+    |> where([comm], fragment("instr(lower(coalesce(?, '')), ?) > 0", comm.body, ^n))
+    |> group_by([comm], comm.case_id)
+    |> select([comm], comm.case_id)
+    |> Repo.all()
+  end
+
+  defp legal_entity_matching_case_ids(search) do
+    n = needle(search)
+
+    Case
+    |> join(:inner, [c], entity in LegalEntity, on: entity.id == c.legal_entity_id)
+    |> where(
+      [_c, entity],
+      fragment("instr(lower(coalesce(?, '')), ?) > 0", entity.legal_name, ^n)
+    )
+    |> select([c, _entity], c.id)
+    |> Repo.all()
   end
 
   defp digits_only(value) do

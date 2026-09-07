@@ -42,6 +42,42 @@ defmodule DncWatchdog.Enforcement.SearchFilterTest do
     assert case_record.id in ids
   end
 
+  test "list_cases/1 filters by message body text" do
+    match = case_fixture(%{company_name: "Caller 6506293859"})
+    other = case_fixture(%{company_name: "Caller 8001234567"})
+
+    communication_fixture(%{
+      case_id: match.id,
+      body: "Hey ELLA, this is Tina with Sandium.",
+      violation_status: "excluded"
+    })
+
+    communication_fixture(%{
+      case_id: other.id,
+      body: "Limited time car warranty",
+      violation_status: "pending"
+    })
+
+    ids =
+      Enforcement.list_cases(search: "tina")
+      |> Enum.map(& &1.id)
+
+    assert match.id in ids
+    refute other.id in ids
+  end
+
+  test "list_cases/1 filters by legal entity name" do
+    match = case_with_legal_entity_fixture(%{company_name: "Caller 9254996086"})
+    other = case_fixture(%{company_name: "Caller 8001234567"})
+
+    ids =
+      Enforcement.list_cases(search: "equinox")
+      |> Enum.map(& &1.id)
+
+    assert match.id in ids
+    refute other.id in ids
+  end
+
   test "list_communications/1 filters by message body" do
     case_record = case_fixture()
     match = communication_fixture(%{case_id: case_record.id, body: "unique violation phrase"})

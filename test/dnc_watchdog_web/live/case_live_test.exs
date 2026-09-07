@@ -135,6 +135,7 @@ defmodule DncWatchdogWeb.CaseLiveTest do
 
       assert html =~ "Searchable Widgets LLC"
       refute html =~ "Unrelated Corp"
+      assert html =~ "matching"
 
       html =
         view
@@ -143,6 +144,21 @@ defmodule DncWatchdogWeb.CaseLiveTest do
 
       assert html =~ "Searchable Widgets LLC"
       refute html =~ "Unrelated Corp"
+    end
+
+    test "filters cases by message body even without violations", %{conn: conn} do
+      match = case_fixture(%{company_name: "Caller 6506293859"})
+
+      communication_fixture(%{
+        case_id: match.id,
+        body: "Hey ELLA, this is Tina with Sandium.",
+        violation_status: "excluded"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/cases?q=tina")
+
+      assert html =~ "Caller 6506293859"
+      assert html =~ "matching"
     end
   end
 

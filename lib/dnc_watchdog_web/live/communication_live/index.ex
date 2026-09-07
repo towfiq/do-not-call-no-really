@@ -417,7 +417,7 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
   defp list_opts(socket) do
     [
       violations_only: socket.assigns.violations_only,
-      hide_excluded: socket.assigns.hide_excluded,
+      hide_excluded: socket.assigns.hide_excluded and socket.assigns.search_query == "",
       hide_spam: socket.assigns.hide_spam,
       hide_contacts: socket.assigns.hide_contacts,
       workflow_phase: socket.assigns.workflow_phase,

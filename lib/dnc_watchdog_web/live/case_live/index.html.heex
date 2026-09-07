@@ -1,7 +1,11 @@
 <.header>
   Listing Cases
   <:subtitle>
-    {@filtered_count} shown of {@total_count} with at least one violation.
+    <%= if @search_query != "" do %>
+      {@filtered_count} matching “{@search_query}”
+    <% else %>
+      {@filtered_count} shown of {@total_count} with at least one violation.
+    <% end %>
   </:subtitle>
   <:actions>
     <.link patch={~p"/cases/new"}>
@@ -15,7 +19,7 @@
   <.list_search_form
     id="cases-search"
     query={@search_query}
-    placeholder="Company, phone, notes, case #, status…"
+    placeholder="Company, phone, message text, notes, case #…"
   />
 </div>
 
