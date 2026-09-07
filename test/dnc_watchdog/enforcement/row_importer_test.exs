@@ -13,6 +13,34 @@ defmodule DncWatchdog.Enforcement.RowImporterTest do
     assert length(Enforcement.list_case_communications(hd(Enforcement.list_cases()).id)) == 1
   end
 
+  test "import_row/1 stores spam flag from macOS import rows" do
+    row = import_row_attrs(%{spam: true, body: "junk offer"})
+
+    assert {:ok, _} = RowImporter.import_row(row)
+
+    [comm] =
+      Enforcement.list_case_communications(hd(Enforcement.list_cases()).id, hide_excluded: false)
+
+    assert comm.spam
+  end
+
+  test "import_row/1 backfills spam on duplicate re-import" do
+    row = import_row_attrs(%{body: "same message"})
+    assert {:ok, _} = RowImporter.import_row(row)
+
+    [before] =
+      Enforcement.list_case_communications(hd(Enforcement.list_cases()).id, hide_excluded: false)
+
+    refute before.spam
+
+    assert {:ok, %{duplicate: true}} = RowImporter.import_row(Map.put(row, :spam, true))
+
+    [updated] =
+      Enforcement.list_case_communications(hd(Enforcement.list_cases()).id, hide_excluded: false)
+
+    assert updated.spam
+  end
+
   test "import_rows/1 groups rows by company" do
     rows = [
       import_row_attrs(%{company: "Shared Co", body: "offer 1"}),

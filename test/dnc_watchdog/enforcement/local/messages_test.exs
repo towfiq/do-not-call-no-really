@@ -113,4 +113,25 @@ defmodule DncWatchdog.Enforcement.Local.MessagesTest do
     assert length(hits) == 1
     assert hd(hits).decoded_body =~ "via chat"
   end
+
+  test "read/2 marks macOS spam and skips deleted, reactions, and junk rows" do
+    dir = SqliteFixtures.temp_dir!()
+    on_exit(fn -> File.rm_rf(dir) end)
+
+    path = SqliteFixtures.create_messages_db_with_filters(Path.join(dir, "chat.db"))
+
+    assert {:ok, rows} = Messages.read(path, limit: 10, my_phone: "5550001234")
+    bodies = Enum.map(rows, & &1.body)
+
+    assert "Normal promo" in bodies
+    assert "Known spammer" in bodies
+    refute "Liked" in bodies
+    refute "Recently deleted" in bodies
+
+    spam_row = Enum.find(rows, &(&1.body == "Known spammer"))
+    normal_row = Enum.find(rows, &(&1.body == "Normal promo"))
+
+    assert spam_row.spam
+    refute normal_row.spam
+  end
 end

@@ -88,19 +88,23 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
   end
 
   defp schema_flags(conn, tables) do
+    message_columns =
+      case Sqlite.table_columns(conn, "message") do
+        {:ok, columns} -> MapSet.new(columns)
+        _ -> MapSet.new()
+      end
+
     %{
       handle: "handle" in tables,
       chat: "chat" in tables,
       chat_message_join: "chat_message_join" in tables,
-      attributed_body: attributed_body_column?(conn)
+      chat_recoverable_message_join: "chat_recoverable_message_join" in tables,
+      attributed_body: MapSet.member?(message_columns, "attributedBody"),
+      is_spam: MapSet.member?(message_columns, "is_spam"),
+      associated_message_type: MapSet.member?(message_columns, "associated_message_type"),
+      item_type: MapSet.member?(message_columns, "item_type"),
+      date_retracted: MapSet.member?(message_columns, "date_retracted")
     }
-  end
-
-  defp attributed_body_column?(conn) do
-    case Sqlite.table_columns(conn, "message") do
-      {:ok, columns} -> "attributedBody" in columns
-      _ -> false
-    end
   end
 
   defp messages_sql(schema, limit, since) do
@@ -113,10 +117,12 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
       m.text AS body,
       #{attributed_body_select(schema)} AS attributed_body,
       m.is_from_me AS is_from_me,
-      #{peer_select(schema)} AS handle
+      #{peer_select(schema)} AS handle,
+      #{spam_select(schema)} AS is_spam
     FROM message m
     #{from_joins(schema)}
     WHERE #{body_where(schema)}
+    AND #{message_filters(schema)}
     #{lookback}
     ORDER BY m.date DESC
     #{Lookback.sql_limit_clause(since, limit)}
@@ -138,6 +144,7 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
     WHERE (
       COALESCE(h.id, c.chat_identifier, '') LIKE '#{like}'
     )
+    AND #{message_filters(schema)}
     ORDER BY m.date DESC
     LIMIT #{limit}
     """
@@ -177,6 +184,54 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
   defp attributed_body_select(%{attributed_body: true}), do: "m.attributedBody"
   defp attributed_body_select(_), do: "NULL"
 
+  defp spam_select(%{is_spam: true}), do: "m.is_spam"
+  defp spam_select(_), do: "0"
+
+  defp message_filters(schema) do
+    [
+      associated_message_filter(schema),
+      item_type_filter(schema),
+      retracted_filter(schema),
+      recently_deleted_filter(schema)
+    ]
+    |> Enum.reject(&(&1 == ""))
+    |> case do
+      [] -> "1 = 1"
+      parts -> Enum.join(parts, " AND ")
+    end
+  end
+
+  defp associated_message_filter(%{associated_message_type: true}) do
+    "(m.associated_message_type IS NULL OR m.associated_message_type = 0)"
+  end
+
+  defp associated_message_filter(_), do: ""
+
+  defp item_type_filter(%{item_type: true}) do
+    "(m.item_type IS NULL OR m.item_type = 0)"
+  end
+
+  defp item_type_filter(_), do: ""
+
+  defp retracted_filter(%{date_retracted: true}) do
+    "(m.date_retracted IS NULL OR m.date_retracted = 0)"
+  end
+
+  defp retracted_filter(_), do: ""
+
+  defp recently_deleted_filter(%{chat_recoverable_message_join: true}) do
+    """
+    NOT EXISTS (
+      SELECT 1
+      FROM chat_recoverable_message_join crmj
+      WHERE crmj.message_id = m.ROWID
+    )
+    """
+    |> String.trim()
+  end
+
+  defp recently_deleted_filter(_), do: ""
+
   defp body_where(%{attributed_body: true}) do
     """
     (
@@ -213,7 +268,11 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
     }
   end
 
-  defp to_row([_message_id, apple_date, body, attributed_body, is_from_me, handle], my_phone) do
+  defp to_row([message_id, apple_date, body, attributed_body, is_from_me, handle], my_phone) do
+    to_row([message_id, apple_date, body, attributed_body, is_from_me, handle, 0], my_phone)
+  end
+
+  defp to_row([_message_id, apple_date, body, attributed_body, is_from_me, handle, is_spam], my_phone) do
     from_me? = is_from_me in [1, "1", true]
     peer = Phone.normalize(handle)
     my = Phone.normalize(my_phone)
@@ -233,9 +292,12 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
       to_number: to_number,
       duration_seconds: 0,
       body: resolve_body(body, attributed_body),
-      company: ""
+      company: "",
+      spam: truthy?(is_spam)
     }
   end
+
+  defp truthy?(value), do: value in [1, "1", true]
 
   defp resolve_body(body, attributed_body) do
     text = body |> Sqlite.cell_to_string() |> String.trim()

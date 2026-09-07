@@ -114,6 +114,86 @@ defmodule DncWatchdog.SqliteFixtures do
     path
   end
 
+  def create_messages_db_with_filters(path, opts \\ []) do
+    incoming_date = Keyword.get(opts, :incoming_date, ~U[2026-05-20 09:14:00Z])
+    {:ok, conn} = Exqlite.Sqlite3.open(path)
+
+    Exqlite.Sqlite3.execute(conn, "CREATE TABLE handle (ROWID INTEGER PRIMARY KEY, id TEXT)")
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      """
+      CREATE TABLE message (
+        ROWID INTEGER PRIMARY KEY,
+        date INTEGER,
+        text TEXT,
+        attributedBody BLOB,
+        is_from_me INTEGER,
+        handle_id INTEGER,
+        is_spam INTEGER DEFAULT 0,
+        associated_message_type INTEGER DEFAULT 0,
+        item_type INTEGER DEFAULT 0,
+        date_retracted INTEGER DEFAULT 0
+      )
+      """
+    )
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      """
+      CREATE TABLE chat_recoverable_message_join (
+        chat_id INTEGER,
+        message_id INTEGER,
+        delete_date INTEGER
+      )
+      """
+    )
+
+    Exqlite.Sqlite3.execute(conn, "INSERT INTO handle (ROWID, id) VALUES (1, '+18001234567')")
+
+    ns = apple_nanoseconds(incoming_date)
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      """
+      INSERT INTO message (ROWID, date, text, is_from_me, handle_id, is_spam)
+      VALUES (1, #{ns}, 'Normal promo', 0, 1, 0)
+      """
+    )
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      """
+      INSERT INTO message (ROWID, date, text, is_from_me, handle_id, is_spam)
+      VALUES (2, #{ns}, 'Known spammer', 0, 1, 1)
+      """
+    )
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      """
+      INSERT INTO message (ROWID, date, text, is_from_me, handle_id, associated_message_type)
+      VALUES (3, #{ns}, 'Liked', 0, 1, 2001)
+      """
+    )
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      """
+      INSERT INTO message (ROWID, date, text, is_from_me, handle_id)
+      VALUES (4, #{ns}, 'Recently deleted', 0, 1)
+      """
+    )
+
+    Exqlite.Sqlite3.execute(
+      conn,
+      "INSERT INTO chat_recoverable_message_join (chat_id, message_id, delete_date) VALUES (1, 4, #{ns})"
+    )
+
+    Exqlite.Sqlite3.close(conn)
+    path
+  end
+
   def make_attributed_body(text) when is_binary(text) do
     text_bytes = :unicode.characters_to_binary(text)
     len = byte_size(text_bytes)
