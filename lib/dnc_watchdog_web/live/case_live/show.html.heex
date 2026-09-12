@@ -309,16 +309,25 @@
   </form>
 </div>
 
-<div class="mt-8 rounded-lg border border-zinc-200 p-4">
+<div
+  id="mail-tracking-section"
+  phx-hook="UspsHelper"
+  class="mt-8 rounded-lg border border-zinc-200 p-4"
+>
   <div class="flex flex-wrap items-start justify-between gap-3">
     <div>
       <h3 class="text-base font-semibold">Certified mail tracking</h3>
       <p class="mt-1 text-sm text-zinc-600">
         Save the USPS tracking number after you mail the demand letter.
-        Refresh status loads the public USPS tracking page in Chrome and parses the result.
+        Refresh status opens USPS.com in your real browser and waits for the Chrome helper
+        to send the hydrated tracking page back. Headless Chrome often gets an empty shell
+        that never finishes loading.
         <%= unless @usps_tracking_configured do %>
-          Install Google Chrome or Chromium to enable automatic status checks (same requirement as PDF export).
+          Install Google Chrome or Chromium for PDF export and optional headless fallback.
         <% end %>
+      </p>
+      <p :if={@usps_helper_available} class="mt-1 text-sm font-medium text-emerald-700">
+        Chrome helper connected
       </p>
     </div>
     <%= if @case.mail_tracking_number not in [nil, ""] do %>
@@ -347,6 +356,7 @@
     <.button type="submit">Save tracking number</.button>
     <%= if @case.mail_tracking_number not in [nil, ""] do %>
       <.button
+        id="refresh-mail-tracking-button"
         type="button"
         phx-click="refresh_mail_tracking"
         phx-disable-with="Checking..."
@@ -364,6 +374,11 @@
       </.link>
     <% end %>
   </form>
+
+  <.mail_tracking_progress_dialog
+    :if={@mail_tracking_progress}
+    progress={@mail_tracking_progress}
+  />
 
   <%= if @case.mail_tracking_number not in [nil, ""] do %>
     <dl class="mt-4 grid gap-2 text-sm sm:grid-cols-2">

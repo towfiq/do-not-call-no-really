@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "DNC Watchdog USPS Helper",
+  "version": "1.0.2",
+  "description": "Sends USPS tracking status from your real browser to the local DNC Watchdog app.",
+  "permissions": ["storage", "scripting", "tabs"],
+  "host_permissions": [
+    "http://127.0.0.1:4000/*",
+    "http://localhost:4000/*",
+    "https://tools.usps.com/*",
+    "https://www.usps.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://tools.usps.com/*",
+        "https://www.usps.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://127.0.0.1:4000/*",
+        "http://localhost:4000/*"
+      ],
+      "js": ["app_bridge.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["page_flag.js"],
+      "matches": [
+        "http://127.0.0.1:4000/*",
+        "http://localhost:4000/*"
+      ]
+    }
+  ]
+}

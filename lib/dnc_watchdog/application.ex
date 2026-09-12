@@ -20,6 +20,7 @@ defmodule DncWatchdog.Application do
         {Finch, name: DncWatchdog.Finch},
         {ChromicPDF, chromic_pdf_config()},
         DncWatchdog.Enforcement.ContactCache,
+        DncWatchdog.Enforcement.UspsBrowserHelper,
         DncWatchdogWeb.Endpoint
       ] ++ periodic_import_children() ++ periodic_tracking_refresh_children()
 

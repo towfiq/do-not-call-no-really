@@ -16,4 +16,12 @@ defmodule DncWatchdogWeb.SettingsLiveTest do
     assert profile.name == "Jane Doe"
     assert profile.address == "123 Main"
   end
+
+  test "shows Chrome helper install path", %{conn: conn} do
+    {:ok, _view, html} = live(conn, ~p"/settings")
+    assert html =~ "USPS Chrome helper"
+    assert html =~ "Load unpacked"
+    assert html =~ "chrome_extension"
+    assert html =~ "Chrome helper connected"
+  end
 end

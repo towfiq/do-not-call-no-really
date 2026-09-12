@@ -4,6 +4,7 @@ defmodule DncWatchdog.Enforcement do
   """
 
   import Ecto.Query, warn: false
+  require Logger
   alias DncWatchdog.Repo
 
   alias DncWatchdog.Enforcement.Case
@@ -21,6 +22,7 @@ defmodule DncWatchdog.Enforcement do
   alias DncWatchdog.Enforcement.FilingLimits
   alias DncWatchdog.Enforcement.Local.MeCard
   alias DncWatchdog.Enforcement.UspsTracking
+  alias DncWatchdog.Enforcement.UspsBrowserHelper
   alias DncWatchdog.Enforcement.CaseGroups
   alias DncWatchdog.Enforcement.ContactCache
   alias DncWatchdog.Enforcement.OwnNumber
@@ -1082,31 +1084,83 @@ defmodule DncWatchdog.Enforcement do
     update_mail_tracking(case, attrs)
   end
 
-  def refresh_mail_tracking(%Case{} = case) do
+  def refresh_mail_tracking(%Case{} = case, opts \\ []) do
+    on_step = Keyword.get(opts, :on_step, fn _ -> :ok end)
     number = case.mail_tracking_number
 
     cond do
       number in [nil, ""] ->
+        UspsTracking.emit_progress(
+          on_step,
+          :validate,
+          :error,
+          UspsTracking.error_message(:no_tracking_number)
+        )
+
         {:error, :no_tracking_number}
 
       true ->
-        case UspsTracking.lookup(number) do
+        case UspsTracking.lookup(number, on_step: on_step) do
           {:ok, result} ->
-            with {:ok, case} <-
-                   update_mail_tracking(case, %{
-                     mail_delivery_status: result.delivery_status,
-                     mail_tracking_summary: result.summary,
-                     mail_tracking_checked_at: result.checked_at
-                   }),
-                 {:ok, case} <- maybe_mark_delivered_workflow(case) do
-              {:ok, case}
-            end
+            save_mail_tracking_result(case, result, on_step)
 
           {:error, _} = error ->
             error
         end
     end
   end
+
+  defp apply_consumed_helper_page(case_id, params) do
+    with {:ok, parsed} <- UspsTracking.parse_helper_payload(params),
+         %Case{} = case_record <- Repo.get(Case, case_id),
+         {:ok, case_record} <-
+           save_mail_tracking_result(
+             case_record,
+             Map.put(parsed, :checked_at, DateTime.utc_now() |> DateTime.truncate(:second)),
+             fn _ -> :ok end
+           ) do
+      {:ok, case_record}
+    else
+      nil ->
+        {:error, {:helper_failed, case_id, :case_not_found}}
+
+      {:error, reason} ->
+        {:error, {:helper_failed, case_id, reason}}
+    end
+  end
+
+  defp save_mail_tracking_result(case, result, on_step) do
+    UspsTracking.emit_progress(
+      on_step,
+      :save,
+      :running,
+      "Writing #{result.delivery_status} to this case"
+    )
+
+    with {:ok, case} <-
+           update_mail_tracking(case, %{
+             mail_delivery_status: result.delivery_status,
+             mail_tracking_summary: result.summary,
+             mail_tracking_checked_at: result.checked_at
+           }),
+         {:ok, case} <- maybe_mark_delivered_workflow(case) do
+      UspsTracking.emit_progress(on_step, :save, :ok, save_progress_detail(case, result))
+      {:ok, case}
+    else
+      {:error, reason} = error ->
+        UspsTracking.emit_progress(on_step, :save, :error, UspsTracking.error_message(reason))
+        error
+    end
+  end
+
+  defp save_progress_detail(
+         %Case{workflow_step: "delivered", mail_delivery_status: "delivered"},
+         result
+       ) do
+    "#{result.summary} Workflow moved to delivered."
+  end
+
+  defp save_progress_detail(_case, result), do: result.summary
 
   defp maybe_mark_delivered_workflow(
          %Case{workflow_step: "sent", mail_delivery_status: "delivered"} = case
@@ -1129,11 +1183,41 @@ defmodule DncWatchdog.Enforcement do
       acc = %{acc | checked: acc.checked + 1}
 
       case refresh_mail_tracking(case_record) do
-        {:ok, _} -> %{acc | updated: acc.updated + 1}
-        {:error, _} -> %{acc | errors: acc.errors + 1}
+        {:ok, _} ->
+          %{acc | updated: acc.updated + 1}
+
+        {:error, reason} ->
+          Logger.warning(
+            "[PeriodicTrackingRefresh] case=#{case_record.id} #{UspsTracking.error_message(reason)}"
+          )
+
+          %{acc | errors: acc.errors + 1}
       end
     end)
   end
+
+  def apply_usps_helper_page(params) when is_map(params) do
+    number =
+      UspsTracking.normalize_tracking_number(
+        params["tracking_number"] || params[:tracking_number]
+      )
+
+    case number do
+      nil ->
+        {:error, :not_pending}
+
+      number ->
+        case UspsBrowserHelper.take(number) do
+          {:ok, %{case_id: case_id}} ->
+            apply_consumed_helper_page(case_id, params)
+
+          {:error, :not_pending} ->
+            {:error, :not_pending}
+        end
+    end
+  end
+
+  def chrome_extension_dir, do: UspsBrowserHelper.extension_dir()
 
   def usps_tracking_configured?, do: UspsTracking.configured?()
   def mail_tracking_url(number), do: UspsTracking.tracking_url(number)

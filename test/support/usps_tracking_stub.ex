@@ -11,3 +11,24 @@ defmodule DncWatchdog.Enforcement.UspsTracking.StubPageFetcher do
      })}
   end
 end
+
+defmodule DncWatchdog.Enforcement.UspsTracking.StubBlockedPageFetcher do
+  @moduledoc false
+
+  def fetch(_url) do
+    {:ok,
+     Jason.encode!(%{
+       "blocked" => true,
+       "text" => "Access Denied",
+       "summary" => "USPS blocked automated access"
+     })}
+  end
+end
+
+defmodule DncWatchdog.Enforcement.UspsTracking.StubChromeErrorPageFetcher do
+  @moduledoc false
+
+  def fetch(_url) do
+    {:error, {:chromic_pdf, "Could not find session pool :online"}}
+  end
+end

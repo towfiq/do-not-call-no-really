@@ -11,6 +11,7 @@ defmodule DncWatchdogWeb.SettingsLive.Index do
      socket
      |> assign(:page_title, "Your profile")
      |> assign(:profile, profile)
+     |> assign(:chrome_extension_dir, Enforcement.chrome_extension_dir())
      |> assign_form(profile)}
   end
 

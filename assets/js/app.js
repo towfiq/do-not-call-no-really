@@ -22,10 +22,31 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
+const UspsHelper = {
+  mounted() {
+    this._onHelperReady = () => this.pushEvent("usps_helper_status", {available: true})
+    window.addEventListener("dnc-usps-helper-ready", this._onHelperReady)
+    if (window.__DNC_USPS_HELPER__) this._onHelperReady()
+
+    this.handleEvent("open_usps_helper", ({url, tracking_number}) => {
+      window.dispatchEvent(
+        new CustomEvent("dnc-usps-helper-open", {
+          detail: {url, tracking_number}
+        })
+      )
+      window.open(url, "dnc-usps-tracking")
+    })
+  },
+  destroyed() {
+    window.removeEventListener("dnc-usps-helper-ready", this._onHelperReady)
+  }
+}
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken}
+  params: {_csrf_token: csrfToken},
+  hooks: {UspsHelper}
 })
 
 // Show progress bar on live navigation and form submits

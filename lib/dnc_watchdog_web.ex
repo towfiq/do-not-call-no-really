@@ -10,6 +10,7 @@ defmodule DncWatchdogWeb do
       Phoenix.LiveComponent,
       Phoenix.HTML,
       Phoenix.Ecto,
+      Phoenix.PubSub,
       Bandit,
       Plug,
       Gettext

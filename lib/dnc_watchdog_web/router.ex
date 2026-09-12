@@ -36,10 +36,12 @@ defmodule DncWatchdogWeb.Router do
     get "/cases/:id/civil_complaint.pdf", CaseController, :civil_complaint_pdf
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", DncWatchdogWeb do
-  #   pipe_through :api
-  # end
+  scope "/api", DncWatchdogWeb do
+    pipe_through :api
+
+    options "/usps_helper", UspsHelperController, :options
+    post "/usps_helper", UspsHelperController, :create
+  end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:dnc_watchdog, :dev_routes) do

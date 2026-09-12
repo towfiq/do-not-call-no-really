@@ -311,7 +311,77 @@ defmodule DncWatchdogWeb.CaseLiveTest do
       assert updated.mail_delivery_status == "pending"
     end
 
-    test "refreshes mail tracking asynchronously", %{conn: conn, case: case} do
+    test "refreshes mail tracking from the Chrome helper", %{conn: conn, case: case} do
+      DncWatchdog.Enforcement.UspsBrowserHelper.reset()
+
+      {:ok, case} =
+        DncWatchdog.Enforcement.save_mail_tracking_number(case, "9400111899223197428490")
+
+      {:ok, view, _html} = live(conn, ~p"/cases/#{case}")
+
+      view |> element("#refresh-mail-tracking-button") |> render_click()
+
+      html = render(view)
+      assert html =~ "Waiting for Chrome helper"
+      assert html =~ "Wait for the Chrome helper"
+      assert_push_event(view, "open_usps_helper", %{url: url})
+      assert url =~ "9400111899223197428490"
+
+      helper_conn =
+        build_conn()
+        |> put_req_header("content-type", "application/json")
+        |> post(
+          ~p"/api/usps_helper",
+          Jason.encode!(%{
+            "tracking_number" => "9400111899223197428490",
+            "text" => "Tracking History Your item was delivered, May 1, 2026 at 3:14 pm.",
+            "summary" => "Your item was delivered, May 1, 2026 at 3:14 pm.",
+            "title" => "USPS Tracking"
+          })
+        )
+
+      assert json_response(helper_conn, 200)["ok"] == true
+
+      html = wait_for_html(view, "Tracking updated")
+      assert html =~ "Tracking updated"
+      assert html =~ "delivered"
+      assert html =~ "Save status to this case"
+      assert html =~ "Close"
+    end
+
+    test "shows helper parse errors in the progress dialog", %{conn: conn, case: case} do
+      DncWatchdog.Enforcement.UspsBrowserHelper.reset()
+
+      {:ok, case} =
+        DncWatchdog.Enforcement.save_mail_tracking_number(case, "9400111899223197428490")
+
+      {:ok, view, _html} = live(conn, ~p"/cases/#{case}")
+
+      view |> element("#refresh-mail-tracking-button") |> render_click()
+
+      helper_conn =
+        build_conn()
+        |> put_req_header("content-type", "application/json")
+        |> post(
+          ~p"/api/usps_helper",
+          Jason.encode!(%{
+            "tracking_number" => "9400111899223197428490",
+            "blocked" => true,
+            "text" => "Access Denied",
+            "summary" => "USPS blocked automated access"
+          })
+        )
+
+      assert json_response(helper_conn, 422)
+
+      html = wait_for_html(view, "Tracking check failed")
+      assert html =~ "Tracking check failed"
+      assert html =~ "USPS blocked"
+      assert html =~ "Read tracking status"
+      assert html =~ "Try headless Chrome"
+    end
+
+    test "falls back to headless Chrome from the progress panel", %{conn: conn, case: case} do
       previous = Application.get_env(:dnc_watchdog, :usps_tracking, [])
 
       Application.put_env(:dnc_watchdog, :usps_tracking,
@@ -319,17 +389,37 @@ defmodule DncWatchdogWeb.CaseLiveTest do
       )
 
       on_exit(fn -> Application.put_env(:dnc_watchdog, :usps_tracking, previous) end)
+      DncWatchdog.Enforcement.UspsBrowserHelper.reset()
 
       {:ok, case} =
         DncWatchdog.Enforcement.save_mail_tracking_number(case, "9400111899223197428490")
 
       {:ok, view, _html} = live(conn, ~p"/cases/#{case}")
 
-      view |> element("button", "Refresh status") |> render_click()
+      view |> element("#refresh-mail-tracking-button") |> render_click()
+
+      helper_conn =
+        build_conn()
+        |> put_req_header("content-type", "application/json")
+        |> post(
+          ~p"/api/usps_helper",
+          Jason.encode!(%{
+            "tracking_number" => "9400111899223197428490",
+            "blocked" => true,
+            "summary" => "USPS blocked automated access"
+          })
+        )
+
+      assert json_response(helper_conn, 422)
+
+      html = wait_for_html(view, "Try headless Chrome")
+      assert html =~ "Try headless Chrome"
+
+      view |> element("#refresh-mail-tracking-headless-button") |> render_click()
 
       html = render_async(view)
       assert html =~ "Tracking updated"
-      assert html =~ "delivered"
+      assert html =~ "Load USPS tracking page"
     end
 
     test "searches linkable cases as you type", %{conn: conn, case: case} do
@@ -344,6 +434,22 @@ defmodule DncWatchdogWeb.CaseLiveTest do
 
       assert html =~ other.company_name
       assert html =~ "Case #{other.id}"
+    end
+  end
+
+  defp wait_for_html(view, text, attempts \\ 20) do
+    html = render(view)
+
+    cond do
+      html =~ text ->
+        html
+
+      attempts <= 1 ->
+        html
+
+      true ->
+        Process.sleep(25)
+        wait_for_html(view, text, attempts - 1)
     end
   end
 end

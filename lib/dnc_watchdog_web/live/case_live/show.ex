@@ -7,6 +7,11 @@ defmodule DncWatchdogWeb.CaseLive.Show do
   alias DncWatchdog.Enforcement.Case
   alias DncWatchdog.Enforcement.EvidenceStorage
   alias DncWatchdog.Enforcement.FilingLimits
+  alias DncWatchdog.Enforcement.UspsTracking
+  alias DncWatchdog.Enforcement.UspsBrowserHelper
+  alias DncWatchdogWeb.MailTrackingComponents
+
+  @helper_timeout_ms :timer.seconds(120)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -16,7 +21,10 @@ defmodule DncWatchdogWeb.CaseLive.Show do
      |> assign(:hide_excluded, true)
      |> assign(:hide_contacts, true)
      |> assign(:usps_tracking_configured, Enforcement.usps_tracking_configured?())
+     |> assign(:usps_helper_available, false)
+     |> assign(:usps_helper_timer, nil)
      |> assign(:mail_tracking_refreshing, false)
+     |> assign(:mail_tracking_progress, nil)
      |> assign(:link_case_query, "")
      |> assign(:link_case_results, [])
      |> allow_upload(:evidence,
@@ -345,26 +353,20 @@ defmodule DncWatchdogWeb.CaseLive.Show do
   end
 
   def handle_event("refresh_mail_tracking", _, socket) do
-    cond do
-      socket.assigns[:mail_tracking_refreshing] ->
-        {:noreply, socket}
+    start_browser_helper_refresh(socket)
+  end
 
-      socket.assigns.case.mail_tracking_number in [nil, ""] ->
-        {:noreply, put_flash(socket, :error, "Save a tracking number first")}
+  def handle_event("refresh_mail_tracking_headless", _, socket) do
+    start_headless_refresh(socket)
+  end
 
-      true ->
-        case_id = socket.assigns.case.id
-        parent = self()
+  def handle_event("usps_helper_status", params, socket) do
+    available = params["available"] in [true, "true"]
+    {:noreply, assign(socket, :usps_helper_available, available)}
+  end
 
-        {:noreply,
-         socket
-         |> assign(:mail_tracking_refreshing, true)
-         |> assign(:mail_tracking_previous_step, socket.assigns.case.workflow_step)
-         |> start_async(:mail_tracking_refresh, fn ->
-           allow_repo_sandbox(parent)
-           refresh_mail_tracking_safely(case_id)
-         end)}
-    end
+  def handle_event("dismiss_mail_tracking_progress", _, socket) do
+    {:noreply, assign(socket, :mail_tracking_progress, nil)}
   end
 
   @impl true
@@ -383,7 +385,7 @@ defmodule DncWatchdogWeb.CaseLive.Show do
      |> assign(:mail_tracking_refreshing, false)
      |> assign(:mail_tracking_previous_step, nil)
      |> load_case(updated_case.id)
-     |> put_flash(:info, message)}
+     |> finish_mail_tracking_progress(:ok, message)}
   end
 
   def handle_async(:mail_tracking_refresh, {:ok, {:error, reason}}, socket) do
@@ -391,17 +393,17 @@ defmodule DncWatchdogWeb.CaseLive.Show do
      socket
      |> assign(:mail_tracking_refreshing, false)
      |> assign(:mail_tracking_previous_step, nil)
-     |> put_mail_tracking_refresh_error(reason)}
+     |> finish_mail_tracking_progress(:error, UspsTracking.error_message(reason))}
   end
 
-  def handle_async(:mail_tracking_refresh, {:exit, _reason}, socket) do
+  def handle_async(:mail_tracking_refresh, {:exit, reason}, socket) do
     {:noreply,
      socket
      |> assign(:mail_tracking_refreshing, false)
      |> assign(:mail_tracking_previous_step, nil)
-     |> put_flash(
+     |> finish_mail_tracking_progress(
        :error,
-       "Tracking lookup timed out or failed. Try again or use View on USPS.com."
+       "Tracking lookup timed out or failed: #{inspect(reason)}. Try again or use View on USPS.com."
      )}
   end
 
@@ -410,20 +412,228 @@ defmodule DncWatchdogWeb.CaseLive.Show do
      socket
      |> assign(:mail_tracking_refreshing, false)
      |> assign(:mail_tracking_previous_step, nil)
-     |> put_flash(:error, "Could not refresh tracking status")}
+     |> finish_mail_tracking_progress(:error, "Could not refresh tracking status")}
   end
 
-  defp refresh_mail_tracking_safely(case_id) do
+  defp refresh_mail_tracking_safely(case_id, parent) do
+    on_step = fn step -> send(parent, {:usps_tracking_step, step}) end
+
     case_id
     |> Enforcement.get_case!()
-    |> Enforcement.refresh_mail_tracking()
+    |> Enforcement.refresh_mail_tracking(on_step: on_step)
   rescue
     error ->
       Logger.error(
         "[CaseLive.Show] refresh_mail_tracking failed: #{Exception.format(:error, error, __STACKTRACE__)}"
       )
 
-      {:error, :lookup_failed}
+      {:error, {:lookup_failed, Exception.message(error)}}
+  end
+
+  defp start_browser_helper_refresh(socket) do
+    cond do
+      socket.assigns[:mail_tracking_refreshing] ->
+        {:noreply, socket}
+
+      socket.assigns.case.mail_tracking_number in [nil, ""] ->
+        {:noreply, put_flash(socket, :error, "Save a tracking number first")}
+
+      true ->
+        case_record = socket.assigns.case
+        number = case_record.mail_tracking_number
+        url = UspsTracking.tracking_url(number)
+
+        :ok = UspsBrowserHelper.register(number, case_record.id)
+
+        progress =
+          number
+          |> MailTrackingComponents.new_progress(:browser_helper)
+          |> MailTrackingComponents.apply_progress_step(%{
+            id: :validate,
+            status: :ok,
+            detail: number
+          })
+          |> MailTrackingComponents.apply_progress_step(%{
+            id: :open_browser,
+            status: :ok,
+            detail: url
+          })
+          |> MailTrackingComponents.apply_progress_step(%{
+            id: :wait_helper,
+            status: :running,
+            detail: helper_wait_detail(socket.assigns.usps_helper_available)
+          })
+
+        {:noreply,
+         socket
+         |> cancel_usps_helper_timer()
+         |> assign(:mail_tracking_refreshing, true)
+         |> assign(:mail_tracking_previous_step, case_record.workflow_step)
+         |> assign(:mail_tracking_progress, progress)
+         |> push_event("open_usps_helper", %{url: url, tracking_number: number})
+         |> schedule_helper_timeout(case_record.id)}
+    end
+  end
+
+  defp start_headless_refresh(socket) do
+    cond do
+      socket.assigns[:mail_tracking_refreshing] ->
+        {:noreply, socket}
+
+      socket.assigns.case.mail_tracking_number in [nil, ""] ->
+        {:noreply, put_flash(socket, :error, "Save a tracking number first")}
+
+      true ->
+        case_id = socket.assigns.case.id
+        tracking_number = socket.assigns.case.mail_tracking_number
+        parent = self()
+        UspsBrowserHelper.cancel(tracking_number)
+
+        {:noreply,
+         socket
+         |> cancel_usps_helper_timer()
+         |> assign(:mail_tracking_refreshing, true)
+         |> assign(:mail_tracking_previous_step, socket.assigns.case.workflow_step)
+         |> assign(
+           :mail_tracking_progress,
+           MailTrackingComponents.new_progress(tracking_number, :chromic)
+         )
+         |> start_async(:mail_tracking_refresh, fn ->
+           allow_repo_sandbox(parent)
+           refresh_mail_tracking_safely(case_id, parent)
+         end)}
+    end
+  end
+
+  defp handle_helper_result(socket, result) do
+    if socket.assigns.mail_tracking_refreshing do
+      do_handle_helper_result(socket, result)
+    else
+      socket
+    end
+  end
+
+  defp do_handle_helper_result(socket, {:ok, updated_case}) do
+    previous_step = socket.assigns[:mail_tracking_previous_step]
+
+    message =
+      if updated_case.workflow_step == "delivered" and previous_step == "sent" do
+        "Letter delivered — workflow moved to delivered. #{updated_case.mail_tracking_summary}"
+      else
+        "Tracking updated: #{updated_case.mail_tracking_summary}"
+      end
+
+    socket
+    |> cancel_usps_helper_timer()
+    |> assign(:mail_tracking_refreshing, false)
+    |> assign(:mail_tracking_previous_step, nil)
+    |> load_case(updated_case.id)
+    |> apply_helper_success_progress(updated_case, message)
+  end
+
+  defp do_handle_helper_result(socket, {:error, reason}) do
+    message = UspsTracking.error_message(reason)
+    parse_step = if match?(%Ecto.Changeset{}, reason), do: :save, else: :parse
+
+    socket
+    |> cancel_usps_helper_timer()
+    |> assign(:mail_tracking_refreshing, false)
+    |> assign(:mail_tracking_previous_step, nil)
+    |> then(fn socket ->
+      case socket.assigns[:mail_tracking_progress] do
+        nil ->
+          put_flash(socket, :error, message)
+
+        progress ->
+          progress =
+            progress
+            |> MailTrackingComponents.apply_progress_step(%{
+              id: :wait_helper,
+              status: :ok,
+              detail: "Received page from Chrome helper"
+            })
+            |> MailTrackingComponents.apply_progress_step(%{
+              id: parse_step,
+              status: :error,
+              detail: message
+            })
+            |> MailTrackingComponents.finish_progress(:error, message)
+
+          assign(socket, :mail_tracking_progress, progress)
+      end
+    end)
+  end
+
+  defp do_handle_helper_result(socket, _result), do: socket
+
+  defp apply_helper_success_progress(socket, updated_case, message) do
+    case socket.assigns[:mail_tracking_progress] do
+      nil ->
+        put_flash(socket, :info, message)
+
+      progress ->
+        progress =
+          progress
+          |> MailTrackingComponents.apply_progress_step(%{
+            id: :wait_helper,
+            status: :ok,
+            detail: "Received page from Chrome helper"
+          })
+          |> MailTrackingComponents.apply_progress_step(%{
+            id: :parse,
+            status: :ok,
+            detail: updated_case.mail_tracking_summary
+          })
+          |> MailTrackingComponents.apply_progress_step(%{
+            id: :save,
+            status: :ok,
+            detail: updated_case.mail_tracking_summary
+          })
+          |> MailTrackingComponents.finish_progress(:ok, message)
+
+        assign(socket, :mail_tracking_progress, progress)
+    end
+  end
+
+  defp subscribe_mail_tracking(socket, case_id) do
+    topic = UspsBrowserHelper.topic(case_id)
+
+    cond do
+      not connected?(socket) ->
+        socket
+
+      socket.assigns[:mail_tracking_topic] == topic ->
+        socket
+
+      true ->
+        if old = socket.assigns[:mail_tracking_topic] do
+          Phoenix.PubSub.unsubscribe(DncWatchdog.PubSub, old)
+        end
+
+        Phoenix.PubSub.subscribe(DncWatchdog.PubSub, topic)
+        assign(socket, :mail_tracking_topic, topic)
+    end
+  end
+
+  defp schedule_helper_timeout(socket, case_id) do
+    ref = Process.send_after(self(), {:usps_helper_timeout, case_id}, @helper_timeout_ms)
+    assign(socket, :usps_helper_timer, ref)
+  end
+
+  defp cancel_usps_helper_timer(socket) do
+    if ref = socket.assigns[:usps_helper_timer] do
+      Process.cancel_timer(ref)
+    end
+
+    assign(socket, :usps_helper_timer, nil)
+  end
+
+  defp helper_wait_detail(true) do
+    "Waiting for the Chrome helper to read the USPS tab"
+  end
+
+  defp helper_wait_detail(_false) do
+    "Waiting for the Chrome helper. If nothing happens, install it from Settings."
   end
 
   defp allow_repo_sandbox(parent) do
@@ -437,48 +647,62 @@ defmodule DncWatchdogWeb.CaseLive.Show do
     |> Keyword.get(:pool) == Ecto.Adapters.SQL.Sandbox
   end
 
-  defp put_mail_tracking_refresh_error(socket, reason) do
-    message =
-      case reason do
-        :chromic_pdf_unavailable ->
-          "Chrome/Chromium is not available. Install Google Chrome to enable automatic tracking checks."
+  defp finish_mail_tracking_progress(socket, result, message) do
+    case socket.assigns[:mail_tracking_progress] do
+      nil ->
+        kind = if result == :ok, do: :info, else: :error
+        put_flash(socket, kind, message)
 
-        :chromic_pdf_not_started ->
-          "Chrome is not running. Restart the server after installing Google Chrome or Chromium."
-
-        :lookup_failed ->
-          "Tracking lookup failed unexpectedly. Try again or use View on USPS.com."
-
-        {:chromic_pdf, msg} when is_binary(msg) ->
-          if String.contains?(msg, "Could not find session pool") do
-            "Tracking is not configured yet. Restart the server after updating, then try again."
-          else
-            "Tracking lookup failed: #{msg}"
-          end
-
-        :blocked ->
-          "USPS blocked the automated lookup. Use View on USPS.com to check status manually."
-
-        {:blocked, msg} when is_binary(msg) ->
-          "USPS blocked the automated lookup: #{msg}. Use View on USPS.com to check status manually."
-
-        :no_tracking_number ->
-          "Save a tracking number first"
-
-        :not_found ->
-          "USPS has no record for that tracking number yet"
-
-        {:http_error, status} ->
-          "USPS tracking lookup failed (HTTP #{status})"
-
-        _ ->
-          "Could not refresh tracking status"
-      end
-
-    put_flash(socket, :error, message)
+      progress ->
+        assign(
+          socket,
+          :mail_tracking_progress,
+          MailTrackingComponents.finish_progress(progress, result, message)
+        )
+    end
   end
 
   @impl true
+  def handle_info({:usps_tracking_step, step}, socket) do
+    case socket.assigns[:mail_tracking_progress] do
+      nil ->
+        {:noreply, socket}
+
+      progress ->
+        {:noreply,
+         assign(
+           socket,
+           :mail_tracking_progress,
+           MailTrackingComponents.apply_progress_step(progress, step)
+         )}
+    end
+  end
+
+  def handle_info({:usps_helper_result, result}, socket) do
+    {:noreply, handle_helper_result(socket, result)}
+  end
+
+  def handle_info({:usps_helper_timeout, case_id}, socket) do
+    cond do
+      socket.assigns.case.id != case_id ->
+        {:noreply, socket}
+
+      not socket.assigns.mail_tracking_refreshing ->
+        {:noreply, socket}
+
+      true ->
+        number = socket.assigns.case.mail_tracking_number
+        UspsBrowserHelper.cancel(number)
+
+        {:noreply,
+         socket
+         |> assign(:usps_helper_timer, nil)
+         |> assign(:mail_tracking_refreshing, false)
+         |> assign(:mail_tracking_previous_step, nil)
+         |> finish_mail_tracking_progress(:error, UspsTracking.error_message(:helper_timeout))}
+    end
+  end
+
   def handle_info({DncWatchdogWeb.CaseLive.FormComponent, {:saved, case}}, socket) do
     {:noreply, load_case(socket, case.id)}
   end
@@ -494,9 +718,11 @@ defmodule DncWatchdogWeb.CaseLive.Show do
     case_record = Enforcement.get_case!(id)
 
     socket
+    |> subscribe_mail_tracking(case_record.id)
     |> assign(:page_title, page_title(socket.assigns.live_action))
     |> assign(:case, case_record)
     |> assign_new(:mail_tracking_refreshing, fn -> false end)
+    |> assign_new(:mail_tracking_progress, fn -> nil end)
     |> assign(:filing_limits, Enforcement.assess_case_filing_limits(case_record))
     |> assign(:court_filed_venues, Case.court_filed_venues())
     |> assign(:linked_cases, Enforcement.list_linked_cases(case_record))
