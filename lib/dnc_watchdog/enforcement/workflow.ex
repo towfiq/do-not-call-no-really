@@ -7,7 +7,7 @@ defmodule DncWatchdog.Enforcement.Workflow do
   alias DncWatchdog.Enforcement.FilingLimits
   alias DncWatchdog.Enforcement.LegalEntity
 
-  @steps ~w(intake triage evidence_review draft_review ready_to_send sent delivered litigation_draft ready_to_file filed archived)
+  @steps ~w(intake triage evidence_review draft_review ready_to_send sent delivered litigation_draft ready_to_file filed settled archived)
 
   @phases %{
     "all" => [],
@@ -16,6 +16,7 @@ defmodule DncWatchdog.Enforcement.Workflow do
     "sent" => ~w(sent),
     "delivered" => ~w(delivered),
     "litigation" => ~w(litigation_draft ready_to_file filed),
+    "settled" => ~w(settled),
     "archived" => ~w(archived)
   }
 
@@ -29,6 +30,7 @@ defmodule DncWatchdog.Enforcement.Workflow do
       {"sent", "Sent"},
       {"delivered", "Delivered"},
       {"litigation", "In court"},
+      {"settled", "Settled"},
       {"archived", "Archived"}
     ]
   end
@@ -48,6 +50,7 @@ defmodule DncWatchdog.Enforcement.Workflow do
   def next_step("litigation_draft"), do: "ready_to_file"
   def next_step("ready_to_file"), do: "filed"
   def next_step("filed"), do: "archived"
+  def next_step("settled"), do: "settled"
   def next_step(step), do: step
 
   def next_status("sent"), do: "sent"
@@ -55,6 +58,7 @@ defmodule DncWatchdog.Enforcement.Workflow do
   def next_status("litigation_draft"), do: "litigating"
   def next_status("ready_to_file"), do: "litigating"
   def next_status("filed"), do: "filed"
+  def next_status("settled"), do: "settled"
   def next_status("archived"), do: "closed"
   def next_status("draft_review"), do: "drafting_letter"
   def next_status(_), do: "investigating"

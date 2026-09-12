@@ -38,6 +38,17 @@ defmodule DncWatchdog.Enforcement.CaseChangesetTest do
     assert %{workflow_step: [_ | _]} = errors_on(changeset)
   end
 
+  test "settled status and workflow_step are accepted" do
+    changeset =
+      Case.changeset(%Case{}, %{
+        company_name: "Acme",
+        status: "settled",
+        workflow_step: "settled"
+      })
+
+    assert changeset.valid?
+  end
+
   test "company_name is required" do
     changeset = Case.changeset(%Case{}, %{status: "new", workflow_step: "intake"})
     refute changeset.valid?

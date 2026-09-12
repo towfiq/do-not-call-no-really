@@ -49,34 +49,13 @@ defmodule DncWatchdogWeb.CaseLive.FormComponent do
           field={@form[:status]}
           type="select"
           label="Status"
-          options={[
-            "new",
-            "investigating",
-            "drafting_letter",
-            "sent",
-            "delivered",
-            "litigating",
-            "filed",
-            "closed"
-          ]}
+          options={Enforcement.Case.statuses()}
         />
         <.input
           field={@form[:workflow_step]}
           type="select"
           label="Workflow step"
-          options={[
-            "intake",
-            "triage",
-            "evidence_review",
-            "draft_review",
-            "ready_to_send",
-            "sent",
-            "delivered",
-            "litigation_draft",
-            "ready_to_file",
-            "filed",
-            "archived"
-          ]}
+          options={Enforcement.Case.workflow_steps()}
         />
         <.input field={@form[:notes]} type="textarea" label="Notes" />
         <.input field={@form[:letter_draft]} type="textarea" label="Letter draft" />

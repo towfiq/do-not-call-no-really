@@ -897,6 +897,10 @@ defmodule DncWatchdog.Enforcement do
     end
   end
 
+  def settle_case(%Case{} = case) do
+    update_case(case, %{workflow_step: "settled", status: Workflow.next_status("settled")})
+  end
+
   def workflow_requirements(%Case{} = case) do
     case = Repo.preload(case, [:legal_entity], force: true)
     violations = list_violation_communications(case.id)
@@ -938,7 +942,8 @@ defmodule DncWatchdog.Enforcement do
          "triage",
          "evidence_review",
          "draft_review",
-         "ready_to_send"
+         "ready_to_send",
+         "settled"
        ] do
       []
     else

@@ -233,6 +233,23 @@ defmodule DncWatchdogWeb.CaseLiveTest do
       assert updated.status == "investigating"
     end
 
+    test "marks case as settled", %{conn: conn, case: case} do
+      {:ok, view, html} = live(conn, ~p"/cases/#{case}")
+
+      assert html =~ "Mark as settled"
+
+      view |> element("button", "Mark as settled") |> render_click()
+
+      html = render(view)
+      assert html =~ "Case marked as settled"
+      refute html =~ "Mark as settled"
+      refute html =~ "Advance workflow"
+
+      updated = DncWatchdog.Enforcement.get_case!(case.id)
+      assert updated.workflow_step == "settled"
+      assert updated.status == "settled"
+    end
+
     test "updates case within modal", %{conn: conn, case: case} do
       {:ok, show_live, _html} = live(conn, ~p"/cases/#{case}")
 

@@ -271,6 +271,19 @@ defmodule DncWatchdogWeb.CaseLive.Show do
     end
   end
 
+  def handle_event("mark_settled", _, socket) do
+    case Enforcement.settle_case(socket.assigns.case) do
+      {:ok, updated_case} ->
+        {:noreply,
+         socket
+         |> load_case(updated_case.id)
+         |> put_flash(:info, "Case marked as settled")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not mark case as settled")}
+    end
+  end
+
   def handle_event("validate_evidence", _params, socket), do: {:noreply, socket}
 
   def handle_event("upload_evidence", _params, socket) do

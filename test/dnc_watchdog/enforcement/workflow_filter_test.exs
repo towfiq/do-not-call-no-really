@@ -35,6 +35,18 @@ defmodule DncWatchdog.Enforcement.WorkflowFilterTest do
     litigation_ids = Enforcement.list_cases(workflow_phase: "litigation") |> Enum.map(& &1.id)
     assert litigation.id in litigation_ids
     refute sent.id in litigation_ids
+
+    settled =
+      case_fixture(%{
+        company_name: "Settled Co",
+        workflow_step: "settled",
+        status: "settled"
+      })
+
+    settled_ids = Enforcement.list_cases(workflow_phase: "settled") |> Enum.map(& &1.id)
+    assert settled.id in settled_ids
+    refute litigation.id in settled_ids
+    refute sent.id in settled_ids
   end
 
   test "list_communications/1 filters by linked case workflow phase" do

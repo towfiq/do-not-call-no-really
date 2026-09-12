@@ -2,7 +2,16 @@
   Case {@case.id}
   <:subtitle>Track violations, evidence, legal entity, and letter workflow.</:subtitle>
   <:actions>
-    <.button phx-click="advance_workflow">Advance workflow</.button>
+    <.button :if={@case.workflow_step != "settled"} phx-click="advance_workflow">
+      Advance workflow
+    </.button>
+    <.button
+      :if={@case.workflow_step != "settled"}
+      phx-click="mark_settled"
+      data-confirm="Mark this case as settled? Use this when the defendant paid before trial."
+    >
+      Mark as settled
+    </.button>
     <.button phx-click="generate_letter">Generate letter draft</.button>
     <.button phx-click="generate_court_filing">Generate small claims filing</.button>
     <.button phx-click="generate_civil_complaint">Generate civil complaint</.button>

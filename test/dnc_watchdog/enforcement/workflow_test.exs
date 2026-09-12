@@ -43,4 +43,12 @@ defmodule DncWatchdog.Enforcement.WorkflowTest do
     assert updated.workflow_step == "delivered"
     assert updated.status == "delivered"
   end
+
+  test "settle_case/1 marks the case settled without advancing to trial" do
+    case = case_fixture(%{workflow_step: "delivered", status: "delivered"})
+
+    assert {:ok, updated} = Enforcement.settle_case(case)
+    assert updated.workflow_step == "settled"
+    assert updated.status == "settled"
+  end
 end

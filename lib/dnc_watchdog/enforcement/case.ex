@@ -2,8 +2,8 @@ defmodule DncWatchdog.Enforcement.Case do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @statuses ~w(new investigating drafting_letter sent delivered litigating filed closed)
-  @workflow_steps ~w(intake triage evidence_review draft_review ready_to_send sent delivered litigation_draft ready_to_file filed archived)
+  @statuses ~w(new investigating drafting_letter sent delivered litigating filed settled closed)
+  @workflow_steps ~w(intake triage evidence_review draft_review ready_to_send sent delivered litigation_draft ready_to_file filed settled archived)
   @mail_delivery_statuses ~w(pending pre_shipment in_transit out_for_delivery delivered returned alert unknown)
 
   alias DncWatchdog.Enforcement.CaseGroup
@@ -119,6 +119,10 @@ defmodule DncWatchdog.Enforcement.Case do
         end
     end
   end
+
+  def statuses, do: @statuses
+
+  def workflow_steps, do: @workflow_steps
 
   def mail_delivery_statuses, do: @mail_delivery_statuses
 
