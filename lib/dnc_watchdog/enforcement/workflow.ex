@@ -64,6 +64,21 @@ defmodule DncWatchdog.Enforcement.Workflow do
   def next_status(_), do: "investigating"
 
   @doc """
+  True when `current` is earlier in the workflow than `target`.
+  """
+  def before?(current, target) do
+    case {step_index(current), step_index(target)} do
+      {current_idx, target_idx} when is_integer(current_idx) and is_integer(target_idx) ->
+        current_idx < target_idx
+
+      _ ->
+        false
+    end
+  end
+
+  defp step_index(step), do: Enum.find_index(@steps, &(&1 == step))
+
+  @doc """
   Returns `:ok` or `{:error, messages}` when the case cannot advance.
   """
   def validate_advance(%Case{} = case, violations, attachments, opts \\ []) do

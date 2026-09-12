@@ -51,4 +51,38 @@ defmodule DncWatchdog.Enforcement.WorkflowTest do
     assert updated.workflow_step == "settled"
     assert updated.status == "settled"
   end
+
+  test "before?/2 compares workflow order" do
+    assert Enforcement.Workflow.before?("intake", "delivered")
+    assert Enforcement.Workflow.before?("sent", "delivered")
+    refute Enforcement.Workflow.before?("delivered", "delivered")
+    refute Enforcement.Workflow.before?("litigation_draft", "delivered")
+    refute Enforcement.Workflow.before?("draft_review", "intake")
+  end
+
+  test "generate_letter_draft/1 advances workflow to draft_review when behind" do
+    case = case_fixture(%{workflow_step: "triage", letter_draft: nil})
+
+    assert {:ok, updated} = Enforcement.generate_letter_draft(case)
+    assert updated.letter_draft not in [nil, ""]
+    assert updated.workflow_step == "draft_review"
+    assert updated.status == "drafting_letter"
+  end
+
+  test "generate_letter_draft/1 does not move workflow backward" do
+    case = case_fixture(%{workflow_step: "sent", status: "sent", letter_draft: nil})
+
+    assert {:ok, updated} = Enforcement.generate_letter_draft(case)
+    assert updated.workflow_step == "sent"
+    assert updated.status == "sent"
+  end
+
+  test "save_letter_draft/2 advances workflow to draft_review when behind" do
+    case = case_fixture(%{workflow_step: "intake", letter_draft: nil})
+
+    assert {:ok, updated} = Enforcement.save_letter_draft(case, "Demand letter body")
+    assert updated.letter_draft == "Demand letter body"
+    assert updated.workflow_step == "draft_review"
+    assert updated.status == "drafting_letter"
+  end
 end

@@ -5,6 +5,7 @@ defmodule DncWatchdogWeb.CaseLive.Show do
 
   alias DncWatchdog.Enforcement
   alias DncWatchdog.Enforcement.Case
+  alias DncWatchdog.Enforcement.Workflow
   alias DncWatchdog.Enforcement.EvidenceStorage
   alias DncWatchdog.Enforcement.FilingLimits
   alias DncWatchdog.Enforcement.UspsTracking
@@ -176,13 +177,15 @@ defmodule DncWatchdogWeb.CaseLive.Show do
   end
 
   def handle_event("generate_letter", _, socket) do
+    previous_step = socket.assigns.case.workflow_step
+
     case Enforcement.generate_letter_draft(socket.assigns.case) do
       {:ok, case} ->
         {:noreply,
          socket
          |> assign(:case, case)
          |> assign(:requirements, Enforcement.workflow_requirements(case))
-         |> put_flash(:info, "Letter draft generated from violations and evidence")}
+         |> put_flash(:info, letter_draft_flash(previous_step, case, :generated))}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Could not generate letter draft")}
@@ -190,15 +193,15 @@ defmodule DncWatchdogWeb.CaseLive.Show do
   end
 
   def handle_event("save_letter_draft", %{"letter_draft" => %{"body" => body}}, socket) do
-    letter_draft = if String.trim(body || "") == "", do: nil, else: body
+    previous_step = socket.assigns.case.workflow_step
 
-    case Enforcement.update_case(socket.assigns.case, %{letter_draft: letter_draft}) do
+    case Enforcement.save_letter_draft(socket.assigns.case, body) do
       {:ok, updated_case} ->
         {:noreply,
          socket
          |> assign(:case, updated_case)
          |> assign(:requirements, Enforcement.workflow_requirements(updated_case))
-         |> put_flash(:info, "Letter draft saved")}
+         |> put_flash(:info, letter_draft_flash(previous_step, updated_case, :saved))}
 
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, "Could not save letter draft")}
@@ -373,19 +376,15 @@ defmodule DncWatchdogWeb.CaseLive.Show do
   def handle_async(:mail_tracking_refresh, {:ok, {:ok, updated_case}}, socket) do
     previous_step = socket.assigns[:mail_tracking_previous_step]
 
-    message =
-      if updated_case.workflow_step == "delivered" and previous_step == "sent" do
-        "Letter delivered — workflow moved to delivered. #{updated_case.mail_tracking_summary}"
-      else
-        "Tracking updated: #{updated_case.mail_tracking_summary}"
-      end
-
     {:noreply,
      socket
      |> assign(:mail_tracking_refreshing, false)
      |> assign(:mail_tracking_previous_step, nil)
      |> load_case(updated_case.id)
-     |> finish_mail_tracking_progress(:ok, message)}
+     |> finish_mail_tracking_progress(
+       :ok,
+       tracking_updated_message(previous_step, updated_case)
+     )}
   end
 
   def handle_async(:mail_tracking_refresh, {:ok, {:error, reason}}, socket) do
@@ -516,12 +515,7 @@ defmodule DncWatchdogWeb.CaseLive.Show do
   defp do_handle_helper_result(socket, {:ok, updated_case}) do
     previous_step = socket.assigns[:mail_tracking_previous_step]
 
-    message =
-      if updated_case.workflow_step == "delivered" and previous_step == "sent" do
-        "Letter delivered — workflow moved to delivered. #{updated_case.mail_tracking_summary}"
-      else
-        "Tracking updated: #{updated_case.mail_tracking_summary}"
-      end
+    message = tracking_updated_message(previous_step, updated_case)
 
     socket
     |> cancel_usps_helper_timer()
@@ -779,6 +773,31 @@ defmodule DncWatchdogWeb.CaseLive.Show do
 
   defp mail_tracking_saved_message(%{mail_tracking_number: number}) do
     "Tracking number saved: #{number}"
+  end
+
+  defp tracking_updated_message(previous_step, updated_case) do
+    if updated_case.workflow_step == "delivered" and
+         Workflow.before?(previous_step, "delivered") do
+      "Letter delivered — workflow moved to delivered. #{updated_case.mail_tracking_summary}"
+    else
+      "Tracking updated: #{updated_case.mail_tracking_summary}"
+    end
+  end
+
+  defp letter_draft_flash(previous_step, case, :generated) do
+    if case.workflow_step == "draft_review" and Workflow.before?(previous_step, "draft_review") do
+      "Letter draft generated. Workflow moved to draft review."
+    else
+      "Letter draft generated from violations and evidence"
+    end
+  end
+
+  defp letter_draft_flash(previous_step, case, :saved) do
+    if case.workflow_step == "draft_review" and Workflow.before?(previous_step, "draft_review") do
+      "Letter draft saved. Workflow moved to draft review."
+    else
+      "Letter draft saved"
+    end
   end
 
   def attachment_url(%{storage_path: path}), do: EvidenceStorage.public_url(path)

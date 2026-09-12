@@ -283,11 +283,12 @@ defmodule DncWatchdogWeb.CaseLiveTest do
       |> render_submit()
 
       html = render(view)
-      assert html =~ "Letter draft saved"
+      assert html =~ "Letter draft saved. Workflow moved to draft review."
       assert html =~ draft
 
       updated = DncWatchdog.Enforcement.get_case!(case.id)
       assert updated.letter_draft == draft
+      assert updated.workflow_step == "draft_review"
     end
 
     test "saves mail tracking number", %{conn: conn, case: case} do

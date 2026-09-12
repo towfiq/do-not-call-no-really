@@ -793,7 +793,21 @@ defmodule DncWatchdog.Enforcement do
     draft =
       LetterDraft.render(case, violations, attachments, claimant_profile: profile)
 
-    update_case(case, %{letter_draft: draft})
+    with {:ok, case} <- update_case(case, %{letter_draft: draft}) do
+      maybe_advance_workflow(case, "draft_review")
+    end
+  end
+
+  def save_letter_draft(%Case{} = case, body) do
+    letter_draft = if String.trim(body || "") == "", do: nil, else: body
+
+    with {:ok, case} <- update_case(case, %{letter_draft: letter_draft}) do
+      if letter_draft do
+        maybe_advance_workflow(case, "draft_review")
+      else
+        {:ok, case}
+      end
+    end
   end
 
   def generate_court_filing_draft(%Case{} = case) do
@@ -1162,13 +1176,22 @@ defmodule DncWatchdog.Enforcement do
 
   defp save_progress_detail(_case, result), do: result.summary
 
-  defp maybe_mark_delivered_workflow(
-         %Case{workflow_step: "sent", mail_delivery_status: "delivered"} = case
-       ) do
-    update_case(case, %{workflow_step: "delivered", status: "delivered"})
+  defp maybe_mark_delivered_workflow(%Case{mail_delivery_status: "delivered"} = case) do
+    maybe_advance_workflow(case, "delivered")
   end
 
   defp maybe_mark_delivered_workflow(case), do: {:ok, case}
+
+  defp maybe_advance_workflow(%Case{} = case, target_step) do
+    if Workflow.before?(case.workflow_step, target_step) do
+      update_case(case, %{
+        workflow_step: target_step,
+        status: Workflow.next_status(target_step)
+      })
+    else
+      {:ok, case}
+    end
+  end
 
   def refresh_all_mail_tracking do
     cases =

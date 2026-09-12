@@ -65,7 +65,7 @@ defmodule DncWatchdog.Enforcement.MailTrackingTest do
       assert updated.status == "delivered"
     end
 
-    test "does not change workflow when case is not at sent" do
+    test "advances workflow to delivered from any earlier step" do
       case =
         case_fixture(%{workflow_step: "ready_to_send", status: "investigating"})
         |> then(fn c ->
@@ -75,8 +75,22 @@ defmodule DncWatchdog.Enforcement.MailTrackingTest do
 
       assert {:ok, updated} = Enforcement.refresh_mail_tracking(case)
       assert updated.mail_delivery_status == "delivered"
-      assert updated.workflow_step == "ready_to_send"
-      assert updated.status == "investigating"
+      assert updated.workflow_step == "delivered"
+      assert updated.status == "delivered"
+    end
+
+    test "does not move workflow backward from litigation" do
+      case =
+        case_fixture(%{workflow_step: "litigation_draft", status: "litigating"})
+        |> then(fn c ->
+          {:ok, c} = Enforcement.save_mail_tracking_number(c, "9400111899223197428490")
+          c
+        end)
+
+      assert {:ok, updated} = Enforcement.refresh_mail_tracking(case)
+      assert updated.mail_delivery_status == "delivered"
+      assert updated.workflow_step == "litigation_draft"
+      assert updated.status == "litigating"
     end
 
     test "emits progress steps including save" do
