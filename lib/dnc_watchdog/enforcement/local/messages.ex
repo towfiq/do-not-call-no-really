@@ -272,7 +272,10 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
     to_row([message_id, apple_date, body, attributed_body, is_from_me, handle, 0], my_phone)
   end
 
-  defp to_row([_message_id, apple_date, body, attributed_body, is_from_me, handle, is_spam], my_phone) do
+  defp to_row(
+         [_message_id, apple_date, body, attributed_body, is_from_me, handle, is_spam],
+         my_phone
+       ) do
     from_me? = is_from_me in [1, "1", true]
     peer = Phone.normalize(handle)
     my = Phone.normalize(my_phone)
