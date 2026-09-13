@@ -319,7 +319,7 @@
       <h3 class="text-base font-semibold">Certified mail tracking</h3>
       <p class="mt-1 text-sm text-zinc-600">
         Save the USPS tracking number after you mail the demand letter.
-        Refresh status opens USPS.com in your real browser and waits for the Chrome helper
+        Refresh status opens USPS.com in your real browser and waits for the Chrome or Safari helper
         to send the hydrated tracking page back. Headless Chrome often gets an empty shell
         that never finishes loading.
         <%= unless @usps_tracking_configured do %>
@@ -327,7 +327,7 @@
         <% end %>
       </p>
       <p :if={@usps_helper_available} class="mt-1 text-sm font-medium text-emerald-700">
-        Chrome helper connected
+        Browser helper connected
       </p>
     </div>
     <%= if @case.mail_tracking_number not in [nil, ""] do %>

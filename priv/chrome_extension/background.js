@@ -1,9 +1,10 @@
+const ext = globalThis.browser ?? globalThis.chrome;
 const DEFAULT_ORIGIN = "http://127.0.0.1:4000";
 const USPS_TAB_QUERY = ["https://tools.usps.com/*", "https://www.usps.com/*"];
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+ext.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "setAppOrigin" && typeof message.origin === "string") {
-    chrome.storage.local.set({appOrigin: message.origin});
+    ext.storage.local.set({appOrigin: message.origin});
     sendResponse({ok: true});
     return;
   }
@@ -31,22 +32,22 @@ async function captureTracking({url, tracking_number}) {
 }
 
 async function findOrOpenUspsTab(url, tracking_number) {
-  const tabs = await chrome.tabs.query({url: USPS_TAB_QUERY});
+  const tabs = await ext.tabs.query({url: USPS_TAB_QUERY});
   const match =
     tabs.find((tab) => tracking_number && (tab.url || "").includes(tracking_number)) ||
     tabs.find((tab) => tab.url && /tools\.usps\.com|usps\.com/.test(tab.url));
 
   if (match) {
     if (tracking_number && (match.url || "").includes(tracking_number)) {
-      await chrome.tabs.update(match.id, {active: true});
-      await chrome.tabs.reload(match.id);
+      await ext.tabs.update(match.id, {active: true});
+      await ext.tabs.reload(match.id);
     } else {
-      await chrome.tabs.update(match.id, {active: true, url});
+      await ext.tabs.update(match.id, {active: true, url});
     }
     return match;
   }
 
-  return chrome.tabs.create({url, active: true});
+  return ext.tabs.create({url, active: true});
 }
 
 function waitForTabLoad(tabId) {
@@ -54,7 +55,7 @@ function waitForTabLoad(tabId) {
     let sawLoading = false;
 
     const finish = () => {
-      chrome.tabs.onUpdated.removeListener(onUpdated);
+      ext.tabs.onUpdated.removeListener(onUpdated);
       resolve();
     };
 
@@ -69,19 +70,19 @@ function waitForTabLoad(tabId) {
       }
     };
 
-    chrome.tabs.onUpdated.addListener(onUpdated);
+    ext.tabs.onUpdated.addListener(onUpdated);
   });
 }
 
 async function askTabToExtract(tabId, tracking_number) {
   for (let attempt = 0; attempt < 10; attempt += 1) {
     try {
-      await chrome.tabs.sendMessage(tabId, {type: "extractNow", tracking_number});
+      await ext.tabs.sendMessage(tabId, {type: "extractNow", tracking_number});
       return;
     } catch (_err) {
       if (attempt === 0 || attempt === 4) {
         try {
-          await chrome.scripting.executeScript({
+          await ext.scripting.executeScript({
             target: {tabId},
             files: ["content.js"]
           });
@@ -121,7 +122,7 @@ async function postStatus(payload) {
 }
 
 async function appOrigin() {
-  const stored = await chrome.storage.local.get("appOrigin");
+  const stored = await ext.storage.local.get("appOrigin");
   return stored.appOrigin || DEFAULT_ORIGIN;
 }
 

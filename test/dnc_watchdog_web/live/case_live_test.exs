@@ -312,7 +312,7 @@ defmodule DncWatchdogWeb.CaseLiveTest do
       assert updated.mail_delivery_status == "pending"
     end
 
-    test "refreshes mail tracking from the Chrome helper", %{conn: conn, case: case} do
+    test "refreshes mail tracking from the browser helper", %{conn: conn, case: case} do
       DncWatchdog.Enforcement.UspsBrowserHelper.reset()
 
       {:ok, case} =
@@ -323,8 +323,8 @@ defmodule DncWatchdogWeb.CaseLiveTest do
       view |> element("#refresh-mail-tracking-button") |> render_click()
 
       html = render(view)
-      assert html =~ "Waiting for Chrome helper"
-      assert html =~ "Wait for the Chrome helper"
+      assert html =~ "Waiting for browser helper"
+      assert html =~ "Wait for the browser helper"
       assert_push_event(view, "open_usps_helper", %{url: url})
       assert url =~ "9400111899223197428490"
 

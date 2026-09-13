@@ -130,7 +130,7 @@ defmodule DncWatchdogWeb.MailTrackingComponents do
         class="mt-2 text-sm text-zinc-600"
         id="mail-tracking-helper-hint"
       >
-        Keep the USPS tab open. The Chrome helper sends status back once the page finishes loading.
+        Keep the USPS tab open. The browser helper sends status back once the page finishes loading.
         Install the helper from Settings if this is your first time.
       </p>
 
@@ -227,7 +227,7 @@ defmodule DncWatchdogWeb.MailTrackingComponents do
   end
 
   defp progress_heading(%{running: true} = progress) do
-    if helper_waiting?(progress), do: "Waiting for Chrome helper", else: "Checking USPS tracking"
+    if helper_waiting?(progress), do: "Waiting for browser helper", else: "Checking USPS tracking"
   end
 
   defp progress_heading(%{result: :ok}), do: "Tracking updated"

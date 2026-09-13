@@ -1,4 +1,5 @@
 (() => {
+  const ext = globalThis.browser ?? globalThis.chrome;
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   let postedKey = null;
   let running = false;
@@ -139,9 +140,8 @@
     const key = `${payload.tracking_number}:${payload.timeout ? "timeout" : "ok"}:${payload.summary}`;
     if (!payload.tracking_number || postedKey === key) return;
     postedKey = key;
-    chrome.runtime.sendMessage({type: "uspsPage", payload}, () => {
-      void chrome.runtime.lastError;
-    });
+    const sending = ext.runtime.sendMessage({type: "uspsPage", payload});
+    if (sending && typeof sending.catch === "function") sending.catch(() => {});
   };
 
   const tick = async (preferredNumber) => {
@@ -166,7 +166,7 @@
     }
   };
 
-  chrome.runtime.onMessage.addListener((message) => {
+  ext.runtime.onMessage.addListener((message) => {
     if (message?.type === "extractNow") {
       tick(message.tracking_number);
     }

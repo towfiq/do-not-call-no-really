@@ -22,6 +22,15 @@ defmodule DncWatchdogWeb.SettingsLiveTest do
     assert html =~ "USPS Chrome helper"
     assert html =~ "Load unpacked"
     assert html =~ "chrome_extension"
-    assert html =~ "Chrome helper connected"
+    assert html =~ "Browser helper connected"
+  end
+
+  test "shows Safari helper Xcode project", %{conn: conn} do
+    {:ok, _view, html} = live(conn, ~p"/settings")
+    assert html =~ "USPS Safari helper"
+    assert html =~ "safari_extension"
+    assert html =~ "DNCWatchdogUspsHelper.xcodeproj"
+    assert html =~ "Allow unsigned extensions"
+    assert html =~ "Open in Xcode"
   end
 end

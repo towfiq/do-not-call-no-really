@@ -1,7 +1,7 @@
 defmodule DncWatchdog.Enforcement.UspsBrowserHelper do
   @moduledoc """
-  Holds in-flight interactive tracking lookups so the Chrome helper can
-  POST a real USPS page back to this local app.
+  Holds in-flight interactive tracking lookups so the Chrome or Safari helper
+  can POST a real USPS page back to this local app.
   """
 
   use GenServer
@@ -22,6 +22,25 @@ defmodule DncWatchdog.Enforcement.UspsBrowserHelper do
       src
     else
       Path.join(:code.priv_dir(:dnc_watchdog), "chrome_extension")
+    end
+  end
+
+  @doc """
+  Path to the Safari helper Xcode project.
+  """
+  def safari_xcode_project do
+    src =
+      Path.expand(
+        "priv/safari_extension/DNCWatchdogUspsHelper/DNCWatchdogUspsHelper.xcodeproj"
+      )
+
+    if File.dir?(src) do
+      src
+    else
+      Path.join(
+        :code.priv_dir(:dnc_watchdog),
+        "safari_extension/DNCWatchdogUspsHelper/DNCWatchdogUspsHelper.xcodeproj"
+      )
     end
   end
 

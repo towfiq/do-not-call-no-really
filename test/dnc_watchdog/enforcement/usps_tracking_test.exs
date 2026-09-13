@@ -260,7 +260,7 @@ defmodule DncWatchdog.Enforcement.UspsTrackingTest do
   end
 
   describe "progress_steps/1" do
-    test "browser helper steps wait for the Chrome extension" do
+    test "browser helper steps wait for the extension" do
       ids = Enum.map(UspsTracking.progress_steps(:browser_helper), & &1.id)
       assert ids == [:validate, :open_browser, :wait_helper, :parse, :save]
     end

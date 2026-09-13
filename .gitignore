@@ -36,6 +36,10 @@ dnc_watchdog-*.tar
 /priv/repo/*.db
 /priv/repo/*.db-*
 
+# Xcode user state for the Safari helper.
+**/xcuserdata/
+*.xcuserstate
+
 # Ignore digested assets cache.
 /priv/static/cache_manifest.json
 

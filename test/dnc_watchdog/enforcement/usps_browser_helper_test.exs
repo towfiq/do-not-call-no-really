@@ -31,4 +31,11 @@ defmodule DncWatchdog.Enforcement.UspsBrowserHelperTest do
     assert File.exists?(Path.join(dir, "manifest.json"))
     assert File.exists?(Path.join(dir, "content.js"))
   end
+
+  test "safari_xcode_project points at the Safari helper" do
+    project = UspsBrowserHelper.safari_xcode_project()
+    assert String.ends_with?(project, "DNCWatchdogUspsHelper.xcodeproj")
+    assert File.dir?(project)
+    assert File.exists?(Path.join(project, "project.pbxproj"))
+  end
 end

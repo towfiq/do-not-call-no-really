@@ -16,13 +16,9 @@
     "https://tools.usps.com/*",
     "https://www.usps.com/*"
   ],
-  "browser_specific_settings": {
-    "safari": {
-      "strict_min_version": "16.4"
-    }
-  },
   "background": {
-    "service_worker": "background.js"
+    "scripts": ["background.js"],
+    "persistent": false
   },
   "content_scripts": [
     {
@@ -50,5 +46,10 @@
         "http://localhost:4000/*"
       ]
     }
-  ]
+  ],
+  "browser_specific_settings": {
+    "safari": {
+      "strict_min_version": "16.4"
+    }
+  }
 }

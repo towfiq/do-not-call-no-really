@@ -51,10 +51,51 @@
     </p>
     <p class="mt-4 text-sm text-slate-600">
       After installing or updating files, click Reload on the extension card, then reload
-      this app. You should see “Chrome helper connected” on a case. Click Refresh status;
-      keep the USPS tab open until the helper saves the status. Safari can wait — the same
-      files can later be converted with
-      <code class="rounded bg-slate-100 px-1">xcrun safari-web-extension-converter</code>.
+      this app. You should see “Browser helper connected” on a case. Click Refresh status;
+      keep the USPS tab open until the helper saves the status.
+    </p>
+  </div>
+</div>
+
+<div class="content-card mt-6 max-w-2xl">
+  <div class="content-card-body">
+    <h2 class="text-lg font-semibold text-zinc-900">USPS Safari helper</h2>
+    <p class="mt-2 text-sm text-slate-600">
+      Safari cannot load an unpacked folder the way Chrome can. Build this small macOS app
+      once in Xcode; it embeds the same helper scripts and posts tracking status back to
+      this local app.
+    </p>
+    <ol class="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
+      <li>
+        Open the Xcode project (or click the button below):
+        <p class="mt-2 break-all rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm text-slate-800">
+          {@safari_xcode_project}
+        </p>
+      </li>
+      <li>Select the <code class="rounded bg-slate-100 px-1">DNCWatchdogUspsHelper</code> scheme and press Run (⌘R).</li>
+      <li>
+        In Safari: Settings → Advanced → Show features for web developers, then Settings →
+        Developer → Allow unsigned extensions.
+      </li>
+      <li>Settings → Extensions → turn on DNC Watchdog USPS Helper.</li>
+      <li>
+        Grant website access to <code class="rounded bg-slate-100 px-1">tools.usps.com</code>,
+        <code class="rounded bg-slate-100 px-1">usps.com</code>,
+        <code class="rounded bg-slate-100 px-1">127.0.0.1</code>, and
+        <code class="rounded bg-slate-100 px-1">localhost</code>
+        (or “Allow on every website”).
+      </li>
+      <li>
+        Open this app in that same Safari window and reload. You should see “Browser helper
+        connected” on a case.
+      </li>
+    </ol>
+    <div class="mt-4">
+      <.button type="button" phx-click="open_safari_xcode">Open in Xcode</.button>
+    </div>
+    <p class="mt-4 text-sm text-slate-600">
+      After you change helper files, Run the app from Xcode again, then reload the extension
+      in Safari Settings.
     </p>
   </div>
 </div>

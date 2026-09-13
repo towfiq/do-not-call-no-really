@@ -544,7 +544,7 @@ defmodule DncWatchdogWeb.CaseLive.Show do
             |> MailTrackingComponents.apply_progress_step(%{
               id: :wait_helper,
               status: :ok,
-              detail: "Received page from Chrome helper"
+              detail: "Received page from browser helper"
             })
             |> MailTrackingComponents.apply_progress_step(%{
               id: parse_step,
@@ -571,7 +571,7 @@ defmodule DncWatchdogWeb.CaseLive.Show do
           |> MailTrackingComponents.apply_progress_step(%{
             id: :wait_helper,
             status: :ok,
-            detail: "Received page from Chrome helper"
+            detail: "Received page from browser helper"
           })
           |> MailTrackingComponents.apply_progress_step(%{
             id: :parse,
@@ -623,11 +623,11 @@ defmodule DncWatchdogWeb.CaseLive.Show do
   end
 
   defp helper_wait_detail(true) do
-    "Waiting for the Chrome helper to read the USPS tab"
+    "Waiting for the browser helper to read the USPS tab"
   end
 
   defp helper_wait_detail(_false) do
-    "Waiting for the Chrome helper. If nothing happens, install it from Settings."
+    "Waiting for the browser helper. If nothing happens, install it from Settings."
   end
 
   defp allow_repo_sandbox(parent) do

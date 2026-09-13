@@ -12,6 +12,7 @@ defmodule DncWatchdogWeb.SettingsLive.Index do
      |> assign(:page_title, "Your profile")
      |> assign(:profile, profile)
      |> assign(:chrome_extension_dir, Enforcement.chrome_extension_dir())
+     |> assign(:safari_xcode_project, Enforcement.safari_xcode_project())
      |> assign_form(profile)}
   end
 
@@ -62,6 +63,23 @@ defmodule DncWatchdogWeb.SettingsLive.Index do
            socket,
            :error,
            "Could not read Contacts. Grant Full Disk Access to Terminal or Cursor, then try again."
+         )}
+    end
+  end
+
+  def handle_event("open_safari_xcode", _, socket) do
+    path = socket.assigns.safari_xcode_project
+
+    case System.cmd("open", [path], stderr_to_stdout: true) do
+      {_output, 0} ->
+        {:noreply, put_flash(socket, :info, "Opened the Safari helper in Xcode.")}
+
+      {output, _status} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Could not open Xcode. Open this project yourself: #{path} (#{String.trim(output)})"
          )}
     end
   end

@@ -1,0 +1,631 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4D2CD5BE30572C100086CA6E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D2CD5BD30572C100086CA6E /* AppDelegate.swift */; };
+		4D2CD5C230572C100086CA6E /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5C030572C100086CA6E /* Main.html */; };
+		4D2CD5C430572C100086CA6E /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5C330572C100086CA6E /* Icon.png */; };
+		4D2CD5C630572C100086CA6E /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5C530572C100086CA6E /* Style.css */; };
+		4D2CD5C830572C100086CA6E /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5C730572C100086CA6E /* Script.js */; };
+		4D2CD5CA30572C100086CA6E /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D2CD5C930572C100086CA6E /* ViewController.swift */; };
+		4D2CD5CD30572C100086CA6E /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5CB30572C100086CA6E /* Main.storyboard */; };
+		4D2CD5CF30572C110086CA6E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5CE30572C110086CA6E /* Assets.xcassets */; };
+		4D2CD5D630572C120086CA6E /* DNCWatchdogUspsHelper Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4D2CD5D530572C120086CA6E /* DNCWatchdogUspsHelper Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4D2CD5DB30572C120086CA6E /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D2CD5DA30572C120086CA6E /* SafariWebExtensionHandler.swift */; };
+		4D2CD5EC30572C130086CA6E /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5E730572C130086CA6E /* background.js */; };
+		4D2CD5ED30572C130086CA6E /* page_flag.js in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5E830572C130086CA6E /* page_flag.js */; };
+		4D2CD5EE30572C130086CA6E /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5E930572C130086CA6E /* manifest.json */; };
+		4D2CD5EF30572C130086CA6E /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5EA30572C130086CA6E /* content.js */; };
+		4D2CD5F030572C130086CA6E /* app_bridge.js in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5EB30572C130086CA6E /* app_bridge.js */; };
+		4D2CD5F530572C130086CA6E /* icon16.png in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5F130572C130086CA6E /* icon16.png */; };
+		4D2CD5F630572C130086CA6E /* icon32.png in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5F230572C130086CA6E /* icon32.png */; };
+		4D2CD5F730572C130086CA6E /* icon48.png in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5F330572C130086CA6E /* icon48.png */; };
+		4D2CD5F830572C130086CA6E /* icon128.png in Resources */ = {isa = PBXBuildFile; fileRef = 4D2CD5F430572C130086CA6E /* icon128.png */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4D2CD5D730572C120086CA6E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4D2CD5B230572C100086CA6E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4D2CD5D430572C120086CA6E;
+			remoteInfo = "DNCWatchdogUspsHelper Extension";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4D2CD5E230572C120086CA6E /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				4D2CD5D630572C120086CA6E /* DNCWatchdogUspsHelper Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		4D2CD5BA30572C100086CA6E /* DNCWatchdogUspsHelper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DNCWatchdogUspsHelper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D2CD5BD30572C100086CA6E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		4D2CD5C130572C100086CA6E /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		4D2CD5C330572C100086CA6E /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		4D2CD5C530572C100086CA6E /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		4D2CD5C730572C100086CA6E /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		4D2CD5C930572C100086CA6E /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		4D2CD5CC30572C100086CA6E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		4D2CD5CE30572C110086CA6E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		4D2CD5D030572C110086CA6E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4D2CD5D530572C120086CA6E /* DNCWatchdogUspsHelper Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "DNCWatchdogUspsHelper Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D2CD5DA30572C120086CA6E /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		4D2CD5DC30572C120086CA6E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4D2CD5E730572C130086CA6E /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = ../../../chrome_extension/background.js; sourceTree = "<group>"; };
+		4D2CD5E830572C130086CA6E /* page_flag.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = page_flag.js; path = ../../../chrome_extension/page_flag.js; sourceTree = "<group>"; };
+		4D2CD5E930572C130086CA6E /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = manifest.json; sourceTree = "<group>"; };
+		4D2CD5EA30572C130086CA6E /* content.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = content.js; path = ../../../chrome_extension/content.js; sourceTree = "<group>"; };
+		4D2CD5EB30572C130086CA6E /* app_bridge.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = app_bridge.js; path = ../../../chrome_extension/app_bridge.js; sourceTree = "<group>"; };
+		4D2CD5F130572C130086CA6E /* icon16.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon16.png; path = ../../../chrome_extension/icon16.png; sourceTree = "<group>"; };
+		4D2CD5F230572C130086CA6E /* icon32.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon32.png; path = ../../../chrome_extension/icon32.png; sourceTree = "<group>"; };
+		4D2CD5F330572C130086CA6E /* icon48.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon48.png; path = ../../../chrome_extension/icon48.png; sourceTree = "<group>"; };
+		4D2CD5F430572C130086CA6E /* icon128.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon128.png; path = ../../../chrome_extension/icon128.png; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4D2CD5B730572C100086CA6E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D2CD5D230572C120086CA6E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4D2CD5B130572C100086CA6E = {
+			isa = PBXGroup;
+			children = (
+				4D2CD5BC30572C100086CA6E /* DNCWatchdogUspsHelper */,
+				4D2CD5D930572C120086CA6E /* DNCWatchdogUspsHelper Extension */,
+				4D2CD5BB30572C100086CA6E /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4D2CD5BB30572C100086CA6E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4D2CD5BA30572C100086CA6E /* DNCWatchdogUspsHelper.app */,
+				4D2CD5D530572C120086CA6E /* DNCWatchdogUspsHelper Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4D2CD5BC30572C100086CA6E /* DNCWatchdogUspsHelper */ = {
+			isa = PBXGroup;
+			children = (
+				4D2CD5BD30572C100086CA6E /* AppDelegate.swift */,
+				4D2CD5C930572C100086CA6E /* ViewController.swift */,
+				4D2CD5CB30572C100086CA6E /* Main.storyboard */,
+				4D2CD5CE30572C110086CA6E /* Assets.xcassets */,
+				4D2CD5D030572C110086CA6E /* Info.plist */,
+				4D2CD5BF30572C100086CA6E /* Resources */,
+			);
+			path = DNCWatchdogUspsHelper;
+			sourceTree = "<group>";
+		};
+		4D2CD5BF30572C100086CA6E /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4D2CD5C030572C100086CA6E /* Main.html */,
+				4D2CD5C330572C100086CA6E /* Icon.png */,
+				4D2CD5C530572C100086CA6E /* Style.css */,
+				4D2CD5C730572C100086CA6E /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		4D2CD5D930572C120086CA6E /* DNCWatchdogUspsHelper Extension */ = {
+			isa = PBXGroup;
+			children = (
+				4D2CD5E630572C130086CA6E /* Resources */,
+				4D2CD5DA30572C120086CA6E /* SafariWebExtensionHandler.swift */,
+				4D2CD5DC30572C120086CA6E /* Info.plist */,
+			);
+			path = "DNCWatchdogUspsHelper Extension";
+			sourceTree = "<group>";
+		};
+		4D2CD5E630572C130086CA6E /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4D2CD5E730572C130086CA6E /* background.js */,
+				4D2CD5E830572C130086CA6E /* page_flag.js */,
+				4D2CD5E930572C130086CA6E /* manifest.json */,
+				4D2CD5EA30572C130086CA6E /* content.js */,
+				4D2CD5EB30572C130086CA6E /* app_bridge.js */,
+				4D2CD5F130572C130086CA6E /* icon16.png */,
+				4D2CD5F230572C130086CA6E /* icon32.png */,
+				4D2CD5F330572C130086CA6E /* icon48.png */,
+				4D2CD5F430572C130086CA6E /* icon128.png */,
+			);
+			name = Resources;
+			path = "DNCWatchdogUspsHelper Extension";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4D2CD5B930572C100086CA6E /* DNCWatchdogUspsHelper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D2CD5E330572C120086CA6E /* Build configuration list for PBXNativeTarget "DNCWatchdogUspsHelper" */;
+			buildPhases = (
+				4D2CD5B630572C100086CA6E /* Sources */,
+				4D2CD5B730572C100086CA6E /* Frameworks */,
+				4D2CD5B830572C100086CA6E /* Resources */,
+				4D2CD5E230572C120086CA6E /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4D2CD5D830572C120086CA6E /* PBXTargetDependency */,
+			);
+			name = DNCWatchdogUspsHelper;
+			packageProductDependencies = (
+			);
+			productName = DNCWatchdogUspsHelper;
+			productReference = 4D2CD5BA30572C100086CA6E /* DNCWatchdogUspsHelper.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4D2CD5D430572C120086CA6E /* DNCWatchdogUspsHelper Extension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D2CD5DF30572C120086CA6E /* Build configuration list for PBXNativeTarget "DNCWatchdogUspsHelper Extension" */;
+			buildPhases = (
+				4D2CD5D130572C120086CA6E /* Sources */,
+				4D2CD5D230572C120086CA6E /* Frameworks */,
+				4D2CD5D330572C120086CA6E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "DNCWatchdogUspsHelper Extension";
+			packageProductDependencies = (
+			);
+			productName = "DNCWatchdogUspsHelper Extension";
+			productReference = 4D2CD5D530572C120086CA6E /* DNCWatchdogUspsHelper Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4D2CD5B230572C100086CA6E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					4D2CD5B930572C100086CA6E = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					4D2CD5D430572C120086CA6E = {
+						CreatedOnToolsVersion = 26.6;
+					};
+				};
+			};
+			buildConfigurationList = 4D2CD5B530572C100086CA6E /* Build configuration list for PBXProject "DNCWatchdogUspsHelper" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4D2CD5B130572C100086CA6E;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4D2CD5BB30572C100086CA6E /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4D2CD5B930572C100086CA6E /* DNCWatchdogUspsHelper */,
+				4D2CD5D430572C120086CA6E /* DNCWatchdogUspsHelper Extension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4D2CD5B830572C100086CA6E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4D2CD5C430572C100086CA6E /* Icon.png in Resources */,
+				4D2CD5CD30572C100086CA6E /* Main.storyboard in Resources */,
+				4D2CD5C830572C100086CA6E /* Script.js in Resources */,
+				4D2CD5C230572C100086CA6E /* Main.html in Resources */,
+				4D2CD5CF30572C110086CA6E /* Assets.xcassets in Resources */,
+				4D2CD5C630572C100086CA6E /* Style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D2CD5D330572C120086CA6E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4D2CD5EF30572C130086CA6E /* content.js in Resources */,
+				4D2CD5EC30572C130086CA6E /* background.js in Resources */,
+				4D2CD5EE30572C130086CA6E /* manifest.json in Resources */,
+				4D2CD5F030572C130086CA6E /* app_bridge.js in Resources */,
+				4D2CD5ED30572C130086CA6E /* page_flag.js in Resources */,
+				4D2CD5F530572C130086CA6E /* icon16.png in Resources */,
+				4D2CD5F630572C130086CA6E /* icon32.png in Resources */,
+				4D2CD5F730572C130086CA6E /* icon48.png in Resources */,
+				4D2CD5F830572C130086CA6E /* icon128.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4D2CD5B630572C100086CA6E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4D2CD5CA30572C100086CA6E /* ViewController.swift in Sources */,
+				4D2CD5BE30572C100086CA6E /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4D2CD5D130572C120086CA6E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4D2CD5DB30572C120086CA6E /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4D2CD5D830572C120086CA6E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4D2CD5D430572C120086CA6E /* DNCWatchdogUspsHelper Extension */;
+			targetProxy = 4D2CD5D730572C120086CA6E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		4D2CD5C030572C100086CA6E /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4D2CD5C130572C100086CA6E /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		4D2CD5CB30572C100086CA6E /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4D2CD5CC30572C100086CA6E /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		4D2CD5DD30572C120086CA6E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		4D2CD5DE30572C120086CA6E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		4D2CD5E030572C120086CA6E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "DNCWatchdogUspsHelper Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "DNC Watchdog USPS Helper";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "app.dncwatchdog.usps-helper.Extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		4D2CD5E130572C120086CA6E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "DNCWatchdogUspsHelper Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "DNC Watchdog USPS Helper";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "app.dncwatchdog.usps-helper.Extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		4D2CD5E430572C120086CA6E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DNCWatchdogUspsHelper/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "DNC Watchdog USPS Helper";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "app.dncwatchdog.usps-helper";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		4D2CD5E530572C120086CA6E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DNCWatchdogUspsHelper/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "DNC Watchdog USPS Helper";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "app.dncwatchdog.usps-helper";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4D2CD5B530572C100086CA6E /* Build configuration list for PBXProject "DNCWatchdogUspsHelper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D2CD5DD30572C120086CA6E /* Debug */,
+				4D2CD5DE30572C120086CA6E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D2CD5DF30572C120086CA6E /* Build configuration list for PBXNativeTarget "DNCWatchdogUspsHelper Extension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D2CD5E030572C120086CA6E /* Debug */,
+				4D2CD5E130572C120086CA6E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D2CD5E330572C120086CA6E /* Build configuration list for PBXNativeTarget "DNCWatchdogUspsHelper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D2CD5E430572C120086CA6E /* Debug */,
+				4D2CD5E530572C120086CA6E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4D2CD5B230572C100086CA6E /* Project object */;
+}

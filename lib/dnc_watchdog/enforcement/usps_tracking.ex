@@ -24,7 +24,7 @@ defmodule DncWatchdog.Enforcement.UspsTracking do
   @browser_helper_steps [
     %{id: :validate, label: "Validate tracking number"},
     %{id: :open_browser, label: "Open USPS tracking in your browser"},
-    %{id: :wait_helper, label: "Wait for the Chrome helper"},
+    %{id: :wait_helper, label: "Wait for the browser helper"},
     %{id: :parse, label: "Read tracking status"},
     %{id: :save, label: "Save status to this case"}
   ]
@@ -220,7 +220,7 @@ defmodule DncWatchdog.Enforcement.UspsTracking do
   end
 
   @doc """
-  Parses a map posted by the Chrome helper (or equivalent JSON).
+  Parses a map posted by the Chrome or Safari helper (or equivalent JSON).
   """
   def parse_helper_payload(params) when is_map(params) do
     data =
@@ -357,7 +357,7 @@ defmodule DncWatchdog.Enforcement.UspsTracking do
         "USPS page did not finish loading in time. #{msg}"
 
       :helper_timeout ->
-        "The Chrome helper did not send tracking status in time. Install it from Settings, keep the USPS tab open, then try again."
+        "The browser helper did not send tracking status in time. Install it from Settings, keep the USPS tab open, then try again."
 
       :not_pending ->
         "No tracking refresh is waiting for this number. Click Refresh status, then keep the USPS tab open."
