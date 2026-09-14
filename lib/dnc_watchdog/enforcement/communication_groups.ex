@@ -35,7 +35,7 @@ defmodule DncWatchdog.Enforcement.CommunicationGroups do
     }
   end
 
-  defp peer_key(communication) do
+  def peer_key(communication) do
     communication
     |> ContactFilter.peer_for()
     |> Phone.normalize()

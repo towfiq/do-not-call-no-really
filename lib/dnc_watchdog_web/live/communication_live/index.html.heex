@@ -1,9 +1,9 @@
 <.header>
   Messages & Calls
   <:subtitle>
-    {@filtered_count} shown of {@total_count} total · Last sync: {last_sync_label(
-      @local_sync_state
-    )}
+    {@filtered_count} shown of {@total_count} total · {Damages.format(
+      Damages.total(@communications)
+    )} trial damages · Last sync: {last_sync_label(@local_sync_state)}
   </:subtitle>
   <:actions>
     <form
@@ -62,6 +62,7 @@
     group_by_sender={@group_by_sender}
     workflow_phase={@workflow_phase}
     show_workflow={true}
+    min_comms={@min_comms}
   />
   <.list_search_form
     id="communications-search"
@@ -85,6 +86,8 @@
         groups={@communication_groups}
         selected_peer={@selected_peer}
         group_title_fn={&group_title/1}
+        sort_by={@sort_by}
+        sort_dir={@sort_dir}
       />
       <%= if @selected_group do %>
         <.inbox_thread_detail group={@selected_group} group_title_fn={&group_title/1} />
@@ -98,6 +101,8 @@
       id_prefix="flat"
       compact
       class="mt-4 table-compact"
+      sort_by={@sort_by}
+      sort_dir={@sort_dir}
     />
   <% end %>
 <% end %>

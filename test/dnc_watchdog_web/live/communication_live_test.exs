@@ -40,6 +40,8 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
 
     assert html =~ "Equinox Roofing LLC"
     assert html =~ "legal entity display test"
+    assert html =~ "$1,500.00"
+    assert html =~ "trial damages"
   end
 
   test "lists imported communications with message body", %{conn: conn} do
@@ -268,6 +270,54 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
 
     assert html =~ "special search token"
     assert html =~ "ordinary message"
+  end
+
+  test "sorts and filters grouped senders by communication count", %{conn: conn} do
+    communication_fixture(%{
+      from_number: "8005552001",
+      body: "solo sender token",
+      violation_status: "pending"
+    })
+
+    for i <- 1..3 do
+      communication_fixture(%{
+        from_number: "8005552002",
+        body: "repeat sender token #{i}",
+        violation_status: "pending"
+      })
+    end
+
+    {:ok, view, html} = live(conn, ~p"/communications")
+    assert html =~ "8005552001"
+    assert html =~ "8005552002"
+    assert html =~ "Min. count"
+
+    html =
+      view
+      |> form("#display-filters", %{
+        "filters" => %{
+          "violations_only" => "false",
+          "include_excluded" => "false",
+          "group_by_sender" => "true",
+          "include_spam" => "true",
+          "min_comms" => "2"
+        }
+      })
+      |> render_submit()
+
+    refute html =~ "8005552001"
+    assert html =~ "8005552002"
+
+    {:ok, view, _html} = live(conn, ~p"/communications")
+
+    html =
+      view
+      |> element("#sort-inbox-communications")
+      |> render_click()
+
+    {many_at, _} = :binary.match(html, "8005552002")
+    {one_at, _} = :binary.match(html, "8005552001")
+    assert many_at < one_at
   end
 
   test "search includes excluded messages", %{conn: conn} do

@@ -2,9 +2,11 @@
   Listing Cases
   <:subtitle>
     <%= if @search_query != "" do %>
-      {@filtered_count} matching “{@search_query}”
+      {@filtered_count} matching “{@search_query}” · {Damages.format(@damages_total)} trial damages
     <% else %>
-      {@filtered_count} shown of {@total_count} with at least one violation.
+      {@filtered_count} shown of {@total_count} with at least one violation · {Damages.format(
+        @damages_total
+      )} trial damages
     <% end %>
   </:subtitle>
   <:actions>
@@ -16,22 +18,40 @@
 
 <div class="page-toolbar">
   <.workflow_phase_filters workflow_phase={@workflow_phase} />
-  <.list_search_form
-    id="cases-search"
-    query={@search_query}
-    placeholder="Company, phone, message text, notes, case #…"
-  />
+  <div class="flex flex-wrap items-end gap-3">
+    <.min_communications_filter min_comms={@min_comms} />
+    <.list_search_form
+      id="cases-search"
+      query={@search_query}
+      placeholder="Company, phone, message text, notes, case #…"
+    />
+  </div>
 </div>
 
 <.table
   id="cases"
   rows={@streams.cases}
   row_click={fn {_id, case} -> JS.navigate(~p"/cases/#{case}") end}
+  sort_by={@sort_by}
+  sort_dir={@sort_dir}
+  footer_cells={[
+    "Total",
+    @communications_total,
+    Damages.format(@damages_total),
+    "",
+    "",
+    "",
+    "",
+    ""
+  ]}
 >
   <:col :let={{_id, case}} label="Defendant">
     {DncWatchdog.Enforcement.Case.display_name(case)}
   </:col>
-  <:col :let={{_id, case}} label="Communications">{length(case.communications)}</:col>
+  <:col :let={{_id, case}} label="Communications" sort_key="communications">
+    {length(case.communications)}
+  </:col>
+  <:col :let={{_id, case}} label="Damages">{Damages.format(Damages.for_case(case))}</:col>
   <:col :let={{_id, case}} label="Status">{case.status}</:col>
   <:col :let={{_id, case}} label="Workflow step">{case.workflow_step}</:col>
   <:col :let={{_id, case}} label="Mail">

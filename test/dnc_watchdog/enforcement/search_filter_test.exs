@@ -102,6 +102,19 @@ defmodule DncWatchdog.Enforcement.SearchFilterTest do
     assert comm.id in ids
   end
 
+  test "list_communications/1 filters by email from_number" do
+    case_record = case_fixture()
+    match = communication_fixture(%{case_id: case_record.id, from_number: "mom@example.com"})
+    other = communication_fixture(%{case_id: case_record.id, from_number: "8009990000"})
+
+    ids =
+      Enforcement.list_communications(search: "mom@example.com", hide_excluded: false)
+      |> Enum.map(& &1.id)
+
+    assert match.id in ids
+    refute other.id in ids
+  end
+
   test "search combines with workflow phase filter" do
     visible = case_fixture(%{company_name: "Sent Acme Co", workflow_step: "sent"})
     wrong_phase = case_fixture(%{company_name: "Intake Acme Co", workflow_step: "intake"})

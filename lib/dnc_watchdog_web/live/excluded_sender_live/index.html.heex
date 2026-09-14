@@ -3,13 +3,16 @@
   <:subtitle>
     Senders marked via <strong>Exclude sender</strong>
     stay off your violation review list, including on future imports.
+    Use <strong>View messages</strong>
+    to confirm a sender still belongs here.
+    Amounts are trial damages ($1,500 each) for currently excluded messages.
   </:subtitle>
   <:actions>
     <.link navigate={~p"/communications"} class="btn-secondary">Back to messages</.link>
   </:actions>
 </.header>
 
-<%= if @senders == [] do %>
+<%= if @unfiltered_empty do %>
   <div class="empty-state mt-4 px-4 py-8">
     <p class="font-semibold text-slate-900">No excluded senders yet.</p>
     <p class="mt-2">
@@ -19,10 +22,35 @@
     </p>
   </div>
 <% else %>
-  <.table id="excluded-senders" rows={@senders} row_id={&"sender-#{&1.id}"}>
+  <div class="page-toolbar mt-4">
+    <.min_communications_filter id="excluded-min-comms-filter" min_comms={@min_comms} />
+  </div>
+
+  <.table
+    id="excluded-senders"
+    rows={@senders}
+    row_id={&"sender-#{&1.id}"}
+    sort_by={@sort_by}
+    sort_dir={@sort_dir}
+    footer_cells={["Total", @communications_total, "", "", Damages.format(@damages_total)]}
+  >
     <:col :let={sender} label="Sender">{sender.display_peer}</:col>
+    <:col :let={sender} label="Communications" sort_key="communications">
+      {excluded_count(sender, @excluded_counts)}
+    </:col>
     <:col :let={sender} label="Type">{sender.peer_type}</:col>
     <:col :let={sender} label="Added">{sender.inserted_at}</:col>
+    <:col :let={sender} label="Damages">{excluded_damages(sender, @excluded_counts)}</:col>
+    <:action :let={sender}>
+      <.link
+        navigate={
+          ~p"/communications?#{[q: sender.peer_key, peer: sender.peer_key, include_excluded: true, include_contacts: true]}"
+        }
+        class="text-xs font-semibold text-brand hover:underline"
+      >
+        View messages
+      </.link>
+    </:action>
     <:action :let={sender}>
       <button
         type="button"

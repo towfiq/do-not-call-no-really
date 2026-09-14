@@ -6,6 +6,7 @@ defmodule DncWatchdogWeb.CaseLive.Show do
   alias DncWatchdog.Enforcement
   alias DncWatchdog.Enforcement.Case
   alias DncWatchdog.Enforcement.Workflow
+  alias DncWatchdog.Enforcement.Damages
   alias DncWatchdog.Enforcement.EvidenceStorage
   alias DncWatchdog.Enforcement.FilingLimits
   alias DncWatchdog.Enforcement.UspsTracking
@@ -28,6 +29,9 @@ defmodule DncWatchdogWeb.CaseLive.Show do
      |> assign(:mail_tracking_progress, nil)
      |> assign(:link_case_query, "")
      |> assign(:link_case_results, [])
+     |> assign(:min_comms, nil)
+     |> assign(:sort_by, nil)
+     |> assign(:sort_dir, :desc)
      |> allow_upload(:evidence,
        accept: ~w(.jpg .jpeg .png .gif .webp .heic .pdf),
        max_entries: 5,
@@ -56,6 +60,22 @@ defmodule DncWatchdogWeb.CaseLive.Show do
        :hide_contacts,
        !DncWatchdogWeb.FilterParams.filter_checked?(filters, "include_contacts")
      )
+     |> assign(:min_comms, DncWatchdogWeb.FilterParams.parse_min_comms(filters))
+     |> reload_communications()}
+  end
+
+  def handle_event("sort", %{"key" => key}, socket) do
+    {sort_by, sort_dir} =
+      DncWatchdogWeb.FilterParams.next_sort(
+        socket.assigns.sort_by,
+        socket.assigns.sort_dir,
+        key
+      )
+
+    {:noreply,
+     socket
+     |> assign(:sort_by, sort_by)
+     |> assign(:sort_dir, sort_dir)
      |> reload_communications()}
   end
 
@@ -735,7 +755,14 @@ defmodule DncWatchdogWeb.CaseLive.Show do
       ]
       |> maybe_put_contact_set()
 
-    communications = Enforcement.list_case_communications(socket.assigns.case.id, opts)
+    communications =
+      socket.assigns.case.id
+      |> Enforcement.list_case_communications(opts)
+      |> DncWatchdogWeb.CommunicationCount.apply_to_communications(
+        socket.assigns.min_comms,
+        socket.assigns.sort_by,
+        socket.assigns.sort_dir
+      )
 
     assign(socket, :communications, communications)
   end

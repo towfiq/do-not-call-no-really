@@ -9,6 +9,8 @@ defmodule DncWatchdogWeb.CommunicationComponents do
 
   alias DncWatchdog.Enforcement.Case
   alias DncWatchdog.Enforcement.ContactFilter
+  alias DncWatchdog.Enforcement.Damages
+  alias DncWatchdogWeb.CommunicationCount
 
   attr :communication, :map, required: true
   attr :target, :any, default: nil
@@ -185,10 +187,28 @@ defmodule DncWatchdogWeb.CommunicationComponents do
   attr :groups, :list, required: true
   attr :selected_peer, :string, default: nil
   attr :group_title_fn, :any, required: true
+  attr :sort_by, :string, default: nil
+  attr :sort_dir, :atom, default: :desc
 
   def inbox_thread_list(assigns) do
     ~H"""
     <div class="inbox-list" role="listbox" aria-label="Senders">
+      <div class="inbox-list-header">
+        <span>Sender</span>
+        <button
+          type="button"
+          id="sort-inbox-communications"
+          phx-click="sort"
+          phx-value-key="communications"
+          class="table-sort-button"
+          aria-sort={inbox_aria_sort(@sort_by, @sort_dir)}
+        >
+          Communications
+          <span :if={@sort_by == "communications"} aria-hidden="true">
+            {if @sort_dir == :asc, do: "↑", else: "↓"}
+          </span>
+        </button>
+      </div>
       <%= for group <- @groups do %>
         <button
           type="button"
@@ -206,6 +226,7 @@ defmodule DncWatchdogWeb.CommunicationComponents do
           <div class="inbox-thread-meta">
             <p class="inbox-thread-date">{inbox_date(group.latest.timestamp)}</p>
             <span class="inbox-thread-count">{length(group.communications)}</span>
+            <p class="inbox-thread-damages">{Damages.format(Damages.total(group.communications))}</p>
             <div class="mt-1 flex justify-end">
               <.violation_badge status={group.latest.violation_status} spam={group.latest.spam} />
             </div>
@@ -229,7 +250,9 @@ defmodule DncWatchdogWeb.CommunicationComponents do
           <p class="text-xs text-slate-500">
             {length(@group.communications)} message{if length(@group.communications) == 1,
               do: "",
-              else: "s"} · latest {format_timestamp(@group.latest.timestamp)}
+              else: "s"} · {Damages.format(Damages.total(@group.communications))} trial damages · latest {format_timestamp(
+              @group.latest.timestamp
+            )}
           </p>
         </div>
         <%= if @group.latest.case do %>
@@ -248,7 +271,9 @@ defmodule DncWatchdogWeb.CommunicationComponents do
               <div class="flex flex-wrap items-center gap-2">
                 <.violation_badge status={comm.violation_status} spam={comm.spam} />
                 <span class="text-xs text-slate-500">
-                  {format_timestamp(comm.timestamp)} · {comm.channel} · {comm.direction}
+                  {format_timestamp(comm.timestamp)} · {comm.channel} · {comm.direction} · {Damages.format_row(
+                    comm
+                  )}
                 </span>
               </div>
               <div class="flex flex-wrap gap-1">
@@ -282,15 +307,42 @@ defmodule DncWatchdogWeb.CommunicationComponents do
   attr :class, :string, default: nil
   attr :compact, :boolean, default: false
   attr :target, :any, default: nil
+  attr :sort_by, :string, default: nil
+  attr :sort_dir, :atom, default: :desc
+  attr :sortable, :boolean, default: true
 
   def communication_rows_table(assigns) do
+    assigns =
+      assigns
+      |> assign(:damages_total, Damages.total(assigns.communications))
+      |> assign(:peer_counts, CommunicationCount.peer_counts(assigns.communications))
+
     ~H"""
     <div class={[@class, @compact && "table-compact overflow-x-auto px-3 pb-2"]}>
       <table id={"communications-#{@id_prefix}"} class="w-full min-w-[48rem]">
         <thead>
           <tr>
             <th>When</th>
+            <th aria-sort={@sortable && comms_aria_sort(@sort_by, @sort_dir)}>
+              <%= if @sortable do %>
+                <button
+                  type="button"
+                  id={"sort-#{@id_prefix}-communications"}
+                  phx-click="sort"
+                  phx-value-key="communications"
+                  class="table-sort-button"
+                >
+                  Communications
+                  <span :if={@sort_by == "communications"} aria-hidden="true">
+                    {if @sort_dir == :asc, do: "↑", else: "↓"}
+                  </span>
+                </button>
+              <% else %>
+                Communications
+              <% end %>
+            </th>
             <th>Status</th>
+            <th>Amount</th>
             <th>Triage</th>
             <th>Case</th>
             <th>From</th>
@@ -302,7 +354,9 @@ defmodule DncWatchdogWeb.CommunicationComponents do
           <%= for comm <- @communications do %>
             <tr id={"comm-#{comm.id}"}>
               <td>{format_timestamp(comm.timestamp)}</td>
+              <td>{Map.get(@peer_counts, CommunicationCount.peer_key(comm), 0)}</td>
               <td><.violation_badge status={comm.violation_status} spam={comm.spam} /></td>
+              <td class="whitespace-nowrap">{Damages.format_row(comm)}</td>
               <td>
                 <div class="flex flex-wrap gap-1">
                   <.spam_button communication={comm} target={@target} />
@@ -330,6 +384,19 @@ defmodule DncWatchdogWeb.CommunicationComponents do
             </tr>
           <% end %>
         </tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td>
+            <td></td>
+            <td></td>
+            <td class="whitespace-nowrap">{Damages.format(@damages_total)}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
     </div>
     """
@@ -350,4 +417,10 @@ defmodule DncWatchdogWeb.CommunicationComponents do
   defp truncate(text, max) do
     if String.length(text) > max, do: String.slice(text, 0, max - 3) <> "...", else: text
   end
+
+  defp inbox_aria_sort("communications", :asc), do: "ascending"
+  defp inbox_aria_sort("communications", _dir), do: "descending"
+  defp inbox_aria_sort(_sort_by, _dir), do: "none"
+
+  defp comms_aria_sort(sort_by, sort_dir), do: inbox_aria_sort(sort_by, sort_dir)
 end

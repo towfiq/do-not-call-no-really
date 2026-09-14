@@ -426,6 +426,26 @@ defmodule DncWatchdog.Enforcement do
   end
 
   @doc """
+  Counts currently excluded communications for each excluded-sender peer key.
+  """
+  def excluded_message_counts_by_peer_key do
+    from(c in Communication,
+      where: c.violation_status == "excluded",
+      select: %{direction: c.direction, from_number: c.from_number, to_number: c.to_number}
+    )
+    |> Repo.all()
+    |> Enum.reduce(%{}, fn comm, acc ->
+      key = ExcludedSender.peer_key_for(comm)
+
+      if key == "" do
+        acc
+      else
+        Map.update(acc, key, 1, &(&1 + 1))
+      end
+    end)
+  end
+
+  @doc """
   Adds a sender to the excluded list. Idempotent for the same peer.
   """
   def add_excluded_sender(raw_peer) do

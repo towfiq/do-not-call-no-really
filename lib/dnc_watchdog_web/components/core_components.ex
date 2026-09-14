@@ -463,8 +463,16 @@ defmodule DncWatchdogWeb.CoreComponents do
     default: &Function.identity/1,
     doc: "the function for mapping each row before calling the :col and :action slots"
 
+  attr :footer_cells, :list,
+    default: [],
+    doc: "optional footer cell contents, one per data column"
+
+  attr :sort_by, :string, default: nil
+  attr :sort_dir, :atom, default: :desc
+
   slot :col, required: true do
     attr :label, :string
+    attr :sort_key, :string
   end
 
   slot :action, doc: "the slot for showing user actions in the last table column"
@@ -481,7 +489,28 @@ defmodule DncWatchdogWeb.CoreComponents do
         <table class="w-full min-w-[48rem]">
           <thead>
             <tr>
-              <th :for={col <- @col} class="px-4 py-3">{col[:label]}</th>
+              <th
+                :for={col <- @col}
+                class="px-4 py-3"
+                aria-sort={col[:sort_key] && aria_sort(@sort_by, @sort_dir, col[:sort_key])}
+              >
+                <%= if col[:sort_key] do %>
+                  <button
+                    type="button"
+                    id={"sort-#{@id}-#{col[:sort_key]}"}
+                    phx-click="sort"
+                    phx-value-key={col[:sort_key]}
+                    class="table-sort-button"
+                  >
+                    {col[:label]}
+                    <span :if={@sort_by == col[:sort_key]} aria-hidden="true">
+                      {if @sort_dir == :asc, do: "↑", else: "↓"}
+                    </span>
+                  </button>
+                <% else %>
+                  {col[:label]}
+                <% end %>
+              </th>
               <th :if={@action != []} class="relative px-4 py-3 text-right">
                 <span class="sr-only">{gettext("Actions")}</span>
               </th>
@@ -516,11 +545,23 @@ defmodule DncWatchdogWeb.CoreComponents do
               </td>
             </tr>
           </tbody>
+          <tfoot :if={@footer_cells != []}>
+            <tr>
+              <td :for={cell <- @footer_cells}>{cell}</td>
+              <td :if={@action != []}></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>
     """
   end
+
+  defp aria_sort(sort_by, sort_dir, key) when sort_by == key do
+    if sort_dir == :asc, do: "ascending", else: "descending"
+  end
+
+  defp aria_sort(_sort_by, _sort_dir, _key), do: "none"
 
   @doc """
   Renders a data list.

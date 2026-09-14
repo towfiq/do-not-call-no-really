@@ -30,9 +30,7 @@ defmodule DncWatchdog.Enforcement.UspsBrowserHelper do
   """
   def safari_xcode_project do
     src =
-      Path.expand(
-        "priv/safari_extension/DNCWatchdogUspsHelper/DNCWatchdogUspsHelper.xcodeproj"
-      )
+      Path.expand("priv/safari_extension/DNCWatchdogUspsHelper/DNCWatchdogUspsHelper.xcodeproj")
 
     if File.dir?(src) do
       src

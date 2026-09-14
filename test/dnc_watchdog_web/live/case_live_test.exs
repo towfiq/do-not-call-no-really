@@ -34,6 +34,8 @@ defmodule DncWatchdogWeb.CaseLiveTest do
 
       assert html =~ "Listing Cases"
       assert html =~ case.status
+      assert html =~ "$1,500.00"
+      assert html =~ "Total"
     end
 
     test "saves new case", %{conn: conn} do
@@ -112,6 +114,44 @@ defmodule DncWatchdogWeb.CaseLiveTest do
       refute html =~ "Hidden Intake Co"
     end
 
+    test "sorts and filters cases by communication count", %{conn: conn} do
+      one = case_fixture(%{company_name: "One Ping Co"})
+      communication_fixture(%{case_id: one.id, violation_status: "violation", body: "solo case"})
+
+      many = case_fixture(%{company_name: "Many Ping Co"})
+
+      for i <- 1..3 do
+        communication_fixture(%{
+          case_id: many.id,
+          violation_status: "violation",
+          body: "repeat case #{i}"
+        })
+      end
+
+      {:ok, view, html} = live(conn, ~p"/cases")
+      assert html =~ "One Ping Co"
+      assert html =~ "Many Ping Co"
+
+      html =
+        view
+        |> form("#min-comms-filter", %{"min_comms" => "2"})
+        |> render_change()
+
+      refute html =~ "One Ping Co"
+      assert html =~ "Many Ping Co"
+
+      {:ok, view, _html} = live(conn, ~p"/cases")
+
+      html =
+        view
+        |> element("#sort-cases-communications")
+        |> render_click()
+
+      {many_at, _} = :binary.match(html, "Many Ping Co")
+      {one_at, _} = :binary.match(html, "One Ping Co")
+      assert many_at < one_at
+    end
+
     test "shows legal entity name in Defendant column", %{conn: conn} do
       case =
         case_with_legal_entity_fixture(%{
@@ -177,6 +217,8 @@ defmodule DncWatchdogWeb.CaseLiveTest do
 
       assert html =~ "communications-case-#{case.id}"
       assert html =~ case.company_name
+      assert html =~ "$1,500.00"
+      assert html =~ "trial damages"
     end
 
     test "apply_filters controls visible communications", %{conn: conn, case: case} do
@@ -221,6 +263,50 @@ defmodule DncWatchdogWeb.CaseLiveTest do
       assert html =~ "Limited time offer"
       assert html =~ "pending msg"
       assert html =~ "excluded msg"
+    end
+
+    test "sorts and filters related communications by sender count", %{conn: conn, case: case} do
+      communication_fixture(%{
+        case_id: case.id,
+        from_number: "8005559991",
+        body: "repeat related one",
+        violation_status: "pending"
+      })
+
+      communication_fixture(%{
+        case_id: case.id,
+        from_number: "8005559991",
+        body: "repeat related two",
+        violation_status: "pending"
+      })
+
+      {:ok, view, html} = live(conn, ~p"/cases/#{case}")
+      assert html =~ "Limited time offer"
+      assert html =~ "repeat related one"
+
+      html =
+        view
+        |> element("#sort-case-#{case.id}-communications")
+        |> render_click()
+
+      {repeat_at, _} = :binary.match(html, "repeat related one")
+      {limited_at, _} = :binary.match(html, "Limited time offer")
+      assert repeat_at < limited_at
+
+      html =
+        view
+        |> form("#case-display-filters", %{
+          "filters" => %{
+            "violations_only" => "false",
+            "include_excluded" => "false",
+            "min_comms" => "2"
+          }
+        })
+        |> render_submit()
+
+      refute html =~ "Limited time offer"
+      assert html =~ "repeat related one"
+      assert html =~ "repeat related two"
     end
 
     test "advances workflow step", %{conn: conn, case: case} do

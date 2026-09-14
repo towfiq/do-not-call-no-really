@@ -6,6 +6,8 @@ defmodule DncWatchdogWeb.CaseComponents do
 
   import DncWatchdogWeb.CoreComponents, only: [icon: 1]
 
+  alias DncWatchdogWeb.FilterParams
+
   attr :query, :string, default: ""
   attr :id, :string, default: "list-search"
   attr :placeholder, :string, default: "Search…"
@@ -40,6 +42,8 @@ defmodule DncWatchdogWeb.CaseComponents do
   attr :show_contacts, :boolean, default: true
   attr :workflow_phase, :string, default: "all"
   attr :show_workflow, :boolean, default: false
+  attr :show_min_comms, :boolean, default: true
+  attr :min_comms, :integer, default: nil
 
   def display_filter_form(assigns) do
     ~H"""
@@ -109,11 +113,50 @@ defmodule DncWatchdogWeb.CaseComponents do
                 <% end %>
               </select>
             </label>
+
+            <label :if={@show_min_comms} class="filter-checkbox">
+              <span class="text-sm text-slate-700">Min. count</span>
+              <select
+                name="filters[min_comms]"
+                class="rounded-lg border-slate-300 py-1.5 pl-2 pr-8 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                title="TCPA DNC registry claims generally require more than one call from the same entity in 12 months. This is not legal advice."
+              >
+                <%= for {label, value} <- FilterParams.min_comms_options() do %>
+                  <option value={value || ""} selected={@min_comms == value}>{label}</option>
+                <% end %>
+              </select>
+            </label>
           </div>
 
           <button type="submit" class="btn-apply">Apply filters</button>
         </div>
       </div>
+    </form>
+    """
+  end
+
+  attr :min_comms, :integer, default: nil
+  attr :id, :string, default: "min-comms-filter"
+
+  def min_communications_filter(assigns) do
+    ~H"""
+    <form id={@id} phx-change="set_min_comms" class="min-comms-filter">
+      <label
+        for={"#{@id}-select"}
+        class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+      >
+        Min. count
+      </label>
+      <select
+        id={"#{@id}-select"}
+        name="min_comms"
+        class="rounded-lg border-slate-300 py-1.5 pl-2 pr-8 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+        title="TCPA DNC registry claims generally require more than one call from the same entity in 12 months. This is not legal advice."
+      >
+        <%= for {label, value} <- FilterParams.min_comms_options() do %>
+          <option value={value || ""} selected={@min_comms == value}>{label}</option>
+        <% end %>
+      </select>
     </form>
     """
   end

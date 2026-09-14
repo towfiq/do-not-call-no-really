@@ -124,6 +124,12 @@ defmodule DncWatchdog.Enforcement.SearchFilter do
         dynamic(false)
       end
 
+    from_text_match =
+      dynamic([c], fragment("instr(lower(coalesce(?, '')), ?) > 0", c.from_number, ^n))
+
+    to_text_match =
+      dynamic([c], fragment("instr(lower(coalesce(?, '')), ?) > 0", c.to_number, ^n))
+
     body_match = dynamic([c], fragment("instr(lower(?), ?) > 0", coalesce(c.body, ""), ^n))
     company_match = dynamic([c], fragment("instr(lower(?), ?) > 0", coalesce(c.company, ""), ^n))
     channel_match = dynamic([c], fragment("instr(lower(?), ?) > 0", c.channel, ^n))
@@ -160,8 +166,9 @@ defmodule DncWatchdog.Enforcement.SearchFilter do
 
     dynamic(
       [c],
-      ^from_match or ^to_match or ^body_match or ^company_match or ^channel_match or
-        ^case_company_match or ^legal_name_match or ^case_id_match
+      ^from_match or ^to_match or ^from_text_match or ^to_text_match or ^body_match or
+        ^company_match or ^channel_match or ^case_company_match or ^legal_name_match or
+        ^case_id_match
     )
   end
 

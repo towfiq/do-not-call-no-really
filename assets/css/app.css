@@ -69,6 +69,14 @@
     @apply mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between;
   }
 
+  .min-comms-filter {
+    @apply flex flex-col gap-1;
+  }
+
+  .table-sort-button {
+    @apply inline-flex items-center gap-1 font-semibold uppercase tracking-wide text-inherit hover:text-slate-800;
+  }
+
   .content-card {
     @apply overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm;
   }
@@ -225,6 +233,14 @@
     @apply px-4 py-3 align-top;
   }
 
+  .data-table-wrap tfoot td {
+    @apply border-t border-slate-200 bg-slate-50 px-4 py-3 font-semibold text-slate-900;
+  }
+
+  .table-compact tfoot td {
+    @apply border-t border-slate-200 bg-slate-50 px-4 py-2.5 font-semibold text-slate-900;
+  }
+
   .action-chip {
     @apply inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-slate-200 transition hover:bg-slate-50;
   }
@@ -291,6 +307,10 @@
     @apply flex min-h-0 flex-col overflow-y-auto border-b border-slate-200 lg:border-b-0 lg:border-r;
   }
 
+  .inbox-list-header {
+    @apply sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+  }
+
   .inbox-thread {
     @apply flex w-full gap-3 border-b border-slate-100 px-4 py-3 text-left transition hover:bg-slate-50;
     min-height: 5.25rem;
@@ -323,6 +343,10 @@
 
   .inbox-thread-count {
     @apply mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600;
+  }
+
+  .inbox-thread-damages {
+    @apply mt-1 text-xs font-semibold text-slate-700;
   }
 
   .inbox-detail {
