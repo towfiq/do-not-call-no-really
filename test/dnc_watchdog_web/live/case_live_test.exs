@@ -522,6 +522,41 @@ defmodule DncWatchdogWeb.CaseLiveTest do
       assert html =~ other.company_name
       assert html =~ "Case #{other.id}"
     end
+
+    test "looks up a business phone from incoming calls and opens the state registry", %{
+      conn: conn
+    } do
+      case =
+        case_with_legal_entity_fixture(%{}, %{
+          legal_name: "Pathos Communications",
+          street: "600 West Chicago Ave., Suite 150",
+          city: "Chicago",
+          state: "IL",
+          zip: "60654"
+        })
+
+      communication_fixture(%{
+        case_id: case.id,
+        direction: "incoming",
+        from_number: "3125550199",
+        violation_status: "violation"
+      })
+
+      {:ok, view, html} = live(conn, ~p"/cases/#{case}")
+      assert html =~ "Look up from Secretary of State"
+      assert html =~ "Person authorized to accept service"
+      assert html =~ "Country"
+      assert html =~ "apps.ilsos.gov"
+
+      html = view |> element("button", "Look up from Secretary of State") |> render_click()
+      assert html =~ "3125550199"
+
+      assert_push_event(view, "open_sos_search", %{url: url})
+      assert url =~ "ilsos.gov"
+
+      html = render_async(view)
+      assert html =~ "Opened Illinois Secretary of State"
+    end
   end
 
   defp wait_for_html(view, text, attempts \\ 20) do

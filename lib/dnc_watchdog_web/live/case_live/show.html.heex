@@ -1,49 +1,111 @@
+<div class="mb-4">
+  <.link navigate={~p"/cases"} class="text-sm font-medium text-slate-500 hover:text-slate-800">
+    ← Cases
+  </.link>
+</div>
+
 <.header>
-  Case {@case.id}
-  <:subtitle>Track violations, evidence, legal entity, and letter workflow.</:subtitle>
+  {DncWatchdog.Enforcement.Case.display_name(@case)}
+  <:subtitle>
+    Case {@case.id}
+    <span class="status-pill ml-2">{@case.status}</span>
+    <span class="ml-2 capitalize text-slate-600">
+      {String.replace(@case.workflow_step || "", "_", " ")}
+    </span>
+  </:subtitle>
   <:actions>
     <.button :if={@case.workflow_step != "settled"} phx-click="advance_workflow">
       Advance workflow
     </.button>
+    <.button phx-click="generate_letter" class="btn-secondary">
+      Generate letter draft
+    </.button>
     <.button
       :if={@case.workflow_step != "settled"}
       phx-click="mark_settled"
+      class="btn-quiet"
       data-confirm="Mark this case as settled? Use this when the defendant paid before trial."
     >
       Mark as settled
     </.button>
-    <.button phx-click="generate_letter">Generate letter draft</.button>
-    <.button phx-click="generate_court_filing">Generate small claims filing</.button>
-    <.button phx-click="generate_civil_complaint">Generate civil complaint</.button>
-    <.link patch={~p"/cases/#{@case}/show/edit"} phx-click={JS.push_focus()}>
-      <.button>Edit case</.button>
+    <.button phx-click="generate_court_filing" class="btn-quiet">
+      Generate small claims filing
+    </.button>
+    <.button phx-click="generate_civil_complaint" class="btn-quiet">
+      Generate civil complaint
+    </.button>
+    <.link patch={~p"/cases/#{@case}/show/edit"} phx-click={JS.push_focus()} class="btn-quiet">
+      Edit case
     </.link>
   </:actions>
 </.header>
 
-<div class="mt-4 grid gap-4 lg:grid-cols-2">
-  <.list>
-    <:item title="Defendant">{DncWatchdog.Enforcement.Case.display_name(@case)}</:item>
-    <:item
-      :if={DncWatchdog.Enforcement.Case.display_name(@case) != @case.company_name}
-      title="Import label"
-    >
-      {@case.company_name}
-    </:item>
-    <:item title="Status">{@case.status}</:item>
-    <:item title="Workflow step">{@case.workflow_step}</:item>
-    <:item title="Claimant">{@case.claimant_name || "—"} ({@case.claimant_phone || "—"})</:item>
-    <:item title="Claimant address">{@case.claimant_address || "—"}</:item>
-    <:item title="Claimant email">{@case.claimant_email || "—"}</:item>
-    <:item title="DNC registration date">{@case.dnc_registration_date || "—"}</:item>
-    <:item title="STOP contact date">{@case.stop_contact_date || "—"}</:item>
-    <:item title="Small claims county">{@case.small_claims_county || "—"}</:item>
-    <:item title="Settlement offer">{@case.settlement_amount || "Full statutory total"}</:item>
-    <:item title="Relief per violation">
-      {@case.relief_amount_per_violation || "500.00 (default)"}
-    </:item>
-    <:item title="Notes">{@case.notes}</:item>
-  </.list>
+<div class="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(16rem,0.8fr)]">
+  <section class="content-card">
+    <div class="content-card-header">
+      <div>
+        <h2 class="content-card-title">Posted on this case</h2>
+        <p class="content-card-subtitle">
+          The facts already saved for letters and filings. Edit case only to change them.
+        </p>
+      </div>
+    </div>
+    <div class="content-card-body">
+      <div class="fact-grid">
+        <div class="fact">
+          <p class="fact-label">Defendant</p>
+          <p class="fact-value">{DncWatchdog.Enforcement.Case.display_name(@case)}</p>
+        </div>
+        <div
+          :if={DncWatchdog.Enforcement.Case.display_name(@case) != @case.company_name}
+          class="fact"
+        >
+          <p class="fact-label">Import label</p>
+          <p class="fact-value">{@case.company_name}</p>
+        </div>
+        <div class="fact">
+          <p class="fact-label">You</p>
+          <p class="fact-value">{@claimant.name}</p>
+        </div>
+        <div class="fact">
+          <p class="fact-label">Phone</p>
+          <p class="fact-value">{@claimant.phone}</p>
+        </div>
+        <div class="fact">
+          <p class="fact-label">Email</p>
+          <p class="fact-value">{@claimant.email}</p>
+        </div>
+        <div class="fact">
+          <p class="fact-label">Mailing address</p>
+          <p class="fact-value whitespace-pre-line">{@claimant.address}</p>
+        </div>
+        <div class="fact">
+          <p class="fact-label">DNC registration</p>
+          <p class="fact-value">{@claimant.dnc_registration_date}</p>
+        </div>
+        <div class="fact">
+          <p class="fact-label">STOP date</p>
+          <p class="fact-value">{@case.stop_contact_date || "Not recorded"}</p>
+        </div>
+        <div class="fact">
+          <p class="fact-label">County</p>
+          <p class="fact-value">{@claimant.county}</p>
+        </div>
+        <div class="fact">
+          <p class="fact-label">Settlement offer</p>
+          <p class="fact-value">{@case.settlement_amount || "Full statutory total"}</p>
+        </div>
+        <div class="fact">
+          <p class="fact-label">Relief per violation</p>
+          <p class="fact-value">{@case.relief_amount_per_violation || "500.00 (default)"}</p>
+        </div>
+        <div class="fact">
+          <p class="fact-label">Notes</p>
+          <p class="fact-value">{@case.notes || "—"}</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <div class="content-card">
     <div class="content-card-header">
@@ -248,6 +310,67 @@
     </div>
     <pre class="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-xs">{@case.civil_complaint_draft}</pre>
   <% end %>
+</div>
+
+<div class="mt-8 rounded-lg border border-zinc-200 p-4">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h3 class="text-base font-semibold">E-file with Odyssey eFileCA</h3>
+      <p class="mt-1 text-sm text-zinc-600">
+        Odyssey eFileCA is the official Santa Clara portal: court fees plus the statewide technology fee, with no extra provider markup.
+        The Chrome or Safari helper fills location, parties, and filing description, attaches the filled court forms, then stops at review so you submit yourself.
+      </p>
+      <p :if={@usps_helper_available} class="mt-1 text-sm font-medium text-emerald-700">
+        Browser helper connected
+      </p>
+    </div>
+    <.button type="button" phx-click="open_efile_helper">
+      Fill eFileCA form
+    </.button>
+  </div>
+  <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-600">
+    <li>Register as <strong>Individual</strong> if you do not already have an Odyssey login.</li>
+    <li>Add a payment account in Odyssey before the first filing.</li>
+    <li>
+      Generate the small-claims or civil packet first so the narrative and exhibits ride behind the official forms.
+    </li>
+  </ul>
+
+  <div class="mt-4 border-t border-zinc-200 pt-4">
+    <h4 class="text-sm font-semibold">Official court forms for this venue</h4>
+    <p class="mt-1 text-sm text-zinc-600">
+      Filled from this case: {@filing_limits.recommended_venue_label}.
+    </p>
+    <ul class="mt-2 space-y-1 text-sm">
+      <li :for={form <- @official_forms} class="flex flex-wrap items-center gap-2">
+        <%= if form.available? do %>
+          <.link
+            href={~p"/cases/#{@case}/forms/#{form.filename}"}
+            class="font-medium text-zinc-900 underline"
+          >
+            {form.code}
+          </.link>
+        <% else %>
+          <span class="font-medium text-zinc-500">{form.code}</span>
+        <% end %>
+        <span class="text-zinc-600">{form.title}</span>
+        <span :if={form.lead?} class="rounded bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-700">
+          lead document
+        </span>
+        <span :if={!form.available?} class="text-xs text-amber-700">
+          blank form missing — run <code>mix dnc.setup_forms</code>
+        </span>
+      </li>
+      <li :if={@official_forms == []} class="text-zinc-600">
+        Mark violations to pick the filing venue and forms.
+      </li>
+    </ul>
+    <div :if={@official_forms != []} class="mt-3">
+      <.link href={~p"/cases/#{@case}/filing_packet.pdf"} class="inline-flex">
+        <.button>Download filled filing packet</.button>
+      </.link>
+    </div>
+  </div>
 </div>
 
 <div class="mt-8 rounded-lg border border-zinc-200 p-4">
@@ -481,8 +604,6 @@
     />
   <% end %>
 </div>
-
-<.back navigate={~p"/cases"}>Back to cases</.back>
 
 <.modal :if={@live_action == :edit} id="case-modal" show on_cancel={JS.patch(~p"/cases/#{@case}")}>
   <.live_component

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "DNC Watchdog USPS Helper",
-  "version": "1.0.3",
-  "description": "Sends USPS tracking status from your real browser to the local DNC Watchdog app.",
+  "name": "DNC Watchdog Helper",
+  "version": "1.3.0",
+  "description": "Fills Odyssey eFileCA from a DNC Watchdog case (stops before submit) and sends USPS tracking pages back to the local app.",
   "icons": {
     "16": "icon16.png",
     "32": "icon32.png",
@@ -14,7 +14,9 @@
     "http://127.0.0.1:4000/*",
     "http://localhost:4000/*",
     "https://tools.usps.com/*",
-    "https://www.usps.com/*"
+    "https://www.usps.com/*",
+    "https://california.tylertech.cloud/*",
+    "https://california.tylerhost.net/*"
   ],
   "browser_specific_settings": {
     "safari": {
@@ -32,6 +34,15 @@
       ],
       "js": ["content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://california.tylertech.cloud/*",
+        "https://california.tylerhost.net/*"
+      ],
+      "js": ["efile_fill.js"],
+      "run_at": "document_idle",
+      "all_frames": true
     },
     {
       "matches": [

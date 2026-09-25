@@ -1,6 +1,11 @@
 const ext = globalThis.browser ?? globalThis.chrome;
 const DEFAULT_ORIGIN = "http://127.0.0.1:4000";
 const USPS_TAB_QUERY = ["https://tools.usps.com/*", "https://www.usps.com/*"];
+const EFILE_TAB_QUERY = [
+  "https://california.tylertech.cloud/*",
+  "https://california.tylerhost.net/*"
+];
+const DEFAULT_EFILE_URL = "https://california.tylertech.cloud/OfsEfsp/ui/landing";
 
 ext.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "setAppOrigin" && typeof message.origin === "string") {
@@ -18,6 +23,20 @@ ext.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   if (message?.type === "captureTracking") {
     captureTracking(message)
+      .then((result) => sendResponse(result))
+      .catch((error) => sendResponse({ok: false, error: String(error)}));
+    return true;
+  }
+
+  if (message?.type === "fetchDocument") {
+    fetchDocument(message.url)
+      .then((result) => sendResponse(result))
+      .catch((error) => sendResponse({ok: false, error: String(error)}));
+    return true;
+  }
+
+  if (message?.type === "fillEfile") {
+    fillEfile(message)
       .then((result) => sendResponse(result))
       .catch((error) => sendResponse({ok: false, error: String(error)}));
     return true;
@@ -119,6 +138,79 @@ async function postStatus(payload) {
   }
 
   return {ok: false, error: lastError};
+}
+
+async function fillEfile({case_id, portal_url}) {
+  const origin = await appOrigin();
+  const response = await fetch(`${origin}/api/cases/${case_id}/efile_helper`);
+  if (!response.ok) {
+    throw new Error(`Could not load e-file payload (${response.status})`);
+  }
+  const payload = await response.json();
+  const url = portal_url || payload.portal_url || DEFAULT_EFILE_URL;
+  const tab = await findOrOpenEfileTab(url);
+  await waitForTabLoad(tab.id);
+  if (!(await askTabToFill(tab.id, payload))) {
+    return {ok: false, error: "the filler never loaded on the eFileCA tab"};
+  }
+  return {ok: true, tabId: tab.id};
+}
+
+async function fetchDocument(url) {
+  // The content script cannot reach the local app directly, but the worker has
+  // host permission for it, so PDFs are fetched here and passed on as base64.
+  const response = await fetch(url);
+  if (!response.ok) {
+    return {ok: false, error: `Could not download document (${response.status})`};
+  }
+
+  const buffer = await response.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 8192) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+  }
+
+  return {ok: true, base64: btoa(binary), contentType: response.headers.get("content-type")};
+}
+
+async function findOrOpenEfileTab(url) {
+  const tabs = await ext.tabs.query({url: EFILE_TAB_QUERY});
+  const match = tabs.find((tab) => tab.url && /tylertech\.cloud|tylerhost\.net/.test(tab.url));
+
+  if (match) {
+    await ext.tabs.update(match.id, {active: true});
+    return match;
+  }
+
+  return ext.tabs.create({url, active: true});
+}
+
+async function askTabToFill(tabId, payload) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    try {
+      await ext.tabs.sendMessage(tabId, {type: "efilePayload", payload});
+      return true;
+    } catch (_err) {
+      if (attempt === 0 || attempt === 4 || attempt === 8) {
+        try {
+          await ext.scripting.executeScript({
+            target: {tabId, allFrames: true},
+            files: ["efile_fill.js"]
+          });
+        } catch (_injectErr) {
+          try {
+            await ext.scripting.executeScript({
+              target: {tabId},
+              files: ["efile_fill.js"]
+            });
+          } catch (_retryErr) {}
+        }
+      }
+      await sleep(500);
+    }
+  }
+  return false;
 }
 
 async function appOrigin() {

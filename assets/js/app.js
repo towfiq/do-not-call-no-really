@@ -36,9 +36,29 @@ const UspsHelper = {
       )
       window.open(url, "dnc-usps-tracking")
     })
+
+    this.handleEvent("open_sos_search", ({url}) => {
+      if (url) window.open(url, "dnc-sos-search")
+    })
+
+    this._onHelperError = (event) =>
+      this.pushEvent("efile_helper_error", {message: String(event.detail || "")})
+    window.addEventListener("dnc-efile-helper-error", this._onHelperError)
+
+    this.handleEvent("open_efile_helper", ({case_id, portal_url}) => {
+      window.dispatchEvent(
+        new CustomEvent("dnc-efile-helper-open", {
+          detail: {case_id, portal_url}
+        })
+      )
+      // Open the portal either way: if the helper is wedged, the tab still
+      // appears instead of the click looking like it did nothing.
+      window.open(portal_url, "dnc-efileca")
+    })
   },
   destroyed() {
     window.removeEventListener("dnc-usps-helper-ready", this._onHelperReady)
+    window.removeEventListener("dnc-efile-helper-error", this._onHelperError)
   }
 }
 

@@ -26,7 +26,14 @@ defmodule DncWatchdog.Enforcement.CourtFilingDraftTest do
         street: "123 Main St",
         city: "San Francisco",
         state: "CA",
-        zip: "94105"
+        zip: "94105",
+        phone: "4155550000",
+        agent_name: "Pat Agent",
+        agent_title: "Chief Executive Officer",
+        agent_street: "123 Main St",
+        agent_city: "San Francisco",
+        agent_state: "CA",
+        agent_zip: "94105"
       })
 
     comm =
@@ -52,6 +59,10 @@ defmodule DncWatchdog.Enforcement.CourtFilingDraftTest do
     assert body =~ "Jane Doe"
     assert body =~ "Acme Robocallers LLC"
     assert body =~ "123 Main St"
+    assert body =~ "(415) 555-0000"
+    assert body =~ "Pat Agent"
+    assert body =~ "Chief Executive Officer"
+    assert body =~ "PERSON OR AGENT AUTHORIZED FOR SERVICE OF PROCESS"
     assert body =~ "PLAINTIFF'S CLAIM AND STATEMENT OF FACTS"
     assert body =~ "DECLARATION IN SUPPORT OF CLAIM"
     assert body =~ "DAMAGES WORKSHEET"

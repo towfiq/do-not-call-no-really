@@ -443,15 +443,7 @@ defmodule DncWatchdog.Enforcement.CivilComplaintDraft do
   defp defendant_name(_, %Case{company_name: name}) when name not in [nil, ""], do: name
   defp defendant_name(_, _), do: "[Defendant Name]"
 
-  defp defendant_address(%LegalEntity{} = entity) do
-    city_state_zip =
-      [entity.city, entity.state, entity.zip]
-      |> Enum.reject(&(&1 in [nil, ""]))
-      |> Enum.join(", ")
-
-    [entity.street, city_state_zip]
-    |> Enum.reject(&(&1 in [nil, ""]))
-  end
+  defp defendant_address(%LegalEntity{} = entity), do: LegalEntity.address_lines(entity)
 
   defp defendant_address(_), do: ["[Defendant Street Address]", "[City, State Zip]"]
 

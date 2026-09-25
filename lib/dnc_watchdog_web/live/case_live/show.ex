@@ -5,12 +5,14 @@ defmodule DncWatchdogWeb.CaseLive.Show do
 
   alias DncWatchdog.Enforcement
   alias DncWatchdog.Enforcement.Case
+  alias DncWatchdog.Enforcement.ClaimantProfile
   alias DncWatchdog.Enforcement.Workflow
   alias DncWatchdog.Enforcement.Damages
   alias DncWatchdog.Enforcement.EvidenceStorage
   alias DncWatchdog.Enforcement.FilingLimits
   alias DncWatchdog.Enforcement.UspsTracking
   alias DncWatchdog.Enforcement.UspsBrowserHelper
+  alias DncWatchdog.Enforcement.EfilePayload
   alias DncWatchdogWeb.MailTrackingComponents
 
   @helper_timeout_ms :timer.seconds(120)
@@ -388,6 +390,35 @@ defmodule DncWatchdogWeb.CaseLive.Show do
     {:noreply, assign(socket, :usps_helper_available, available)}
   end
 
+  def handle_event("open_efile_helper", _, socket) do
+    {:noreply,
+     socket
+     |> push_event("open_efile_helper", %{
+       case_id: socket.assigns.case.id,
+       portal_url: EfilePayload.portal_url()
+     })
+     |> put_flash(
+       :info,
+       if(socket.assigns.usps_helper_available,
+         do:
+           "Opening Odyssey eFileCA. Sign in if needed; the helper fills through review and will not submit.",
+         else:
+           "Opened Odyssey eFileCA. Install/reload the Chrome helper on Settings to auto-fill the form."
+       )
+     )}
+  end
+
+  def handle_event("efile_helper_error", %{"message" => message}, socket) do
+    Logger.warning("eFileCA helper failed: #{message}")
+
+    {:noreply,
+     put_flash(
+       socket,
+       :error,
+       "Browser helper could not fill eFileCA: #{message}. Fill the wizard yourself, or reload the helper on Settings."
+     )}
+  end
+
   def handle_event("dismiss_mail_tracking_progress", _, socket) do
     {:noreply, assign(socket, :mail_tracking_progress, nil)}
   end
@@ -725,7 +756,12 @@ defmodule DncWatchdogWeb.CaseLive.Show do
     {:noreply,
      socket
      |> assign(:case, case)
+     |> assign(:claimant, posted_claimant(case))
      |> assign(:requirements, Enforcement.workflow_requirements(case))}
+  end
+
+  def handle_info({:lookup_flash, kind, message}, socket) do
+    {:noreply, put_flash(socket, kind, message)}
   end
 
   defp load_case(socket, id) do
@@ -735,9 +771,11 @@ defmodule DncWatchdogWeb.CaseLive.Show do
     |> subscribe_mail_tracking(case_record.id)
     |> assign(:page_title, page_title(socket.assigns.live_action))
     |> assign(:case, case_record)
+    |> assign(:claimant, posted_claimant(case_record))
     |> assign_new(:mail_tracking_refreshing, fn -> false end)
     |> assign_new(:mail_tracking_progress, fn -> nil end)
     |> assign(:filing_limits, Enforcement.assess_case_filing_limits(case_record))
+    |> assign(:official_forms, Enforcement.official_filing_forms(case_record))
     |> assign(:court_filed_venues, Case.court_filed_venues())
     |> assign(:linked_cases, Enforcement.list_linked_cases(case_record))
     |> assign_link_case_search("", [])
@@ -791,6 +829,31 @@ defmodule DncWatchdogWeb.CaseLive.Show do
 
   defp link_case_search_query(params) when is_map(params) do
     params["query"] || params["value"] || ""
+  end
+
+  defp posted_claimant(case_record) do
+    profile = Enforcement.get_claimant_profile()
+
+    %{
+      name: ClaimantProfile.resolve(:name, nil, case_record.claimant_name, profile),
+      phone: ClaimantProfile.resolve(:phone, nil, case_record.claimant_phone, profile),
+      email: ClaimantProfile.resolve(:email, nil, case_record.claimant_email, profile),
+      address: ClaimantProfile.resolve(:address, nil, case_record.claimant_address, profile),
+      dnc_registration_date:
+        ClaimantProfile.resolve(
+          :dnc_registration_date,
+          nil,
+          case_record.dnc_registration_date,
+          profile
+        ),
+      county:
+        ClaimantProfile.resolve(
+          :small_claims_county,
+          nil,
+          case_record.small_claims_county,
+          profile
+        )
+    }
   end
 
   defp page_title(:show), do: "Show Case"

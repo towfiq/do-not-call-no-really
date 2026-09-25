@@ -8,6 +8,7 @@ Phoenix + SQLite app for tracking unsolicited call/text evidence as workflow-dri
 - Mark communications as **violations** or **not a violation**; hide non-violations by default
 - Legal entity + mailing address per case, evidence screenshot uploads, certified-mail letter drafts with relief demand
 - Santa Clara County small-claims and civil complaint filing drafts with California filing-limit tracking ($12,500 cap, 2/year over $2,500)
+- Filled official Judicial Council of California forms (SC-100 for small claims; SUM-100 and CM-010 for civil), attached automatically by the Chrome/Safari helper on Odyssey eFileCA up to the Service step
 - Case detail view with workflow checklist and one-click advancement (gated on evidence requirements)
 - Import mix task for normalized communication CSV files
 - Local macOS import from Messages `chat.db` and Call History SQLite
@@ -38,6 +39,16 @@ mix phx.server
 ```
 
 3. Open [http://localhost:4000](http://localhost:4000)
+
+4. To fill official court forms, install the PDF form filler once:
+
+```bash
+mix dnc.setup_forms
+```
+
+This creates `priv/form_filler/.venv` (Python + pypdf) and downloads any missing blank
+Judicial Council of California forms into `priv/judicial_forms`. Without it the app still generates the
+narrative drafts, but the case page will say the form filler is missing.
 
 ## Triage violations in the UI
 
@@ -174,7 +185,32 @@ mix dnc.export_filings output/filings --pdf
 
 From the web UI, open a case and click **Generate court filing**, then **Download filing PDF with exhibits**.
 
-Review all generated filings before submitting to the court. Complete official form SC-100 from [courts.ca.gov](https://courts.ca.gov/find-court-forms).
+To e-file in Santa Clara County, use **Odyssey eFileCA** (the official portal — no extra provider fee). On a case, click **Fill eFileCA form**. The Chrome or Safari helper opens [california.tylertech.cloud](https://california.tylertech.cloud/OfsEfsp/ui/landing) and walks the wizard: Start Filing on the dashboard, then Start New Case, then Case Information, Parties, and Filings. Each court form becomes its own filing with its own filing code, since eFileCA allows one lead document per filing. The helper stops at Service so you review, submit, and pay yourself.
+
+The helper drives Tyler's Forge web components: dropdowns are autocompletes that only
+open on focus plus ArrowDown, and the upload control hides its file input in a shadow
+root. If the portal's markup changes, the helper says so in its panel and in a flash
+message on the case page rather than failing silently.
+
+Chrome loads `priv/chrome_extension` unpacked — after editing it, hit Reload on
+`chrome://extensions`. Safari needs a build, and it loads the copy in `/Applications`
+rather than Xcode's build output, so install with:
+
+```bash
+mix dnc.build_safari_helper
+```
+
+The app is ad-hoc signed, so Safari only loads it after **Develop → Allow Unsigned
+Extensions** — which Safari forgets every time it quits. Grant the extension access to
+both `california.tylertech.cloud` and `localhost`; it needs both to copy case data into
+the portal.
+
+The forms follow the recommended venue: small claims files **SC-100**, civil files the complaint
+with **SUM-100** and **CM-010** behind it. Download them individually from the case page, or take
+the whole thing as one PDF with **Download filled filing packet**.
+
+Review all generated filings before submitting to the court. Blank forms come from
+[courts.ca.gov](https://courts.ca.gov/find-court-forms) and are refreshed by `mix dnc.setup_forms`.
 
 ## Export civil complaint drafts
 

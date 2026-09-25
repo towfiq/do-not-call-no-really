@@ -34,6 +34,8 @@ defmodule DncWatchdogWeb.Router do
     get "/cases/:id/letter.pdf", CaseController, :letter_pdf
     get "/cases/:id/court_filing.pdf", CaseController, :court_filing_pdf
     get "/cases/:id/civil_complaint.pdf", CaseController, :civil_complaint_pdf
+    get "/cases/:id/filing_packet.pdf", CaseController, :filing_packet_pdf
+    get "/cases/:id/forms/:code", CaseController, :official_form_pdf
   end
 
   scope "/api", DncWatchdogWeb do
@@ -41,6 +43,8 @@ defmodule DncWatchdogWeb.Router do
 
     options "/usps_helper", UspsHelperController, :options
     post "/usps_helper", UspsHelperController, :create
+    options "/cases/:id/efile_helper", EfileHelperController, :options
+    get "/cases/:id/efile_helper", EfileHelperController, :show
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

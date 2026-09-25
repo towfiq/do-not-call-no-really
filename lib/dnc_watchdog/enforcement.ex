@@ -16,10 +16,14 @@ defmodule DncWatchdog.Enforcement do
   alias DncWatchdog.Enforcement.EvidenceAttachment
   alias DncWatchdog.Enforcement.EvidenceStorage
   alias DncWatchdog.Enforcement.LegalEntity
+  alias DncWatchdog.Enforcement.SosLookup
   alias DncWatchdog.Enforcement.LetterDraft
   alias DncWatchdog.Enforcement.CourtFilingDraft
   alias DncWatchdog.Enforcement.CivilComplaintDraft
+  alias DncWatchdog.Enforcement.EfilePayload
   alias DncWatchdog.Enforcement.FilingLimits
+  alias DncWatchdog.Enforcement.OfficialForms
+  alias DncWatchdog.Enforcement.PdfForms
   alias DncWatchdog.Enforcement.Local.MeCard
   alias DncWatchdog.Enforcement.UspsTracking
   alias DncWatchdog.Enforcement.UspsBrowserHelper
@@ -766,6 +770,68 @@ defmodule DncWatchdog.Enforcement do
     end
   end
 
+  @doc """
+  Most common incoming caller phone for this case, for SC-100's defendant phone.
+  """
+  def suggested_business_phone(%Case{} = case) do
+    ids = CaseGroups.case_ids_for_group(case.id)
+
+    from(c in Communication,
+      where: c.case_id in ^ids and c.direction == "incoming" and not is_nil(c.from_number)
+    )
+    |> Repo.all()
+    |> Enum.map(&Phone.normalize(&1.from_number))
+    |> Enum.reject(fn digits ->
+      digits == "" or String.contains?(digits, "@") or String.length(digits) < 10
+    end)
+    |> Enum.frequencies()
+    |> Enum.max_by(fn {_phone, count} -> count end, fn -> nil end)
+    |> case do
+      {phone, _count} -> phone
+      nil -> nil
+    end
+  end
+
+  @doc """
+  Fills service-of-process and phone fields from the state's business-entity
+  site when possible, and from incoming call numbers otherwise. Does not save.
+  """
+  def preview_legal_entity_lookup(%Case{} = case, opts \\ []) do
+    case = Repo.preload(case, :legal_entity, force: true)
+    entity = case.legal_entity || %LegalEntity{}
+    name = present_text(entity.legal_name) || present_text(case.company_name)
+    state = present_text(entity.state)
+    phone = suggested_business_phone(case)
+    search = SosLookup.search_page(state, name, country: entity.country)
+
+    sos =
+      case SosLookup.lookup(name, state, Keyword.put(opts, :country, entity.country)) do
+        {:ok, attrs} -> attrs
+        {:error, _} -> %{}
+      end
+
+    attrs =
+      SosLookup.merge_into_entity(entity, sos,
+        suggested_phone: phone,
+        legal_name: name
+      )
+
+    found? = present_text(sos["agent_name"] || sos[:agent_name]) != nil
+
+    {:ok, attrs,
+     %{
+       search_url: search.url,
+       registry_name: search.name,
+       found?: found?,
+       phone: present_text(attrs["phone"]),
+       missing_name?: name == nil
+     }}
+  end
+
+  defp present_text(value) when value in [nil, ""], do: nil
+  defp present_text(value) when is_binary(value), do: String.trim(value)
+  defp present_text(value), do: value
+
   def list_case_attachments(case_id) do
     Repo.all(
       from a in EvidenceAttachment,
@@ -875,6 +941,79 @@ defmodule DncWatchdog.Enforcement do
 
       update_case(case, %{civil_complaint_draft: draft})
     end
+  end
+
+  @doc """
+  Official Judicial Council of California forms this case files, in packet order.
+  """
+  def official_filing_forms(%Case{} = case_record) do
+    limits = assess_case_filing_limits(case_record)
+
+    limits.recommended_venue
+    |> OfficialForms.for_venue()
+    |> Enum.map(fn spec ->
+      Map.put(spec, :available?, PdfForms.template_available?(spec.code))
+    end)
+  end
+
+  @doc """
+  Fills one official form for a case and returns the PDF binary.
+  """
+  def official_form_pdf(%Case{} = case_record, code) do
+    case_record = get_case!(case_record.id)
+    violations = list_violation_communications(case_record.id)
+
+    if violations == [] do
+      {:error, :no_violations}
+    else
+      OfficialForms.fill(code, case_record, violations,
+        claimant_profile: get_claimant_profile(),
+        filing_limits: assess_case_filing_limits(case_record)
+      )
+    end
+  end
+
+  @doc """
+  Fills the lead form and appends the generated narrative packet behind it, so the
+  filing is one PDF: official form first, then statement of facts and exhibits.
+  """
+  def official_packet_pdf(%Case{} = case_record, attachment_pdf \\ nil) do
+    case_record = get_case!(case_record.id)
+    violations = list_violation_communications(case_record.id)
+    limits = assess_case_filing_limits(case_record)
+    forms = OfficialForms.for_venue(limits.recommended_venue)
+
+    cond do
+      violations == [] ->
+        {:error, :no_violations}
+
+      forms == [] ->
+        {:error, :no_forms}
+
+      true ->
+        opts = [claimant_profile: get_claimant_profile(), filing_limits: limits]
+
+        form_parts =
+          Enum.map(forms, fn spec ->
+            {:form, spec.code, OfficialForms.fields(spec.code, case_record, violations, opts)}
+          end)
+
+        parts = form_parts ++ List.wrap(attachment_pdf && {:pdf, attachment_pdf})
+        PdfForms.render(parts)
+    end
+  end
+
+  def efile_helper_payload(%Case{} = case_record, opts \\ []) do
+    case_record = get_case!(case_record.id)
+    profile = Keyword.get(opts, :claimant_profile) || get_claimant_profile()
+    origin = Keyword.get(opts, :origin, "")
+    limits = Keyword.get(opts, :filing_limits) || assess_case_filing_limits(case_record)
+
+    EfilePayload.build(case_record,
+      claimant_profile: profile,
+      origin: origin,
+      filing_limits: limits
+    )
   end
 
   def assess_case_filing_limits(%Case{} = case) do

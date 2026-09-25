@@ -9,7 +9,9 @@ defmodule DncWatchdogWeb.CaseLive.FormComponent do
     <div>
       <.header>
         {@title}
-        <:subtitle>Use this form to manage case records in your database.</:subtitle>
+        <:subtitle>
+          Defendant, status, and notes are the case. Your name and address stay on the case page and come from your profile unless you override them here.
+        </:subtitle>
       </.header>
 
       <.simple_form
@@ -19,32 +21,7 @@ defmodule DncWatchdogWeb.CaseLive.FormComponent do
         phx-change="validate"
         phx-submit="save"
       >
-        <.input field={@form[:company_name]} type="text" label="Company name" />
-        <.input field={@form[:claimant_name]} type="text" label="Your name (claimant)" />
-        <.input field={@form[:claimant_address]} type="textarea" label="Your mailing address" />
-        <p class="-mt-2 text-xs text-zinc-500">
-          Leave blank to use your saved profile from <.link
-            navigate={~p"/settings"}
-            class="text-brand hover:underline"
-          >Your profile</.link>.
-        </p>
-        <.input field={@form[:claimant_phone]} type="text" label="Your phone" />
-        <.input field={@form[:claimant_email]} type="email" label="Your email" />
-        <.input field={@form[:dnc_registration_date]} type="date" label="DNC registration date" />
-        <.input field={@form[:stop_contact_date]} type="date" label="Date you said STOP (optional)" />
-        <.input field={@form[:small_claims_county]} type="text" label="Small claims county" />
-        <.input
-          field={@form[:settlement_amount]}
-          type="number"
-          label="Settlement offer ($)"
-          step="0.01"
-        />
-        <.input
-          field={@form[:relief_amount_per_violation]}
-          type="number"
-          label="Relief per violation ($)"
-          step="0.01"
-        />
+        <.input field={@form[:company_name]} type="text" label="Defendant / company name" />
         <.input
           field={@form[:status]}
           type="select"
@@ -58,7 +35,39 @@ defmodule DncWatchdogWeb.CaseLive.FormComponent do
           options={Enforcement.Case.workflow_steps()}
         />
         <.input field={@form[:notes]} type="textarea" label="Notes" />
+        <.input
+          field={@form[:settlement_amount]}
+          type="number"
+          label="Settlement offer ($)"
+          step="0.01"
+        />
+        <.input
+          field={@form[:relief_amount_per_violation]}
+          type="number"
+          label="Relief per violation ($)"
+          step="0.01"
+        />
+        <.input field={@form[:stop_contact_date]} type="date" label="Date you said STOP" />
         <.input field={@form[:letter_draft]} type="textarea" label="Letter draft" />
+
+        <details class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <summary class="cursor-pointer text-sm font-semibold text-slate-800">
+            Override your profile on this case
+          </summary>
+          <p class="mt-2 text-xs text-slate-500">
+            Leave blank to keep
+            <.link navigate={~p"/settings"} class="text-brand hover:underline">your profile</.link>.
+            Saved values appear in Posted on this case.
+          </p>
+          <div class="mt-3 space-y-4">
+            <.input field={@form[:claimant_name]} type="text" label="Your name" />
+            <.input field={@form[:claimant_address]} type="textarea" label="Your mailing address" />
+            <.input field={@form[:claimant_phone]} type="text" label="Your phone" />
+            <.input field={@form[:claimant_email]} type="email" label="Your email" />
+            <.input field={@form[:dnc_registration_date]} type="date" label="DNC registration date" />
+            <.input field={@form[:small_claims_county]} type="text" label="Small claims county" />
+          </div>
+        </details>
         <:actions>
           <.button phx-disable-with="Saving...">Save Case</.button>
         </:actions>

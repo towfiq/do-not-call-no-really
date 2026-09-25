@@ -34,12 +34,16 @@
 
 <div class="content-card mt-6 max-w-2xl">
   <div class="content-card-body">
-    <h2 class="text-lg font-semibold text-zinc-900">USPS Chrome helper</h2>
+    <h2 class="text-lg font-semibold text-zinc-900">Chrome helper (USPS + eFileCA)</h2>
     <p class="mt-2 text-sm text-slate-600">
       USPS tracking pages often never hydrate in headless Chrome, so Refresh status opens
       the same URL in your real browser. This unpacked extension reads the finished page
       and posts it back to this local app. Only a tracking number you just clicked Refresh
-      for is accepted.
+      for is accepted. The same extension also opens
+      <a href="https://california.tylertech.cloud/OfsEfsp/ui/landing" class="text-brand underline">
+        Odyssey eFileCA
+      </a>
+      from a case and fills the new-case wizard up to review. It never clicks Submit.
     </p>
     <ol class="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
       <li>Open <code class="rounded bg-slate-100 px-1">chrome://extensions</code></li>
@@ -51,19 +55,21 @@
     </p>
     <p class="mt-4 text-sm text-slate-600">
       After installing or updating files, click Reload on the extension card, then reload
-      this app. You should see “Browser helper connected” on a case. Click Refresh status;
-      keep the USPS tab open until the helper saves the status.
+      this app. You should see “Browser helper connected” on a case. Click Refresh status
+      for USPS, or Fill eFileCA form on a case; keep the helper tab open until the work
+      finishes. After a reload, Chrome may ask you to allow access to tylertech.cloud —
+      grant it.
     </p>
   </div>
 </div>
 
 <div class="content-card mt-6 max-w-2xl">
   <div class="content-card-body">
-    <h2 class="text-lg font-semibold text-zinc-900">USPS Safari helper</h2>
+    <h2 class="text-lg font-semibold text-zinc-900">Safari helper (USPS + eFileCA)</h2>
     <p class="mt-2 text-sm text-slate-600">
       Safari cannot load an unpacked folder the way Chrome can. Build this small macOS app
-      once in Xcode; it embeds the same helper scripts and posts tracking status back to
-      this local app.
+      once in Xcode; it embeds the same helper scripts for USPS tracking and Odyssey eFileCA
+      form fill, then talks back to this local app.
     </p>
     <ol class="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
       <li>
@@ -80,9 +86,9 @@
         In Safari: Settings → Advanced → Show features for web developers, then Settings →
         Developer → Allow unsigned extensions.
       </li>
-      <li>Settings → Extensions → turn on DNC Watchdog USPS Helper.</li>
+      <li>Settings → Extensions → turn on DNC Watchdog Helper.</li>
       <li>
-        Grant website access to <code class="rounded bg-slate-100 px-1">tools.usps.com</code>, <code class="rounded bg-slate-100 px-1">usps.com</code>, <code class="rounded bg-slate-100 px-1">127.0.0.1</code>, and
+        Grant website access to <code class="rounded bg-slate-100 px-1">tools.usps.com</code>, <code class="rounded bg-slate-100 px-1">usps.com</code>, <code class="rounded bg-slate-100 px-1">california.tylertech.cloud</code>, <code class="rounded bg-slate-100 px-1">127.0.0.1</code>, and
         <code class="rounded bg-slate-100 px-1">localhost</code>
         (or “Allow on every website”).
       </li>

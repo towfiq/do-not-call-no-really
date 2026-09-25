@@ -44,6 +44,20 @@ defmodule DncWatchdog.Enforcement.Phone do
     Enum.any?(lookup_keys(value), &MapSet.member?(phones, &1))
   end
 
+  @doc """
+  Formats a US number for court forms. Leaves emails and odd values alone.
+  """
+  def format(value) do
+    digits = normalize(value)
+
+    if byte_size(digits) == 10 do
+      "(#{String.slice(digits, 0, 3)}) #{String.slice(digits, 3, 3)}-#{String.slice(digits, 6, 4)}"
+    else
+      value = to_string(value || "") |> String.trim()
+      if value == "", do: nil, else: value
+    end
+  end
+
   defp normalize_digits(value) do
     digits = value |> String.to_charlist() |> Enum.filter(&(&1 in ?0..?9)) |> to_string()
 

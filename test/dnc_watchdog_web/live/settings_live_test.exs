@@ -19,7 +19,8 @@ defmodule DncWatchdogWeb.SettingsLiveTest do
 
   test "shows Chrome helper install path", %{conn: conn} do
     {:ok, _view, html} = live(conn, ~p"/settings")
-    assert html =~ "USPS Chrome helper"
+    assert html =~ "Chrome helper"
+    assert html =~ "eFileCA"
     assert html =~ "Load unpacked"
     assert html =~ "chrome_extension"
     assert html =~ "Browser helper connected"
@@ -27,9 +28,11 @@ defmodule DncWatchdogWeb.SettingsLiveTest do
 
   test "shows Safari helper Xcode project", %{conn: conn} do
     {:ok, _view, html} = live(conn, ~p"/settings")
-    assert html =~ "USPS Safari helper"
+    assert html =~ "Safari helper"
+    assert html =~ "eFileCA"
     assert html =~ "safari_extension"
     assert html =~ "DNCWatchdogUspsHelper.xcodeproj"
+    assert html =~ "california.tylertech.cloud"
     assert html =~ "Allow unsigned extensions"
     assert html =~ "Open in Xcode"
   end

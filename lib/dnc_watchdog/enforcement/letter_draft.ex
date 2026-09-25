@@ -142,18 +142,14 @@ defmodule DncWatchdog.Enforcement.LetterDraft do
 
   defp recipient_block(%LegalEntity{} = entity, company_name) do
     attn =
-      case entity.attn do
-        attn when attn not in [nil, ""] -> "#{company_name} / #{attn}"
-        _ -> company_name
+      cond do
+        entity.attn not in [nil, ""] -> "#{company_name} / #{entity.attn}"
+        entity.agent_name not in [nil, ""] -> "#{company_name} / #{entity.agent_name}"
+        true -> company_name
       end
 
-    city_state_zip =
-      [entity.city, entity.state, entity.zip]
-      |> Enum.reject(&(&1 in [nil, ""]))
-      |> Enum.join(", ")
-
     lines =
-      [attn, entity.street, city_state_zip]
+      [attn | LegalEntity.address_lines(entity)]
       |> Enum.reject(&(&1 in [nil, ""]))
 
     Enum.join(lines, "\n")

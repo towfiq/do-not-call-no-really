@@ -13,6 +13,7 @@ defmodule DncWatchdog.Enforcement.CourtFilingDraft do
   alias DncWatchdog.Enforcement.EvidenceAttachment
   alias DncWatchdog.Enforcement.LegalEntity
   alias DncWatchdog.Enforcement.FilingLimits
+  alias DncWatchdog.Enforcement.Phone
 
   @court_name "Superior Court of California, County of Santa Clara"
   @court_division "Small Claims Division"
@@ -100,6 +101,8 @@ defmodule DncWatchdog.Enforcement.CourtFilingDraft do
     entity = case.legal_entity
     defendant_name = defendant_name(entity, case)
     defendant_address = defendant_address(entity)
+    defendant_phone = defendant_phone(entity)
+    service_agent = LegalEntity.service_agent(entity)
 
     sorted_violations = Enum.sort_by(violations, & &1.timestamp, NaiveDateTime)
     total_count = limits.violation_count
@@ -122,6 +125,8 @@ defmodule DncWatchdog.Enforcement.CourtFilingDraft do
       stop_date: stop_date,
       defendant_name: defendant_name,
       defendant_address: defendant_address,
+      defendant_phone: defendant_phone,
+      service_agent: service_agent,
       sorted_violations: sorted_violations,
       total_count: total_count,
       total_statutory: total_statutory,
@@ -219,8 +224,15 @@ defmodule DncWatchdog.Enforcement.CourtFilingDraft do
 
     DEFENDANT (person or company you are suing):
       Name: #{facts.defendant_name}
+      Phone: #{facts.defendant_phone}
       Street address: #{defendant_street(facts.defendant_address)}
       City, State, Zip: #{defendant_city_state_zip(facts.defendant_address)}
+
+    PERSON OR AGENT AUTHORIZED FOR SERVICE OF PROCESS (required when the
+    defendant is a corporation, LLC, or public entity — SC-100 item 2):
+      Name: #{agent_name(facts.service_agent)}
+      Job title: #{agent_title(facts.service_agent)}
+      Address: #{agent_address(facts.service_agent)}
 
     AMOUNT OF CLAIM (Item 5 on SC-100):
       #{format_money(facts.claim_amount)}
@@ -476,6 +488,8 @@ defmodule DncWatchdog.Enforcement.CourtFilingDraft do
 
       Defendant: #{facts.defendant_name}
       Address:   #{single_line_address(facts.defendant_address)}
+      Phone:     #{facts.defendant_phone}
+      Agent:     #{agent_service_line(facts.service_agent)}
 
     - You cannot serve the papers yourself. Use someone 18 or older who is not a party.
     - Complete proof of service (form SC-104 or POS-040) and file it with the court.
@@ -507,15 +521,34 @@ defmodule DncWatchdog.Enforcement.CourtFilingDraft do
   defp defendant_name(_, %Case{company_name: name}) when name not in [nil, ""], do: name
   defp defendant_name(_, _), do: "[Defendant Name]"
 
-  defp defendant_address(%LegalEntity{} = entity) do
-    city_state_zip =
-      [entity.city, entity.state, entity.zip]
-      |> Enum.reject(&(&1 in [nil, ""]))
-      |> Enum.join(", ")
-
-    [entity.street, city_state_zip]
-    |> Enum.reject(&(&1 in [nil, ""]))
+  defp defendant_phone(%LegalEntity{phone: phone}) when phone not in [nil, ""] do
+    Phone.format(phone) || phone
   end
+
+  defp defendant_phone(_), do: "[Defendant Phone]"
+
+  defp agent_name(%{name: name}) when name not in [nil, ""], do: name
+  defp agent_name(_), do: "[Agent Name]"
+
+  defp agent_title(%{title: title}) when title not in [nil, ""], do: title
+  defp agent_title(_), do: "[Job title]"
+
+  defp agent_address(%{address: address}) when address not in [nil, ""] do
+    String.replace(address, "\n", ", ")
+  end
+
+  defp agent_address(_), do: "[Agent Street Address], [City, State Zip]"
+
+  defp agent_service_line(%{name: name} = agent) when name not in [nil, ""] do
+    [name, agent.title, agent_address(agent)]
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.join(" — ")
+  end
+
+  defp agent_service_line(_),
+    do: "[Look up the registered agent on the state's business-entity site]"
+
+  defp defendant_address(%LegalEntity{} = entity), do: LegalEntity.address_lines(entity)
 
   defp defendant_address(_), do: ["[Defendant Street Address]", "[City, State Zip]"]
 

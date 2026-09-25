@@ -26,4 +26,10 @@ defmodule DncWatchdog.Enforcement.PhoneTest do
     assert Phone.contact_member?("+18187432556", phones)
     refute Phone.contact_member?("9999999999", phones)
   end
+
+  test "format/1 pretty-prints 10-digit US numbers" do
+    assert Phone.format("4155550000") == "(415) 555-0000"
+    assert Phone.format("+1 (415) 555-0000") == "(415) 555-0000"
+    assert Phone.format(nil) == nil
+  end
 end
