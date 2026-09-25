@@ -49,9 +49,14 @@ defmodule DncWatchdogWeb.CaseComponents do
     ~H"""
     <form id={@id} phx-submit="apply_filters" class="filter-panel">
       <div class="filter-panel-inner">
-        <p class="filter-panel-title">Filters</p>
-        <div class="mt-2 flex flex-wrap items-end justify-between gap-3">
-          <div class="filter-grid">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="filter-panel-title">What to show</p>
+          <p class="filter-note">
+            Defaults hide excluded senders and known contacts. Change a box, then apply.
+          </p>
+        </div>
+        <div class="mt-3 flex flex-wrap items-end justify-between gap-3">
+          <div class="filter-grid mt-0">
             <label class="filter-checkbox">
               <input type="hidden" name="filters[violations_only]" value="false" />
               <input

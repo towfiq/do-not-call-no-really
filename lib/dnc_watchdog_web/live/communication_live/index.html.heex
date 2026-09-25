@@ -52,7 +52,14 @@
   </:actions>
 </.header>
 
-<div class="space-y-3">
+<div class="mb-4 space-y-3">
+  <div class="command-bar">
+    <.list_search_form
+      id="communications-search"
+      query={@search_query}
+      placeholder="Search phone, message, company, or case number"
+    />
+  </div>
   <.display_filter_form
     id="display-filters"
     violations_only={@violations_only}
@@ -63,11 +70,6 @@
     workflow_phase={@workflow_phase}
     show_workflow={true}
     min_comms={@min_comms}
-  />
-  <.list_search_form
-    id="communications-search"
-    query={@search_query}
-    placeholder="Phone, message text, company, case #…"
   />
 </div>
 
