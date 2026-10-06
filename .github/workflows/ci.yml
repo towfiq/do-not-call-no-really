@@ -33,10 +33,7 @@ jobs:
       - run: mix local.hex --force
       - run: mix local.rebar --force
       - run: mix deps.get
+      # Boundary stays outside quality.check so local runs stay fast.
       - run: mix compile.boundary --warnings-as-errors
-      - run: mix compile --warnings-as-errors
-      - run: mix format --check-formatted
-      - run: mix credo --min-priority high
-      - run: mix sobelow
-      - run: mix deps.audit
-      - run: mix test
+      # Matches `mix quality.check`: compile, format, credo, sobelow, deps.audit, test.
+      - run: mix quality.check
