@@ -105,9 +105,8 @@ defmodule DncWatchdog.Enforcement.Local.CallHistory do
       end
     else
       {:error,
-       MacosPermissions.permission_error(
-         "Call History database not found at #{path}."
-       ) <> " On some macOS versions this database is encrypted."}
+       MacosPermissions.permission_error("Call History database not found at #{path}.") <>
+         " On some macOS versions this database is encrypted."}
     end
   end
 

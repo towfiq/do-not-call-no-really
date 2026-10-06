@@ -55,8 +55,7 @@ defmodule DncWatchdogWeb.CaseLive.FormComponent do
             Override your profile on this case
           </summary>
           <p class="mt-2 text-xs text-slate-500">
-            Leave blank to keep
-            <.link navigate={~p"/settings"} class="text-brand hover:underline">your profile</.link>.
+            Leave blank to keep <.link navigate={~p"/settings"} class="text-brand hover:underline">your profile</.link>.
             Saved values appear in Posted on this case.
           </p>
           <div class="mt-3 space-y-4">

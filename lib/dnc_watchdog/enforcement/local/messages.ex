@@ -43,18 +43,16 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
            end) do
         {:error, {:database_open_failed, reason}} ->
           {:error,
-           MacosPermissions.permission_error(
-             "Could not open Messages DB (permission/lock?)."
-           ) <> " Details: #{inspect(reason)}"}
+           MacosPermissions.permission_error("Could not open Messages DB (permission/lock?).") <>
+             " Details: #{inspect(reason)}"}
 
         other ->
           other
       end
     else
       {:error,
-       MacosPermissions.permission_error(
-         "Messages database not found at #{path}."
-       ) <> " #{MacosPermissions.launch_hint()}"}
+       MacosPermissions.permission_error("Messages database not found at #{path}.") <>
+         " #{MacosPermissions.launch_hint()}"}
     end
   end
 
