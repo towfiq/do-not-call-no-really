@@ -284,7 +284,12 @@ defmodule DncWatchdogWeb.CaseLive.Show do
           |> Enum.map(fn {field, {msg, _}} -> "#{field} #{msg}" end)
           |> Enum.join(", ")
 
-        {:noreply, put_flash(socket, :error, message || "Could not save court filing")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           if(message == "", do: "Could not save court filing", else: message)
+         )}
     end
   end
 
@@ -373,7 +378,12 @@ defmodule DncWatchdogWeb.CaseLive.Show do
           |> Enum.map(fn {field, {msg, _}} -> "#{field} #{msg}" end)
           |> Enum.join(", ")
 
-        {:noreply, put_flash(socket, :error, message || "Could not save tracking number")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           if(message == "", do: "Could not save tracking number", else: message)
+         )}
     end
   end
 

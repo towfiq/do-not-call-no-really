@@ -408,7 +408,7 @@ defmodule DncWatchdog.Enforcement.EfilePayload do
       street_lines != [] ->
         {Enum.join(street_lines, ", "), remainder}
 
-      remainder in [nil, ""] ->
+      remainder == "" ->
         {nil, nil}
 
       String.contains?(remainder, ",") ->

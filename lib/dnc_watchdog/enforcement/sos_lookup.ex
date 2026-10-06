@@ -401,7 +401,7 @@ defmodule DncWatchdog.Enforcement.SosLookup do
   defp lookup_region(state, country) do
     case LegalEntity.normalize_country(country) do
       "US" -> normalize_region(state)
-      other -> normalize_region(other || state)
+      other -> normalize_region(other)
     end
   end
 

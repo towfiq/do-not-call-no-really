@@ -2,6 +2,18 @@ defmodule DncWatchdog.Enforcement.EvidenceAttachment do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @type t :: %__MODULE__{
+          id: integer() | nil,
+          filename: String.t() | nil,
+          content_type: String.t() | nil,
+          storage_path: String.t() | nil,
+          caption: String.t() | nil,
+          case_id: integer() | nil,
+          communication_id: integer() | nil,
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
+
   schema "evidence_attachments" do
     field :filename, :string
     field :content_type, :string

@@ -43,6 +43,7 @@ defmodule DncWatchdog.MixProject do
     [
       preferred_envs: [
         "quality.check": :test,
+        "quality.dialyzer": :test,
         credo: :test,
         dialyzer: :test,
         sobelow: :test,
@@ -136,8 +137,7 @@ defmodule DncWatchdog.MixProject do
         "deps.audit",
         "test"
       ],
-      # Separate from quality.check: the first run builds a PLT, and Dialyzer
-      # still reports existing mismatches in the import and PDF code.
+      # Separate from quality.check: the first run builds a PLT (slow).
       "quality.dialyzer": ["dialyzer --format short"]
     ]
   end

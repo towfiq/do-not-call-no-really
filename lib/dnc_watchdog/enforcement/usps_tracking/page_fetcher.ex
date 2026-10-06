@@ -10,18 +10,16 @@ defmodule DncWatchdog.Enforcement.UspsTracking.PageFetcher do
 
   def fetch(url) when is_binary(url) do
     with :ok <- LetterPdf.ensure_chromic_pdf!() do
+      # ChromicPDF's success typing is `:ok | {:ok, term}` (errors raise).
       case ChromicPDF.run_protocol(FetchPage, fetch_opts(url)) do
         {:ok, page_json} when is_binary(page_json) ->
           {:ok, page_json}
 
-        {:error, reason} ->
-          {:error, {:chromic_pdf, format_reason(reason)}}
-
-        page_json when is_binary(page_json) ->
-          {:ok, page_json}
-
-        other ->
+        {:ok, other} ->
           {:error, {:chromic_pdf, "Unexpected Chrome response: #{inspect(other, limit: 50)}"}}
+
+        :ok ->
+          {:error, {:chromic_pdf, "Chrome returned :ok without page data"}}
       end
     end
   rescue
@@ -47,7 +45,4 @@ defmodule DncWatchdog.Enforcement.UspsTracking.PageFetcher do
       checkout_timeout: @online_timeout
     ]
   end
-
-  defp format_reason(reason) when is_binary(reason), do: reason
-  defp format_reason(reason), do: inspect(reason)
 end

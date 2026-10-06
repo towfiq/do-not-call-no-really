@@ -54,14 +54,18 @@ defmodule DncWatchdog.Enforcement.LetterPdf do
     with :ok <- ensure_chromic_pdf!() do
       html = build_html(letter_body, attachments)
 
+      # ChromicPDF's success typing is `:ok | {:ok, binary}` (errors raise).
       case ChromicPDF.print_to_pdf({:html, html}, print_opts(opts)) do
-        {:ok, base64_pdf} ->
+        {:ok, base64_pdf} when is_binary(base64_pdf) ->
           {:ok, Base.decode64!(base64_pdf)}
 
-        {:error, reason} ->
-          {:error, reason}
+        :ok ->
+          {:error, :chromic_pdf_missing_pdf_data}
       end
     end
+  rescue
+    error ->
+      {:error, Exception.message(error)}
   end
 
   @doc """

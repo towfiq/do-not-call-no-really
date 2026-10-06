@@ -26,6 +26,7 @@ jobs:
           path: |
             deps
             _build
+            priv/plts
           key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-
@@ -37,3 +38,5 @@ jobs:
       - run: mix compile.boundary --warnings-as-errors
       # Matches `mix quality.check`: compile, format, credo, sobelow, deps.audit, test.
       - run: mix quality.check
+      # PLT is cached under priv/plts; first CI run is slower.
+      - run: mix quality.dialyzer

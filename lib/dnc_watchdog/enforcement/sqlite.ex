@@ -146,9 +146,11 @@ defmodule DncWatchdog.Enforcement.Sqlite do
   def cell_to_string(value), do: to_string(value)
 
   defp open_readonly(path, immutable?) do
+    # URI carries mode=ro; do not pass unknown opts (e.g. filename:) — Exqlite's
+    # open/2 only accepts :mode, and Dialyzer treats other keys as a failing call.
     uri = readonly_uri(path, immutable?)
 
-    with {:ok, conn} <- Exqlite.Sqlite3.open(uri, filename: path),
+    with {:ok, conn} <- Exqlite.Sqlite3.open(uri, mode: :readonly),
          :ok <- set_busy_timeout(conn),
          :ok <- enable_query_only!(conn) do
       {:ok, conn}

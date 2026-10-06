@@ -14,6 +14,7 @@ defmodule DncWatchdog.Enforcement.PurgeSelfInitiated do
           total: non_neg_integer(),
           matched: non_neg_integer(),
           deleted: non_neg_integer(),
+          remaining: non_neg_integer(),
           dry_run: boolean()
         }
 
