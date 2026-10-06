@@ -11,6 +11,7 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
   alias DncWatchdog.Enforcement.Local.Messages
   alias DncWatchdog.Enforcement.Local.Paths
   alias DncWatchdog.Enforcement.RowImporter
+  alias DncWatchdog.Enforcement.MacosPermissions
 
   def format_error(reason) when is_binary(reason), do: reason
 
@@ -70,7 +71,7 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
                   {:contacts_loaded, MapSet.size(set.phones), MapSet.size(set.emails), paths},
                   {:contacts_empty,
                    "No contact phones or emails loaded; known contacts will not be filtered. " <>
-                     "Check Full Disk Access and run `mix dnc.check_contact <phone>` to diagnose."}
+                     MacosPermissions.full_disk_access_instructions()}
                 ]
               else
                 [{:contacts_loaded, MapSet.size(set.phones), MapSet.size(set.emails), paths}]

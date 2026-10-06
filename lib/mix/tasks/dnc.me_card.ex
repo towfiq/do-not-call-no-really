@@ -8,6 +8,7 @@ defmodule Mix.Tasks.Dnc.MeCard do
     Mix.Task.run("app.start")
 
     alias DncWatchdog.Enforcement.Local.MeCard
+    alias DncWatchdog.Enforcement.MacosPermissions
 
     case MeCard.read() do
       {:ok, card} ->
@@ -34,7 +35,7 @@ defmodule Mix.Tasks.Dnc.MeCard do
           Mix.shell().error("  #{path}: #{inspect(reason)}")
         end)
 
-        Mix.shell().error("Grant Full Disk Access to Terminal or Cursor and try again.")
+        Mix.shell().error(MacosPermissions.full_disk_access_instructions())
     end
   end
 end

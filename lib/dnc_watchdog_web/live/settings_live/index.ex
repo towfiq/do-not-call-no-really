@@ -2,6 +2,7 @@ defmodule DncWatchdogWeb.SettingsLive.Index do
   use DncWatchdogWeb, :live_view
 
   alias DncWatchdog.Enforcement
+  alias DncWatchdog.Enforcement.MacosPermissions
 
   @impl true
   def mount(_params, _session, socket) do
@@ -62,7 +63,7 @@ defmodule DncWatchdogWeb.SettingsLive.Index do
          put_flash(
            socket,
            :error,
-           "Could not read Contacts. Grant Full Disk Access to Terminal or Cursor, then try again."
+           MacosPermissions.permission_error("Could not read Contacts.")
          )}
     end
   end

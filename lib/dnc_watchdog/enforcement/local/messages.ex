@@ -7,6 +7,7 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
   alias DncWatchdog.Enforcement.Local.Lookback
   alias DncWatchdog.Enforcement.Phone
   alias DncWatchdog.Enforcement.Sqlite
+  alias DncWatchdog.Enforcement.MacosPermissions
 
   @apple_epoch_seconds 978_307_200
 
@@ -42,14 +43,18 @@ defmodule DncWatchdog.Enforcement.Local.Messages do
            end) do
         {:error, {:database_open_failed, reason}} ->
           {:error,
-           "Could not open Messages DB (permission/lock?). Grant Full Disk Access. Details: #{inspect(reason)}"}
+           MacosPermissions.permission_error(
+             "Could not open Messages DB (permission/lock?)."
+           ) <> " Details: #{inspect(reason)}"}
 
         other ->
           other
       end
     else
       {:error,
-       "Messages database not found at #{path}. Grant Full Disk Access to Terminal/Cursor in System Settings → Privacy & Security."}
+       MacosPermissions.permission_error(
+         "Messages database not found at #{path}."
+       ) <> " #{MacosPermissions.launch_hint()}"}
     end
   end
 

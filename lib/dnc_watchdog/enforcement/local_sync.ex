@@ -16,6 +16,7 @@ defmodule DncWatchdog.Enforcement.LocalSync do
   alias DncWatchdog.Enforcement.LocalImportOptions
   alias DncWatchdog.Enforcement.LocalImporter
   alias DncWatchdog.Enforcement.LocalImportSync
+  alias DncWatchdog.Enforcement.MacosPermissions
   alias DncWatchdog.Repo
 
   # 3 days — Continuity SMS and Call History can lag well behind the event time.
@@ -258,7 +259,7 @@ defmodule DncWatchdog.Enforcement.LocalSync do
         parts ++ ["Contacts unavailable — known senders may have been imported"]
 
       Enum.any?(logs, &match?({:contacts_empty, _}, &1)) ->
-        parts ++ ["No contacts loaded — check Full Disk Access for this app"]
+        parts ++ ["No contacts loaded — #{MacosPermissions.full_disk_access_instructions()}"]
 
       true ->
         parts

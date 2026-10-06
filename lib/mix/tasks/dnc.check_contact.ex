@@ -18,6 +18,7 @@ defmodule Mix.Tasks.Dnc.CheckContact do
     alias DncWatchdog.Enforcement.Local.Contacts
     alias DncWatchdog.Enforcement.Local.Paths
     alias DncWatchdog.Enforcement.Phone
+    alias DncWatchdog.Enforcement.MacosPermissions
 
     discovered = Paths.discover_contacts_dbs()
 
@@ -33,9 +34,8 @@ defmodule Mix.Tasks.Dnc.CheckContact do
 
       Mix.shell().error("Expected AddressBook-v22.abcddb (root or Sources/*/).")
 
-      Mix.shell().error(
-        "Grant Full Disk Access to Terminal/Cursor, or pass --contacts-db explicitly."
-      )
+      Mix.shell().error(MacosPermissions.full_disk_access_instructions())
+      Mix.shell().error("Or pass --contacts-db explicitly.")
 
       exit({:shutdown, 1})
     end

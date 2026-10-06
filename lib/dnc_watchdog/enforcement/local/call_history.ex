@@ -7,6 +7,7 @@ defmodule DncWatchdog.Enforcement.Local.CallHistory do
   alias DncWatchdog.Enforcement.Local.Paths
   alias DncWatchdog.Enforcement.Phone
   alias DncWatchdog.Enforcement.Sqlite
+  alias DncWatchdog.Enforcement.MacosPermissions
 
   @apple_epoch_seconds 978_307_200
 
@@ -95,14 +96,18 @@ defmodule DncWatchdog.Enforcement.Local.CallHistory do
            ) do
         {:error, {:database_open_failed, reason}} ->
           {:error,
-           "Could not open Call History DB (permission/encryption/lock?). Details: #{inspect(reason)}"}
+           MacosPermissions.permission_error(
+             "Could not open Call History DB (permission/encryption/lock?)."
+           ) <> " Details: #{inspect(reason)}"}
 
         other ->
           other
       end
     else
       {:error,
-       "Call History database not found at #{path}. Grant Full Disk Access to Terminal/Cursor. On some macOS versions this database is encrypted."}
+       MacosPermissions.permission_error(
+         "Call History database not found at #{path}."
+       ) <> " On some macOS versions this database is encrypted."}
     end
   end
 

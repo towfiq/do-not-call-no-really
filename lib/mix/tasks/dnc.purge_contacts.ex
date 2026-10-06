@@ -9,6 +9,8 @@ defmodule Mix.Tasks.Dnc.PurgeContacts do
   def run(argv) do
     Mix.Task.run("app.start")
 
+    alias DncWatchdog.Enforcement.MacosPermissions
+
     {opts, [], []} = OptionParser.parse(argv, switches: @switches)
     dry_run? = Keyword.get(opts, :dry_run, false)
 
@@ -39,7 +41,7 @@ defmodule Mix.Tasks.Dnc.PurgeContacts do
           Mix.shell().error("  #{path}: #{inspect(reason)}")
         end)
 
-        Mix.shell().error("Grant Full Disk Access to Terminal or Cursor and try again.")
+        Mix.shell().error(MacosPermissions.full_disk_access_instructions())
         System.halt(1)
 
       {:ok, summary} ->

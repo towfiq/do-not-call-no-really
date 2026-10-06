@@ -1,0 +1,14 @@
+#!/bin/bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
+cd "$ROOT"
+
+export PORT="${PORT:-4001}"
+
+if ! command -v mix >/dev/null 2>&1; then
+  osascript -e 'display alert "Dnc Watchdog" message "Elixir mix was not found on PATH. Install Elixir or add it to PATH, then try again."'
+  exit 1
+fi
+
+exec mix phx.server

@@ -32,13 +32,21 @@ mix dnc.import_from_postgres
 
 Uses `PGHOST`, `PGUSER`, `PGPASSWORD`, and `PGDATABASE` (defaults: `localhost`, `postgres`, `postgres`, `dnc_watchdog_dev`).
 
-2. Start Phoenix:
+2. Start Phoenix (macOS — recommended):
+
+```bash
+open macos/DncWatchdog.app
+```
+
+This launches the server as **Dnc Watchdog**, which is the app that needs Full Disk Access for Messages, Call History, and Contacts import. The app opens at [http://localhost:4001](http://localhost:4001) by default (`PORT=4001`).
+
+Alternatively, from a shell:
 
 ```bash
 mix phx.server
 ```
 
-3. Open [http://localhost:4000](http://localhost:4000)
+3. Open [http://localhost:4000](http://localhost:4000) (or the port you configured)
 
 4. To fill official court forms, install the PDF form filler once:
 
@@ -67,7 +75,7 @@ Reads SQLite databases directly (schema may vary by macOS version; adjust querie
 - Messages: `~/Library/Messages/chat.db`
 - Call History: `~/Library/Application Support/CallHistoryDB/CallHistory.storedata`
 
-Your terminal (or Cursor) needs **Full Disk Access** in System Settings → Privacy & Security.
+Your **Dnc Watchdog** app needs **Full Disk Access** in System Settings → Privacy & Security. Launch with `open macos/DncWatchdog.app` so permissions apply to the app, not your editor or terminal.
 
 Import is read-only toward your macOS databases: the app copies `chat.db` / Call History to a temp file, opens that copy with SQLite `mode=ro` + `immutable=1`, and sets `PRAGMA query_only = ON`. The originals are never opened for writing.
 
