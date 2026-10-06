@@ -3,6 +3,8 @@
 # Local:  mix credo
 # CI:     mix credo --min-priority high   (complexity + warnings only)
 # Full:   mix credo --strict              (includes low-priority readability)
+# Suite:  mix quality.check               (compile, format, credo, sobelow, deps.audit, test)
+# Types:  mix quality.dialyzer
 %{
   configs: [
     %{

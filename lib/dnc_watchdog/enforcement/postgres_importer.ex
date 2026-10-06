@@ -46,7 +46,7 @@ defmodule DncWatchdog.Enforcement.PostgresImporter do
       Ecto.Adapters.SQL.query!(Repo, "PRAGMA foreign_keys = OFF")
 
       Enum.each(Enum.reverse(@tables), fn table ->
-        Ecto.Adapters.SQL.query!(Repo, "DELETE FROM #{table}")
+        Ecto.Adapters.SQL.query!(Repo, "DELETE FROM #{sql_table!(table)}")
       end)
 
       counts =
@@ -69,6 +69,8 @@ defmodule DncWatchdog.Enforcement.PostgresImporter do
   end
 
   defp fetch_rows(pg, table) do
+    table = sql_table!(table)
+
     sql = """
     SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json)
     FROM (SELECT * FROM #{table} ORDER BY id) t
@@ -98,7 +100,25 @@ defmodule DncWatchdog.Enforcement.PostgresImporter do
   end
 
   defp coerce_row(row) when is_map(row) do
-    Map.new(row, fn {key, value} -> {String.to_atom(key), coerce_field(key, value)} end)
+    Map.new(row, fn {key, value} -> {column_atom!(key), coerce_field(key, value)} end)
+  end
+
+  # Table names are interpolated into SQL, so only the compile-time allowlist is accepted.
+  defp sql_table!(table) when table in @tables, do: table
+
+  defp sql_table!(table) do
+    raise ArgumentError, "refusing unexpected table #{inspect(table)}"
+  end
+
+  # Column names become atoms for Ecto insert_all. Only atoms already defined by
+  # the loaded schemas are accepted, so a hostile source cannot grow the atom table.
+  defp column_atom!(key) when is_binary(key) do
+    String.to_existing_atom(key)
+  rescue
+    ArgumentError ->
+      reraise ArgumentError,
+              "PostgreSQL column #{inspect(key)} is not part of the SQLite schema",
+              __STACKTRACE__
   end
 
   defp coerce_field(_key, nil), do: nil

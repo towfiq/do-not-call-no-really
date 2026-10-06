@@ -28,7 +28,14 @@ defmodule DncWatchdog.MixProject do
         ]
       ],
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      dialyzer: [
+        plt_file: {:no_warn, "priv/plts/dnc_watchdog.plt"},
+        plt_core_path: "priv/plts",
+        plt_add_apps: [:ex_unit, :mix],
+        ignore_warnings: ".dialyzer_ignore.exs",
+        list_unused_filters: true
+      ]
     ]
   end
 
@@ -37,6 +44,9 @@ defmodule DncWatchdog.MixProject do
       preferred_envs: [
         "quality.check": :test,
         credo: :test,
+        dialyzer: :test,
+        sobelow: :test,
+        "deps.audit": :test,
         test: :test
       ]
     ]
@@ -67,9 +77,9 @@ defmodule DncWatchdog.MixProject do
       {:ecto_sqlite3, "~> 0.18"},
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:phoenix_live_view, "~> 1.0"},
+      {:phoenix_live_view, "~> 1.2"},
       {:floki, ">= 0.30.0", only: :test},
-      {:lazy_html, ">= 0.1.0", only: :test},
+      {:lazy_html, "~> 0.1.13", only: :test},
       {:phoenix_live_dashboard, "~> 0.8.3"},
       {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.2.0", runtime: Mix.env() == :dev},
@@ -80,18 +90,21 @@ defmodule DncWatchdog.MixProject do
        app: false,
        compile: false,
        depth: 1},
-      {:swoosh, "~> 1.5"},
-      {:finch, "~> 0.13"},
+      {:swoosh, "~> 1.28"},
+      {:finch, "~> 0.24"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 0.26"},
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
-      {:bandit, "~> 1.5"},
+      {:bandit, "~> 1.12"},
       {:exqlite, "~> 0.27"},
       {:chromic_pdf, "~> 1.17"},
       {:boundary, "~> 0.10", runtime: false},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:sobelow, "~> 0.16.0", only: [:dev, :test], runtime: false},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
   end
 
@@ -119,8 +132,13 @@ defmodule DncWatchdog.MixProject do
         "compile --warnings-as-errors",
         "format --check-formatted",
         "credo --min-priority high",
+        "sobelow",
+        "deps.audit",
         "test"
-      ]
+      ],
+      # Separate from quality.check: the first run builds a PLT, and Dialyzer
+      # still reports existing mismatches in the import and PDF code.
+      "quality.dialyzer": ["dialyzer --format short"]
     ]
   end
 end

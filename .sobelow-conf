@@ -1,0 +1,12 @@
+[
+  exit: :medium,
+  format: "compact",
+  ignore: [],
+  ignore_files: [],
+  include_mix_tasks: false,
+  include_scripts: false,
+  private: true,
+  skip: false,
+  threshold: :medium,
+  verbose: false
+]

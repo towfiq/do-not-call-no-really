@@ -7,7 +7,12 @@ defmodule DncWatchdogWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {DncWatchdogWeb.Layouts, :root}
     plug :protect_from_forgery
-    plug :put_secure_browser_headers
+
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" =>
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' ws: wss:"
+    }
+
     plug DncWatchdogWeb.Plugs.AssignCurrentPath
   end
 
