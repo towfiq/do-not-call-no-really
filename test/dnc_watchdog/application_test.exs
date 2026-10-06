@@ -11,9 +11,15 @@ defmodule DncWatchdog.ApplicationTest do
       assert File.regular?(path)
       assert script =~ "/usr/bin/arch -arm64"
       assert script =~ "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+      assert String.starts_with?(script, "#!/bin/sh")
     else
       refute Keyword.has_key?(config, :chrome_executable)
     end
+  end
+
+  test "chromic_pdf_config always names the ChromicPDF process" do
+    config = DncWatchdog.Application.chromic_pdf_config()
+    assert Keyword.fetch!(config, :name) == ChromicPDF
   end
 
   defp rosetta_beam? do
