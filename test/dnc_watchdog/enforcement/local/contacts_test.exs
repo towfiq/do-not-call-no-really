@@ -57,6 +57,25 @@ defmodule DncWatchdog.Enforcement.Local.ContactsTest do
     assert {:ok, set, [^path]} = Contacts.load(contacts_dbs: [path])
     refute MapSet.member?(set.phones, "8001234567")
     refute MapSet.member?(set.emails, "dnc-spammer@example.com")
+    assert set.names["8001234567"] == "Acme DNC Violators LLC"
+    assert set.names["dnc-spammer@example.com"] == "Acme DNC Violators LLC"
+  end
+
+  test "load/1 prefers the person's name over the company" do
+    dir = SqliteFixtures.temp_dir!()
+    on_exit(fn -> File.rm_rf(dir) end)
+
+    path =
+      SqliteFixtures.create_contacts_db(
+        Path.join(dir, "AddressBook-v22.abcddb"),
+        ["+1-800-123-4567"],
+        ["ada@example.com"],
+        %{organization: "Acme DNC Violators LLC", first_name: "Ada", last_name: "Lovelace"}
+      )
+
+    assert {:ok, set, [^path]} = Contacts.load(contacts_dbs: [path])
+    assert set.names["8001234567"] == "Ada Lovelace"
+    assert set.names["ada@example.com"] == "Ada Lovelace"
   end
 
   test "load/1 still includes contacts without dnc in the company name" do

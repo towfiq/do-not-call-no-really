@@ -4,6 +4,7 @@ defmodule DncWatchdog.Enforcement.RowImporter do
   """
 
   alias DncWatchdog.Enforcement
+  alias DncWatchdog.Enforcement.Case
   alias DncWatchdog.Enforcement.Communication
   alias DncWatchdog.Enforcement.OwnNumber
   alias DncWatchdog.Enforcement.Phone
@@ -127,7 +128,7 @@ defmodule DncWatchdog.Enforcement.RowImporter do
 
     case find_existing_case(row, company) do
       %{} = case_record ->
-        {:ok, case_record, false}
+        {:ok, maybe_rename_placeholder_case(case_record, company), false}
 
       nil ->
         case Enforcement.create_case(%{
@@ -165,18 +166,36 @@ defmodule DncWatchdog.Enforcement.RowImporter do
 
   defp incoming_peer(_), do: nil
 
-  defp company_label(%{
-         company: company,
-         from_number: from,
-         direction: direction,
-         to_number: to,
-         channel: channel
-       }) do
+  defp maybe_rename_placeholder_case(%Case{company_name: current} = case_record, new_name) do
+    if Case.placeholder_name?(current) and not Case.placeholder_name?(new_name) and
+         current != new_name do
+      case Enforcement.update_case(case_record, %{company_name: new_name}) do
+        {:ok, updated} -> updated
+        _ -> case_record
+      end
+    else
+      case_record
+    end
+  end
+
+  defp company_label(row) do
+    %{
+      company: company,
+      from_number: from,
+      direction: direction,
+      to_number: to,
+      channel: channel
+    } = row
+
+    contact_name = row |> Map.get(:contact_name) |> present_label()
     company = company |> to_string() |> String.trim()
     normalized_from = Phone.normalize(from)
     normalized_to = Phone.normalize(to)
 
     cond do
+      contact_name != "" ->
+        contact_name
+
       direction == "incoming" and normalized_from != "" and (company == "" or channel == "call") ->
         "Caller #{normalized_from}"
 
@@ -193,6 +212,9 @@ defmodule DncWatchdog.Enforcement.RowImporter do
         "Unknown Company"
     end
   end
+
+  defp present_label(nil), do: ""
+  defp present_label(value), do: value |> to_string() |> String.trim()
 
   defp detect_reasons(%{
          direction: "incoming",

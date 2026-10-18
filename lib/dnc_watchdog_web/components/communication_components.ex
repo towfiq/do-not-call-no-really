@@ -184,6 +184,12 @@ defmodule DncWatchdogWeb.CommunicationComponents do
 
   def inbox_date(value), do: format_timestamp(value)
 
+  def show_peer_number?(%{label: label, peer: peer}) when is_binary(label) and is_binary(peer) do
+    label != peer and peer != "unknown"
+  end
+
+  def show_peer_number?(_), do: false
+
   attr :groups, :list, required: true
   attr :selected_peer, :string, default: nil
   attr :group_title_fn, :any, required: true
@@ -221,6 +227,9 @@ defmodule DncWatchdogWeb.CommunicationComponents do
         >
           <div class="inbox-thread-main">
             <p class="inbox-thread-title">{@group_title_fn.(group)}</p>
+            <p :if={show_peer_number?(group)} class="text-[11px] leading-4 text-slate-500">
+              {group.peer}
+            </p>
             <p class="inbox-thread-preview">{preview_body(group.latest)}</p>
           </div>
           <div class="inbox-thread-meta">
@@ -247,6 +256,7 @@ defmodule DncWatchdogWeb.CommunicationComponents do
       <div class="inbox-detail-header">
         <div class="min-w-0">
           <h2 class="text-sm font-semibold text-slate-900">{@group_title_fn.(@group)}</h2>
+          <p :if={show_peer_number?(@group)} class="text-xs text-slate-500">{@group.peer}</p>
           <p class="text-xs text-slate-500">
             {length(@group.communications)} message{if length(@group.communications) == 1,
               do: "",

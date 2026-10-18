@@ -2,6 +2,9 @@ import Config
 
 config :dnc_watchdog, :allow_test_sqlite_hooks, true
 
+# Tests that disable contact filtering must not read the developer Address Book.
+config :dnc_watchdog, :load_contact_names, false
+
 sqlite_defaults = [
   busy_timeout: 5_000,
   journal_mode: :wal

@@ -50,5 +50,39 @@ defmodule DncWatchdog.Enforcement.CommunicationGroupsTest do
 
     other = Enum.find(groups, &(&1.peer == "8001112222"))
     assert length(other.communications) == 1
+    assert annie.label == "8187432556"
+  end
+
+  test "group_by_peer/1 uses a saved contact name instead of the phone" do
+    communications = [
+      %{
+        id: 1,
+        direction: "incoming",
+        from_number: "8001234567",
+        to_number: "5550001234",
+        timestamp: ~N[2026-06-01 10:00:00],
+        case: %{company_name: "Spam DNC Caller Inc"}
+      }
+    ]
+
+    [group] = CommunicationGroups.group_by_peer(communications)
+    assert group.peer == "8001234567"
+    assert group.label == "Spam DNC Caller Inc"
+  end
+
+  test "group_by_peer/1 keeps Caller phone placeholders as the phone" do
+    communications = [
+      %{
+        id: 1,
+        direction: "incoming",
+        from_number: "8001234567",
+        to_number: "5550001234",
+        timestamp: ~N[2026-06-01 10:00:00],
+        case: %{company_name: "Caller 8001234567"}
+      }
+    ]
+
+    [group] = CommunicationGroups.group_by_peer(communications)
+    assert group.label == "8001234567"
   end
 end

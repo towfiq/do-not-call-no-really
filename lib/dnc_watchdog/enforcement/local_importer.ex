@@ -55,40 +55,7 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
     skip_self_initiated = Keyword.get(opts, :skip_self_initiated, my_phone != "")
     since = Lookback.since_from_opts(opts)
 
-    {contact_set, contact_log} =
-      if skip_contacts do
-        contacts_paths =
-          case Keyword.get(opts, :contacts_dbs) do
-            nil -> Keyword.get(opts, :contacts_db)
-            paths -> paths
-          end
-
-        case Contacts.load(contacts_dbs: Paths.contacts_dbs(contacts_paths)) do
-          {:ok, set, paths} ->
-            logs =
-              if paths == [] or (MapSet.size(set.phones) == 0 and MapSet.size(set.emails) == 0) do
-                [
-                  {:contacts_loaded, MapSet.size(set.phones), MapSet.size(set.emails), paths},
-                  {:contacts_empty,
-                   "No contact phones or emails loaded; known contacts will not be filtered. " <>
-                     MacosPermissions.full_disk_access_instructions()}
-                ]
-              else
-                [{:contacts_loaded, MapSet.size(set.phones), MapSet.size(set.emails), paths}]
-              end
-
-            {set, logs}
-
-          {:error, {:contacts_unreadable, _errors}} ->
-            {ContactFilter.empty_set(),
-             [
-               {:contacts_skipped,
-                "Could not read Contacts databases; import continued without contact filtering"}
-             ]}
-        end
-      else
-        {ContactFilter.empty_set(), [{:contacts_disabled, "Contact filtering disabled"}]}
-      end
+    {contact_set, contact_log} = load_contacts(opts, skip_contacts)
 
     reader_opts = [
       limit: limit,
@@ -120,7 +87,9 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
 
     skipped_lookback = message_skipped_lookback + call_skipped_lookback
 
-    rows = message_rows ++ call_rows
+    rows =
+      (message_rows ++ call_rows)
+      |> ContactFilter.apply_names(contact_set)
 
     {rows_after_contacts, skipped_contacts} =
       maybe_filter_contacts(rows, skip_contacts, contact_set)
@@ -193,6 +162,76 @@ defmodule DncWatchdog.Enforcement.LocalImporter do
     |> Enum.map(& &1.timestamp)
     |> Enum.max(NaiveDateTime)
     |> NaiveDateTime.to_string()
+  end
+
+  defp load_contacts(opts, skip_contacts) do
+    paths = contact_db_paths(opts, skip_contacts)
+
+    cond do
+      paths == [] and not skip_contacts ->
+        {ContactFilter.empty_set(), [{:contacts_disabled, "Contact filtering disabled"}]}
+
+      true ->
+        case Contacts.load(contacts_dbs: paths) do
+          {:ok, set, loaded} ->
+            {set, contact_load_logs(set, loaded, skip_contacts)}
+
+          {:error, {:contacts_unreadable, _errors}} ->
+            if skip_contacts do
+              {ContactFilter.empty_set(),
+               [
+                 {:contacts_skipped,
+                  "Could not read Contacts databases; import continued without contact filtering"}
+               ]}
+            else
+              {ContactFilter.empty_set(), [{:contacts_disabled, "Contact filtering disabled"}]}
+            end
+        end
+    end
+  end
+
+  defp contact_db_paths(opts, skip_contacts) do
+    explicit =
+      case Keyword.get(opts, :contacts_dbs) do
+        nil -> Keyword.get(opts, :contacts_db)
+        paths -> paths
+      end
+
+    cond do
+      explicit != nil ->
+        Paths.contacts_dbs(explicit)
+
+      skip_contacts ->
+        Paths.contacts_dbs()
+
+      Application.get_env(:dnc_watchdog, :load_contact_names, true) ->
+        Paths.contacts_dbs()
+
+      true ->
+        []
+    end
+  end
+
+  defp contact_load_logs(set, paths, false) do
+    [
+      {:contacts_disabled, "Contact filtering disabled"},
+      {:contacts_loaded, MapSet.size(set.phones), MapSet.size(set.emails), paths}
+    ]
+  end
+
+  defp contact_load_logs(set, paths, true) do
+    loaded = [{:contacts_loaded, MapSet.size(set.phones), MapSet.size(set.emails), paths}]
+
+    if paths == [] or (MapSet.size(set.phones) == 0 and MapSet.size(set.emails) == 0) do
+      loaded ++
+        [
+          {:contacts_empty,
+           "No contact phones or emails loaded; known contacts will not be filtered. " <>
+             MacosPermissions.full_disk_access_instructions()}
+        ]
+    else
+      loaded
+    end
   end
 
   defp maybe_filter_contacts(rows, true, contact_set) do

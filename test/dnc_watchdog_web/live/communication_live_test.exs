@@ -24,6 +24,24 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
     refute html =~ ~r/<h2[^>]*>Caller 4159719595<\/h2>/
   end
 
+  test "inbox titles a sender with the synced contact name", %{conn: conn} do
+    case = case_fixture(%{company_name: "Spam DNC Caller Inc"})
+
+    communication_fixture(%{
+      case_id: case.id,
+      from_number: "8005551212",
+      direction: "incoming",
+      body: "named contact sync",
+      violation_status: "pending"
+    })
+
+    {:ok, _view, html} = live(conn, ~p"/communications")
+
+    assert html =~ ~r/<h2[^>]*>Spam DNC Caller Inc<\/h2>/
+    assert html =~ "8005551212"
+    assert html =~ "named contact sync"
+  end
+
   test "shows legal entity name for linked case", %{conn: conn} do
     case =
       case_with_legal_entity_fixture(%{

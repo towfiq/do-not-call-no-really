@@ -134,6 +134,11 @@ defmodule DncWatchdog.Enforcement.LocalImporterTest do
     assert summary.skipped_contacts == 0
     assert summary.rows == 2
     assert summary.created_communications == 2
+
+    assert Enum.any?(
+             Enforcement.list_cases(),
+             &(&1.company_name == "Spam DNC Caller Inc")
+           )
   end
 
   test "import_local/1 includes outgoing when skip_self_initiated is false", %{

@@ -7,11 +7,48 @@ defmodule DncWatchdog.Enforcement.ContactFilter do
 
   @type contact_set :: %{
           phones: MapSet.t(String.t()),
-          emails: MapSet.t(String.t())
+          emails: MapSet.t(String.t()),
+          names: %{optional(String.t()) => String.t()}
         }
 
   def empty_set do
-    %{phones: MapSet.new(), emails: MapSet.new()}
+    %{phones: MapSet.new(), emails: MapSet.new(), names: %{}}
+  end
+
+  @doc """
+  Copies an Address Book display name onto each row whose peer matches `names`.
+
+  Call History caller-ID (`company`) is left unchanged. `contact_name` is how
+  import distinguishes a saved contact from that caller-ID string.
+  """
+  def apply_names(rows, contact_set) when is_list(rows) do
+    names = Map.get(contact_set, :names) || %{}
+
+    if map_size(names) == 0 do
+      rows
+    else
+      Enum.map(rows, &put_contact_name(&1, names))
+    end
+  end
+
+  defp put_contact_name(row, names) do
+    case name_for_peer(peer_for(row), names) do
+      name when is_binary(name) and name != "" -> Map.put(row, :contact_name, name)
+      _ -> row
+    end
+  end
+
+  defp name_for_peer(peer, names) do
+    cond do
+      peer in [nil, ""] ->
+        nil
+
+      email_peer?(peer) ->
+        Map.get(names, String.downcase(peer))
+
+      true ->
+        peer |> Phone.lookup_keys() |> Enum.find_value(&Map.get(names, &1))
+    end
   end
 
   @doc """

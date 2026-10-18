@@ -306,13 +306,20 @@ defmodule DncWatchdog.SqliteFixtures do
   end
 
   def create_contacts_db(path, phones \\ ["+1 (800) 123-4567"], emails \\ [], attrs \\ %{}) do
-    organization = Map.get(attrs, :organization)
+    File.rm(path)
 
-    if organization do
-      create_contacts_db_with_organization(path, phones, emails, organization)
+    if named_contact?(attrs) do
+      create_contacts_db_with_organization(path, phones, emails, attrs)
     else
       create_simple_contacts_db(path, phones, emails)
     end
+  end
+
+  defp named_contact?(attrs) do
+    Enum.any?([:organization, :first_name, :last_name], fn key ->
+      value = Map.get(attrs, key)
+      is_binary(value) and value != ""
+    end)
   end
 
   defp create_simple_contacts_db(path, phones, emails) do
@@ -356,16 +363,28 @@ defmodule DncWatchdog.SqliteFixtures do
     path
   end
 
-  defp create_contacts_db_with_organization(path, phones, emails, organization) do
+  defp sql_text(nil), do: "NULL"
+  defp sql_text(""), do: "NULL"
+
+  defp sql_text(value) do
+    "'#{String.replace(to_string(value), "'", "''")}'"
+  end
+
+  defp create_contacts_db_with_organization(path, phones, emails, attrs) do
     {:ok, conn} = Exqlite.Sqlite3.open(path)
-    org = String.replace(organization, "'", "''")
+    org = sql_text(Map.get(attrs, :organization))
+    first = sql_text(Map.get(attrs, :first_name))
+    last = sql_text(Map.get(attrs, :last_name))
 
     Exqlite.Sqlite3.execute(
       conn,
       """
       CREATE TABLE ZABCDRECORD (
         Z_PK INTEGER PRIMARY KEY,
-        ZORGANIZATION TEXT
+        ZORGANIZATION TEXT,
+        ZFIRSTNAME TEXT,
+        ZLASTNAME TEXT,
+        ZNAME TEXT
       )
       """
     )
@@ -391,7 +410,7 @@ defmodule DncWatchdog.SqliteFixtures do
 
     Exqlite.Sqlite3.execute(
       conn,
-      "INSERT INTO ZABCDRECORD (Z_PK, ZORGANIZATION) VALUES (1, '#{org}')"
+      "INSERT INTO ZABCDRECORD (Z_PK, ZORGANIZATION, ZFIRSTNAME, ZLASTNAME) VALUES (1, #{org}, #{first}, #{last})"
     )
 
     Enum.with_index(phones, 1)

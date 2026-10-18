@@ -145,4 +145,16 @@ defmodule DncWatchdog.Enforcement.Case do
   end
 
   def display_name(_), do: "Unknown case"
+
+  @doc """
+  True for import placeholders such as `Caller 8001234567`.
+  """
+  def placeholder_name?(name) when is_binary(name) do
+    trimmed = String.trim(name)
+
+    trimmed == "" or trimmed in ["Unknown Company", "Unknown case"] or
+      Regex.match?(~r/^Caller \d+$/, trimmed)
+  end
+
+  def placeholder_name?(_), do: true
 end

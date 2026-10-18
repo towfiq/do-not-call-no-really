@@ -151,6 +151,35 @@ defmodule DncWatchdog.Enforcement.RowImporterTest do
     assert Enforcement.list_case_communications(display_case.id) == []
   end
 
+  test "contact name becomes the case name and replaces a Caller placeholder" do
+    assert {:ok, %{case_created: true}} =
+             RowImporter.import_row(
+               import_row_attrs(%{
+                 company: "",
+                 channel: "call",
+                 from_number: "8001234567",
+                 body: "",
+                 duration_seconds: 4
+               })
+             )
+
+    assert [%{company_name: "Caller 8001234567"}] = Enforcement.list_cases()
+
+    assert {:ok, %{case_created: false}} =
+             RowImporter.import_row(
+               import_row_attrs(%{
+                 company: "EQUINOX ROOFING",
+                 contact_name: "Spam DNC Caller Inc",
+                 channel: "sms",
+                 from_number: "8001234567",
+                 body: "please stop",
+                 timestamp: ~N[2026-05-21 10:00:00]
+               })
+             )
+
+    assert [%{company_name: "Spam DNC Caller Inc"}] = Enforcement.list_cases()
+  end
+
   test "incoming call does not join unrelated company case without matching peer" do
     unrelated = case_fixture(%{company_name: "EQUINOX ROOFING"})
 

@@ -3,6 +3,7 @@ defmodule DncWatchdog.Enforcement.CommunicationGroups do
   Groups communications by the other party (caller for incoming, callee for outgoing).
   """
 
+  alias DncWatchdog.Enforcement.Case
   alias DncWatchdog.Enforcement.ContactFilter
   alias DncWatchdog.Enforcement.Phone
 
@@ -29,7 +30,7 @@ defmodule DncWatchdog.Enforcement.CommunicationGroups do
 
     %{
       peer: peer,
-      label: peer_label(peer),
+      label: group_label(peer, sorted),
       communications: sorted,
       latest: hd(sorted)
     }
@@ -44,6 +45,20 @@ defmodule DncWatchdog.Enforcement.CommunicationGroups do
       peer -> peer
     end
   end
+
+  defp group_label(peer, communications) do
+    Enum.find_value(communications, &named_case_label/1) || peer_label(peer)
+  end
+
+  defp named_case_label(%{case: %{company_name: name}}), do: usable_label(name)
+  defp named_case_label(_), do: nil
+
+  defp usable_label(name) when is_binary(name) do
+    trimmed = String.trim(name)
+    if Case.placeholder_name?(trimmed), do: nil, else: trimmed
+  end
+
+  defp usable_label(_), do: nil
 
   defp peer_label("unknown"), do: "Unknown sender"
   defp peer_label(peer), do: peer
