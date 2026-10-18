@@ -36,7 +36,8 @@ defmodule DncWatchdogWeb do
   """
 
   def static_paths,
-    do: ~w(assets fonts images uploads apple-touch-icon.png apple-touch-icon-precomposed.png favicon.ico robots.txt)
+    do:
+      ~w(assets fonts images uploads apple-touch-icon.png apple-touch-icon-precomposed.png favicon.ico robots.txt)
 
   def router do
     quote do
