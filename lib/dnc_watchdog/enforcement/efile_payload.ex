@@ -1,6 +1,6 @@
 defmodule DncWatchdog.Enforcement.EfilePayload do
   @moduledoc """
-  Builds a JSON payload the Chrome helper uses to fill Odyssey eFileCA
+  Builds a JSON payload the Chrome helper uses to fill Tyler's eFileCA
   up to review. The helper never submits or pays.
   """
 
@@ -13,7 +13,7 @@ defmodule DncWatchdog.Enforcement.EfilePayload do
 
   @portal_url "https://california.tylertech.cloud/OfsEfsp/ui/landing"
   @court_name "Superior Court of California, County of Santa Clara"
-  # Odyssey lists one civil location for the county, covering small claims too.
+  # eFileCA lists one civil location for the county, covering small claims too.
   @location_hints ["Santa Clara - Civil", "Santa Clara"]
   @limited_civil_threshold Decimal.new(10_000)
 
@@ -36,7 +36,7 @@ defmodule DncWatchdog.Enforcement.EfilePayload do
     codes = venue_codes(venue, claim_amount)
 
     %{
-      provider: "Odyssey eFileCA",
+      provider: "Tyler eFileCA",
       portal_url: @portal_url,
       stop_before_submit: true,
       case_id: case_record.id,
@@ -357,8 +357,8 @@ defmodule DncWatchdog.Enforcement.EfilePayload do
 
   defp instructions(venue, limits) do
     [
-      "Register as Individual (self-represented) if you do not already have an Odyssey eFileCA login.",
-      "Add a payment account in Odyssey before the first filing. This portal has no extra EFSP markup — you pay court fees plus the eFileCA technology fee.",
+      "Register as Individual (self-represented) if you do not already have a Tyler eFileCA login.",
+      "Add a payment account in eFileCA before the first filing. This portal has no extra EFSP markup — you pay court fees plus the eFileCA technology fee.",
       "Recommended venue: #{FilingLimits.venue_label(venue)}.",
       "The helper fills location, case type, parties, and filing description, then attaches the filled court forms on the Documents step (lead document first).",
       "Stop at Review. Do not let the helper click Submit — check parties, codes, fees, and PDFs, then submit yourself."

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "DNC Watchdog Helper",
-  "version": "1.3.0",
-  "description": "Fills Odyssey eFileCA from a DNC Watchdog case (stops before submit) and sends USPS tracking pages back to the local app.",
+  "version": "1.3.1",
+  "description": "Fills Tyler eFileCA from a DNC Watchdog case (stops before submit) and sends USPS tracking pages back to the local app.",
   "icons": {
     "16": "icon16.png",
     "32": "icon32.png",

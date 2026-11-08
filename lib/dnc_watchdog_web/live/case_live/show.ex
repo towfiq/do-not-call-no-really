@@ -411,9 +411,9 @@ defmodule DncWatchdogWeb.CaseLive.Show do
        :info,
        if(socket.assigns.usps_helper_available,
          do:
-           "Opening Odyssey eFileCA. Sign in if needed; the helper fills through review and will not submit.",
+           "Opening eFileCA. Sign in with your Tyler account if needed; the helper fills through review and will not submit.",
          else:
-           "Opened Odyssey eFileCA. Install/reload the Chrome helper on Settings to auto-fill the form."
+           "Opened eFileCA. Install/reload the Chrome helper on Settings to auto-fill the form."
        )
      )}
   end

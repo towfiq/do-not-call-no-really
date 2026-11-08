@@ -8,7 +8,7 @@
 
   const ext = globalThis.browser ?? globalThis.chrome;
 
-  // Odyssey eFileCA runs on Tyler's Forge web components. Buttons are custom
+  // eFileCA runs on Tyler's Forge web components. Buttons are custom
   // elements that carry role="button" on the host, and every dropdown is a
   // <forge-autocomplete> around <input role="combobox"> whose options only
   // render after the input is focused and ArrowDown is dispatched.
@@ -661,7 +661,7 @@
 
     const html = `
       <div style="font-weight:700;font-size:14px;margin-bottom:6px">DNC Watchdog eFile helper</div>
-      <div style="color:#94a3b8;margin-bottom:10px">Odyssey eFileCA · case ${data.case_id}<br>${escapeHtml(data.venue_label || "")} · $${escapeHtml(data.claim_amount || "")}</div>
+      <div style="color:#94a3b8;margin-bottom:10px">Tyler eFileCA · case ${data.case_id}<br>${escapeHtml(data.venue_label || "")} · $${escapeHtml(data.claim_amount || "")}</div>
       <div style="background:#1e293b;border-radius:8px;padding:8px 10px;margin-bottom:10px">${escapeHtml(statusText)}</div>
       <div><strong>Plaintiff</strong><br>${escapeHtml(data.plaintiff?.name || "")}<br>${escapeHtml(formatAddress(data.plaintiff?.address))}</div>
       <div style="margin-top:8px"><strong>Defendant</strong><br>${escapeHtml(data.defendant?.name || "")}<br>${escapeHtml(formatAddress(data.defendant?.address))}${data.defendant?.phone ? `<br>${escapeHtml(data.defendant.phone)}` : ""}</div>

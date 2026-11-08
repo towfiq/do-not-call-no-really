@@ -7,7 +7,7 @@ defmodule DncWatchdog.Enforcement.BrowserHelperAssetsTest do
       |> File.read!()
       |> Jason.decode!()
 
-    assert manifest["version"] == "1.3.0"
+    assert manifest["version"] == "1.3.1"
     assert "https://california.tylertech.cloud/*" in manifest["host_permissions"]
     assert "http://127.0.0.1/*" in manifest["host_permissions"]
 

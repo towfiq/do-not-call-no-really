@@ -3,7 +3,7 @@ function show(enabled, useSettingsInsteadOfPreferences) {
         document.getElementsByClassName('state-on')[0].innerText =
             "The helper is on. In Safari Settings → Extensions, allow tools.usps.com, usps.com, california.tylertech.cloud, 127.0.0.1, and localhost. Then reload DNC Watchdog.";
         document.getElementsByClassName('state-off')[0].innerText =
-            "The helper is off. Turn it on in Safari Settings → Extensions, then allow USPS.com, Odyssey eFileCA, and localhost.";
+            "The helper is off. Turn it on in Safari Settings → Extensions, then allow USPS.com, eFileCA, and localhost.";
         document.getElementsByClassName('state-unknown')[0].innerText =
             "Turn on DNC Watchdog Helper in Safari Settings, then allow it on USPS.com, california.tylertech.cloud, and localhost.";
         document.getElementsByClassName('open-preferences')[0].innerText = "Quit and Open Safari Settings…";
