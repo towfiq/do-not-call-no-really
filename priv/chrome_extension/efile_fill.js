@@ -126,6 +126,14 @@
   async function fillParties(data) {
     for (const party of [data.plaintiff, data.defendant]) {
       if (!party || FILLED.has(`party:${party.role}`)) continue;
+
+      // Already saved on the page. Filling again would add a second party of
+      // the same role and leave the portal's own row unconsumed.
+      if (roleSaved(party.role)) {
+        FILLED.add(`party:${party.role}`);
+        continue;
+      }
+
       if (!(await openPartyModal(party.role))) continue;
 
       await fillPartyModal(party, data);
@@ -138,20 +146,48 @@
       return;
     }
 
+    // The portal blocks Filings while any row is incomplete, and it offers no
+    // way for the helper to clear one, so say so instead of waiting mutely.
+    const stray = [data.plaintiff, data.defendant]
+      .filter((party) => party && roleSaved(party.role) && blankPartyRow(party.role))
+      .map((party) => party.role);
+
+    if (stray.length > 0) {
+      updatePanel(
+        `Delete the empty ${stray.join(" and ")} row${stray.length > 1 ? "s" : ""} in the Parties table. The portal keeps Filings disabled until every row is complete.`
+      );
+      return;
+    }
+
     if (await clickWhenEnabled(NEXT_FILINGS, "goto-filings")) {
       await waitForStepChange("parties");
     }
   }
 
-  // A blank row offers "Add party details"; once saved it becomes an
-  // "Edit party" icon button, and the helper has to reopen that on later passes.
+  // Rows are one per party. A row still offering "Add party details" is the
+  // portal's own empty placeholder; anything else is a saved party.
+  function partyRows(role) {
+    const pattern = new RegExp(`\\b${role}\\b`, "i");
+
+    return Array.from(document.querySelectorAll("tr")).filter((row) =>
+      pattern.test((row.innerText || "").split("\n")[0] || "")
+    );
+  }
+
+  function blankPartyRow(role) {
+    return partyRows(role).find((row) => /add party details/i.test(row.innerText || ""));
+  }
+
+  function roleSaved(role) {
+    return partyRows(role).some((row) => !/add party details/i.test(row.innerText || ""));
+  }
+
+  // Fill the portal's own empty row for this role. Opening anything else, or
+  // the Add More button, creates an extra party the portal will not accept.
   async function openPartyModal(role) {
     if (openModal()) return true;
-    // Pick the tightest container mentioning this role: a wrapper holding both
-    // rows would hand back the other party's button.
-    const row = Array.from(document.querySelectorAll("tr, [class*='party']"))
-      .filter((el) => new RegExp(role, "i").test(el.innerText || ""))
-      .sort((a, b) => (a.innerText || "").length - (b.innerText || "").length)[0];
+
+    const row = blankPartyRow(role);
     if (!row) return false;
 
     const button =

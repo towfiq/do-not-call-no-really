@@ -7,7 +7,7 @@ defmodule DncWatchdog.Enforcement.BrowserHelperAssetsTest do
       |> File.read!()
       |> Jason.decode!()
 
-    assert manifest["version"] == "1.3.1"
+    assert manifest["version"] == "1.3.2"
     assert "https://california.tylertech.cloud/*" in manifest["host_permissions"]
     assert "http://127.0.0.1/*" in manifest["host_permissions"]
 
@@ -104,6 +104,17 @@ defmodule DncWatchdog.Enforcement.BrowserHelperAssetsTest do
 
     assert background =~ "message?.type === \"fetchDocument\""
     assert background =~ "async function fetchDocument(url)"
+  end
+
+  test "eFile filler fills the portal's own party row instead of adding one" do
+    source = File.read!("priv/chrome_extension/efile_fill.js")
+
+    # One row per party: filling a role twice leaves an empty row behind, and
+    # the portal keeps Filings disabled until every row is complete.
+    assert source =~ "function roleSaved(role)"
+    assert source =~ "function blankPartyRow(role)"
+    assert source =~ "if (roleSaved(party.role))"
+    assert source =~ "Delete the empty "
   end
 
   test "eFile filler will not add the same form twice after a reload" do
