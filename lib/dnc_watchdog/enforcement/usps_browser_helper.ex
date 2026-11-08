@@ -26,6 +26,12 @@ defmodule DncWatchdog.Enforcement.UspsBrowserHelper do
   end
 
   @doc """
+  Installed Safari helper app. Opening this app is what registers the extension
+  with Safari; Safari Settings has no separate installer for it.
+  """
+  def safari_helper_app, do: "/Applications/DNCWatchdogUspsHelper.app"
+
+  @doc """
   Path to the Safari helper Xcode project.
   """
   def safari_xcode_project do

@@ -68,42 +68,44 @@
   <div class="content-card-body">
     <h2 class="text-lg font-semibold text-zinc-900">Safari helper (USPS + eFileCA)</h2>
     <p class="mt-2 text-sm text-slate-600">
-      Safari cannot load an unpacked folder the way Chrome can. Build this small macOS app
-      once in Xcode; it embeds the same helper scripts for USPS tracking and Odyssey eFileCA
-      form fill, then talks back to this local app.
+      Safari installs this helper when you open its Mac app. Settings → Extensions has no
+      separate installer, and the extension stays off that list until the app has been opened.
+      It is named <strong>DNC Watchdog Helper</strong>.
+    </p>
+    <p class="mt-3 break-all rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm text-slate-800">
+      {@safari_helper_app}
     </p>
     <ol class="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
       <li>
-        Open the Xcode project (or click the button below):
-        <p class="mt-2 break-all rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm text-slate-800">
-          {@safari_xcode_project}
-        </p>
+        Click <strong>Install in Safari</strong>. macOS may ask you to open the app the first time.
       </li>
       <li>
-        Select the <code class="rounded bg-slate-100 px-1">DNCWatchdogUspsHelper</code>
-        scheme and press Run (⌘R).
+        In the helper window, click <strong>Quit and Open Safari Extensions Preferences…</strong>.
+      </li>
+      <li>Turn on DNC Watchdog Helper.</li>
+      <li>
+        Allow <code class="rounded bg-slate-100 px-1">tools.usps.com</code>, <code class="rounded bg-slate-100 px-1">usps.com</code>, <code class="rounded bg-slate-100 px-1">california.tylertech.cloud</code>, <code class="rounded bg-slate-100 px-1">127.0.0.1</code>, and <code class="rounded bg-slate-100 px-1">localhost</code>.
       </li>
       <li>
-        In Safari: Settings → Advanced → Show features for web developers, then Settings →
-        Developer → Allow unsigned extensions.
-      </li>
-      <li>Settings → Extensions → turn on DNC Watchdog Helper.</li>
-      <li>
-        Grant website access to <code class="rounded bg-slate-100 px-1">tools.usps.com</code>, <code class="rounded bg-slate-100 px-1">usps.com</code>, <code class="rounded bg-slate-100 px-1">california.tylertech.cloud</code>, <code class="rounded bg-slate-100 px-1">127.0.0.1</code>, and
-        <code class="rounded bg-slate-100 px-1">localhost</code>
-        (or “Allow on every website”).
-      </li>
-      <li>
-        Open this app in that same Safari window and reload. You should see “Browser helper
-        connected” on a case.
+        Reload this app in that same Safari window. A case should say “Browser helper connected”.
       </li>
     </ol>
-    <div class="mt-4">
-      <.button type="button" phx-click="open_safari_xcode">Open in Xcode</.button>
+    <p class="mt-4 text-sm text-slate-600">
+      If the extension is still missing from that list, turn on Safari → Settings → Advanced → <strong>Show features for web developers</strong>, then choose <strong>Develop → Allow Unsigned Extensions</strong>, and click Install in Safari again.
+      Safari forgets Allow Unsigned Extensions every time it quits.
+    </p>
+    <div class="mt-4 flex flex-wrap gap-2">
+      <.button type="button" phx-click="open_safari_helper">Install in Safari</.button>
+      <.button type="button" phx-click="open_safari_xcode" class="btn-secondary">
+        Open in Xcode
+      </.button>
     </div>
     <p class="mt-4 text-sm text-slate-600">
-      After you change helper files, Run the app from Xcode again, then reload the extension
-      in Safari Settings.
+      After helper scripts change, run
+      <code class="rounded bg-slate-100 px-1">mix dnc.build_safari_helper</code>
+      (or Run
+      <code class="rounded bg-slate-100 px-1">{Path.basename(@safari_xcode_project)}</code>
+      from Xcode), quit Safari with Cmd+Q, and install again.
     </p>
   </div>
 </div>

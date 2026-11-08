@@ -11,8 +11,8 @@
   },
   "permissions": ["storage", "scripting", "tabs"],
   "host_permissions": [
-    "http://127.0.0.1:4000/*",
-    "http://localhost:4000/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*",
     "https://tools.usps.com/*",
     "https://www.usps.com/*",
     "https://california.tylertech.cloud/*",
@@ -46,8 +46,8 @@
     },
     {
       "matches": [
-        "http://127.0.0.1:4000/*",
-        "http://localhost:4000/*"
+        "http://127.0.0.1/*",
+        "http://localhost/*"
       ],
       "js": ["app_bridge.js"],
       "run_at": "document_start"
@@ -57,8 +57,8 @@
     {
       "resources": ["page_flag.js"],
       "matches": [
-        "http://127.0.0.1:4000/*",
-        "http://localhost:4000/*"
+        "http://127.0.0.1/*",
+        "http://localhost/*"
       ]
     }
   ]

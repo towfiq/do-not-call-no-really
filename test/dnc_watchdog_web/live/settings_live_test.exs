@@ -26,14 +26,15 @@ defmodule DncWatchdogWeb.SettingsLiveTest do
     assert html =~ "Browser helper connected"
   end
 
-  test "shows Safari helper Xcode project", %{conn: conn} do
+  test "shows how to install the Safari helper", %{conn: conn} do
     {:ok, _view, html} = live(conn, ~p"/settings")
     assert html =~ "Safari helper"
     assert html =~ "eFileCA"
-    assert html =~ "safari_extension"
+    assert html =~ "/Applications/DNCWatchdogUspsHelper.app"
+    assert html =~ "Install in Safari"
     assert html =~ "DNCWatchdogUspsHelper.xcodeproj"
     assert html =~ "california.tylertech.cloud"
-    assert html =~ "Allow unsigned extensions"
+    assert html =~ "Allow Unsigned Extensions"
     assert html =~ "Open in Xcode"
   end
 end

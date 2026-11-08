@@ -13,6 +13,7 @@ defmodule DncWatchdogWeb.SettingsLive.Index do
      |> assign(:page_title, "Your profile")
      |> assign(:profile, profile)
      |> assign(:chrome_extension_dir, Enforcement.chrome_extension_dir())
+     |> assign(:safari_helper_app, Enforcement.safari_helper_app())
      |> assign(:safari_xcode_project, Enforcement.safari_xcode_project())
      |> assign_form(profile)}
   end
@@ -65,6 +66,31 @@ defmodule DncWatchdogWeb.SettingsLive.Index do
            :error,
            MacosPermissions.permission_error("Could not read Contacts.")
          )}
+    end
+  end
+
+  def handle_event("open_safari_helper", _, socket) do
+    path = socket.assigns.safari_helper_app
+
+    cond do
+      not File.dir?(path) ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "The Safari helper app is not installed yet. From the project folder, run mix dnc.build_safari_helper."
+         )}
+
+      match?({_, 0}, System.cmd("open", [path], stderr_to_stdout: true)) ->
+        {:noreply,
+         put_flash(
+           socket,
+           :info,
+           "Opened DNC Watchdog Helper. In its window, click “Quit and Open Safari Extensions Preferences…”, then turn the extension on."
+         )}
+
+      true ->
+        {:noreply, put_flash(socket, :error, "Could not open #{path}.")}
     end
   end
 

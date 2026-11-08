@@ -8,6 +8,10 @@ defmodule Mix.Tasks.Dnc.SetupForms do
 
   Creates `priv/form_filler/.venv` with pypdf installed and downloads any missing
   blank Judicial Council of California forms into `priv/judicial_forms`.
+
+  If Python itself was upgraded, an old venv keeps `bin/python` as a symlink to
+  the removed interpreter. This task replaces that launcher, because
+  `python -m venv` will not overwrite a symlink that is already there.
   """
 
   use Mix.Task
@@ -35,13 +39,38 @@ defmodule Mix.Tasks.Dnc.SetupForms do
   defp setup_venv do
     venv = Path.join(filler_dir(), ".venv")
     python = Path.join(venv, "bin/python")
+    File.mkdir_p!(filler_dir())
 
-    unless File.exists?(python) do
-      File.mkdir_p!(filler_dir())
+    unless interpreter_runs?(python) do
+      # A broken `bin/python` is still a symlink, and `python -m venv` refuses
+      # to replace one. Remove it so the current interpreter can take the name.
+      drop_broken_launchers(venv)
       cmd!("python3", ["-m", "venv", venv])
     end
 
-    cmd!(Path.join(venv, "bin/pip"), ["install", "--quiet", "--upgrade", "pypdf[crypto]"])
+    unless interpreter_runs?(python) do
+      File.rm_rf!(venv)
+      cmd!("python3", ["-m", "venv", venv])
+    end
+
+    cmd!(python, ["-m", "pip", "install", "--quiet", "--upgrade", "pypdf[crypto]"])
+  end
+
+  defp drop_broken_launchers(venv) do
+    ~w(python python3)
+    |> Enum.map(&Path.join([venv, "bin", &1]))
+    |> Enum.each(fn path ->
+      unless interpreter_runs?(path), do: File.rm(path)
+    end)
+  end
+
+  defp interpreter_runs?(path) do
+    case System.cmd(path, ["-c", "import sys"], stderr_to_stdout: true) do
+      {_, 0} -> true
+      _ -> false
+    end
+  rescue
+    ErlangError -> false
   end
 
   defp ensure_form(file, label) do

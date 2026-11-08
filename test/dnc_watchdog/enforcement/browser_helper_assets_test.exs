@@ -36,8 +36,23 @@ defmodule DncWatchdog.Enforcement.BrowserHelperAssetsTest do
       )
 
     assert chrome == safari
-    # The page flag is how the app decides whether a helper is installed.
+    # page_flag.js is a fallback. The CSP-safe signal is the DOM attribute.
     assert flag =~ "version: \"#{chrome}\""
+  end
+
+  test "Chrome helper matches the local app on any port" do
+    manifest =
+      "priv/chrome_extension/manifest.json"
+      |> File.read!()
+      |> Jason.decode!()
+
+    matches = Enum.flat_map(manifest["content_scripts"], & &1["matches"])
+
+    refute Enum.any?(matches, &String.contains?(&1, ":4000"))
+    refute Enum.any?(manifest["host_permissions"], &String.contains?(&1, ":4000"))
+    assert "http://127.0.0.1/*" in matches
+    assert "http://localhost/*" in matches
+    assert "http://127.0.0.1/*" in manifest["host_permissions"]
   end
 
   test "eFile filler routes on the wizard step in the URL" do
@@ -115,6 +130,8 @@ defmodule DncWatchdog.Enforcement.BrowserHelperAssetsTest do
     app_js = File.read!("assets/js/app.js")
 
     assert bridge =~ "dnc-efile-helper-error"
+    assert bridge =~ "dataset.dncUspsHelper"
+    assert app_js =~ "dataset.dncUspsHelper"
     assert background =~ "the filler never loaded on the eFileCA tab"
     assert app_js =~ "pushEvent(\"efile_helper_error\""
     # The portal tab opens even when the helper is wedged.
