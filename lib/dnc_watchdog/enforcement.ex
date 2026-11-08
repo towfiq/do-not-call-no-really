@@ -196,7 +196,8 @@ defmodule DncWatchdog.Enforcement do
   defp maybe_violations_only(query, _), do: query
 
   defp maybe_hide_excluded(query, true) do
-    where(query, [c], c.violation_status != "excluded")
+    hidden = Communication.dismissed_statuses()
+    where(query, [c], c.violation_status not in ^hidden)
   end
 
   defp maybe_hide_excluded(query, _), do: query
@@ -366,7 +367,7 @@ defmodule DncWatchdog.Enforcement do
   end
 
   def set_communication_violation_status(%Communication{} = communication, status)
-      when status in ["pending", "violation", "excluded"] do
+      when status in ["pending", "violation", "excluded", "exempt"] do
     update_communication(communication, %{violation_status: status})
   end
 

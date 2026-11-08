@@ -5,7 +5,7 @@ Phoenix + SQLite app for tracking unsolicited call/text evidence as workflow-dri
 ## Features
 
 - LiveView case queue (`/cases`) with workflow/status fields
-- Mark communications as **violations** or **not a violation**; hide non-violations by default
+- Mark communications as **violations**, **not a violation**, or **exempt** (political calls, polls, and similar contacts kept out of a TCPA claim); hide non-violations and exempt rows by default
 - Legal entity + mailing address per case, evidence screenshot uploads, certified-mail letter drafts with relief demand
 - Santa Clara County small-claims and civil complaint filing drafts with California filing-limit tracking ($12,500 cap, 2/year over $2,500)
 - Filled official Judicial Council of California forms (SC-100 for small claims; SUM-100 and CM-010 for civil), attached automatically by the Chrome/Safari helper on Odyssey eFileCA up to the Service step
@@ -61,7 +61,7 @@ narrative drafts, but the case page will say the form filler is missing.
 ## Triage violations in the UI
 
 1. Open **Messages** (`/communications`) after import.
-2. For each row, click **Violation** or **Not a violation**.
+2. For each row, click **Violation**, **Not a violation**, or **Exempt**.
 3. By default, **non-violations are hidden**. Use the filter toggles to show pending review or all statuses.
 4. Click **Exclude sender** to dismiss a number now and on **future imports** (manage the list under **Excluded senders**).
 5. Open a **Case** (`/cases/:id`) to add the defendant's legal name and mailing address, upload screenshot exhibits, and generate a certified-mail demand letter draft.

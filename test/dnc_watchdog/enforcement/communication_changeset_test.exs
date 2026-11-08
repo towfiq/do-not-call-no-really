@@ -30,6 +30,21 @@ defmodule DncWatchdog.Enforcement.CommunicationChangesetTest do
     assert %{channel: [_ | _]} = errors_on(changeset)
   end
 
+  test "accepts exempt as a violation status" do
+    changeset =
+      Communication.changeset(%Communication{}, %{
+        timestamp: ~N[2026-05-20 09:14:00],
+        channel: "call",
+        direction: "incoming",
+        from_number: "8001234567",
+        to_number: "5550001234",
+        violation_status: "exempt"
+      })
+
+    assert changeset.valid?
+    assert Ecto.Changeset.get_change(changeset, :violation_status) == "exempt"
+  end
+
   test "rejects invalid direction" do
     changeset =
       Communication.changeset(%Communication{}, %{

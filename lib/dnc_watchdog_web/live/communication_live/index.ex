@@ -352,7 +352,8 @@ defmodule DncWatchdogWeb.CommunicationLive.Index do
       assigns.violations_only and communication.violation_status != "violation" ->
         false
 
-      assigns.hide_excluded and communication.violation_status == "excluded" ->
+      assigns.hide_excluded and
+          DncWatchdog.Enforcement.Communication.dismissed_status?(communication.violation_status) ->
         false
 
       assigns.hide_spam and communication.spam ->

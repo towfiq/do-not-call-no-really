@@ -183,6 +183,43 @@ defmodule DncWatchdogWeb.CommunicationLiveTest do
     assert html =~ "spam one"
   end
 
+  test "marking exempt hides the message until dismissed rows are included", %{conn: conn} do
+    comm =
+      communication_fixture(%{
+        body: "campaign poll token",
+        violation_status: "pending"
+      })
+
+    {:ok, view, html} = live(conn, ~p"/communications")
+
+    assert html =~ "campaign poll token"
+    assert html =~ "Exempt"
+
+    html =
+      view
+      |> element("#exempt-#{comm.id}")
+      |> render_click()
+
+    refute html =~ "campaign poll token"
+    assert html =~ "Updated violation status"
+    assert Enforcement.get_communication!(comm.id).violation_status == "exempt"
+
+    html =
+      view
+      |> form("#display-filters", %{
+        "filters" => %{
+          "violations_only" => "false",
+          "include_excluded" => "true",
+          "group_by_sender" => "false",
+          "include_spam" => "true"
+        }
+      })
+      |> render_submit()
+
+    assert html =~ "campaign poll token"
+    assert html =~ "Exempt"
+  end
+
   test "hide excluded filter removes non-violations", %{conn: conn} do
     communication_fixture(%{violation_status: "violation", body: "spam offer"})
     communication_fixture(%{violation_status: "excluded", body: "friend hello"})

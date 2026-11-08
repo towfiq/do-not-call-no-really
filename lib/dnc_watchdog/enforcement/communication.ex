@@ -88,7 +88,8 @@ defmodule DncWatchdog.Enforcement.Communication do
 
   defp timestamp_key(_), do: ""
 
-  @violation_statuses ~w(pending violation excluded)
+  @violation_statuses ~w(pending violation excluded exempt)
+  @dismissed_statuses ~w(excluded exempt)
 
   @doc false
   def changeset(communication, attrs) do
@@ -115,4 +116,12 @@ defmodule DncWatchdog.Enforcement.Communication do
   end
 
   def violation_statuses, do: @violation_statuses
+
+  @doc """
+  Statuses hidden by the default review filter: not a violation, or marked exempt
+  (political calls, polls, and similar contacts kept out of a TCPA claim).
+  """
+  def dismissed_statuses, do: @dismissed_statuses
+
+  def dismissed_status?(status), do: status in @dismissed_statuses
 end
