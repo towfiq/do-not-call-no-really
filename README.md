@@ -8,7 +8,7 @@ Phoenix + SQLite app for tracking unsolicited call/text evidence as workflow-dri
 - Mark communications as **violations**, **not a violation**, or **exempt** (political calls, polls, and similar contacts kept out of a TCPA claim); hide non-violations and exempt rows by default
 - Legal entity + mailing address per case, evidence screenshot uploads, certified-mail letter drafts with relief demand
 - Santa Clara County small-claims and civil complaint filing drafts with California filing-limit tracking ($12,500 cap, 2/year over $2,500)
-- Filled official Judicial Council of California forms (SC-100 for small claims; SUM-100 and CM-010 for civil), attached automatically by the Chrome/Safari helper on Odyssey eFileCA up to the Service step
+- Filled official Judicial Council of California forms (SC-100 for small claims; SUM-100 and CM-010 for civil), attached automatically by the Chrome/Safari helper on Tyler eFileCA up to the Service step
 - Case detail view with workflow checklist and one-click advancement (gated on evidence requirements)
 - Import mix task for normalized communication CSV files
 - Local macOS import from Messages `chat.db` and Call History SQLite
@@ -193,7 +193,13 @@ mix dnc.export_filings output/filings --pdf
 
 From the web UI, open a case and click **Generate court filing**, then **Download filing PDF with exhibits**.
 
-To e-file in Santa Clara County, use **Odyssey eFileCA** (the official portal — no extra provider fee). On a case, click **Fill eFileCA form**. The Chrome or Safari helper opens [california.tylertech.cloud](https://california.tylertech.cloud/OfsEfsp/ui/landing) and walks the wizard: Start Filing on the dashboard, then Start New Case, then Case Information, Parties, and Filings. Each court form becomes its own filing with its own filing code, since eFileCA allows one lead document per filing. The helper stops at Service so you review, submit, and pay yourself.
+To e-file in Santa Clara County, use **eFileCA**, run by Tyler Technologies (the official
+portal — no extra provider fee). You sign in with a Tyler account; "Odyssey" is the court's
+own case management system behind it and has no login of its own. California also certifies
+other filing providers (One Legal, InfoTrack, and friends), but the helper is written
+against Tyler's wizard specifically and will not work on theirs.
+
+On a case, click **Fill eFileCA form**. The Chrome or Safari helper opens [california.tylertech.cloud](https://california.tylertech.cloud/OfsEfsp/ui/landing) and walks the wizard: Start Filing on the dashboard, then Start New Case, then Case Information, Parties, and Filings. Each court form becomes its own filing with its own filing code, since eFileCA allows one lead document per filing. The helper stops at Service so you review, submit, and pay yourself.
 
 The helper drives Tyler's Forge web components: dropdowns are autocompletes that only
 open on focus plus ArrowDown, and the upload control hides its file input in a shadow

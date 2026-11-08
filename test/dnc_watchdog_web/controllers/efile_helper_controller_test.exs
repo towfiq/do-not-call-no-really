@@ -9,7 +9,7 @@ defmodule DncWatchdogWeb.EfileHelperControllerTest do
     conn = get(conn, ~p"/api/cases/#{case.id}/efile_helper")
     body = json_response(conn, 200)
 
-    assert body["provider"] == "Odyssey eFileCA"
+    assert body["provider"] == "Tyler eFileCA"
     assert body["stop_before_submit"] == true
     assert body["case_id"] == case.id
     assert body["plaintiff"]["first_name"] == "Jane"

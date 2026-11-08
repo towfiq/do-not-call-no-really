@@ -28,7 +28,7 @@ defmodule DncWatchdog.Enforcement.EfilePayloadTest do
            }
   end
 
-  test "build/2 maps a small-claims case for Odyssey eFileCA" do
+  test "build/2 maps a small-claims case for Tyler eFileCA" do
     case =
       case_fixture(%{
         claimant_name: "Jane Doe",
@@ -60,7 +60,7 @@ defmodule DncWatchdog.Enforcement.EfilePayloadTest do
     payload =
       Enforcement.efile_helper_payload(case, origin: "http://127.0.0.1:4000")
 
-    assert payload.provider == "Odyssey eFileCA"
+    assert payload.provider == "Tyler eFileCA"
     assert payload.stop_before_submit
     assert payload.portal_url =~ "california.tylertech.cloud"
     assert payload.venue == "small_claims"
