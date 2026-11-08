@@ -54,9 +54,12 @@ mix phx.server
 mix dnc.setup_forms
 ```
 
-This creates `priv/form_filler/.venv` (Python + pypdf) and downloads any missing blank
-Judicial Council of California forms into `priv/judicial_forms`. Without it the app still generates the
-narrative drafts, but the case page will say the form filler is missing.
+This downloads a pinned standalone CPython into `priv/form_filler/python`, creates
+`priv/form_filler/.venv` with pypdf, and downloads any missing blank Judicial Council
+of California forms into `priv/judicial_forms`. Homebrew Python is not used, so
+upgrading Python via brew cannot break court-form download. Without the setup task
+the app still generates narrative drafts, but the case page will say the form filler
+is missing.
 
 ## Triage violations in the UI
 
@@ -232,6 +235,24 @@ Review all generated filings before submitting to the court. Blank forms come fr
 mix dnc.export_civil_complaints output/civil
 mix dnc.export_civil_complaints output/civil --pdf
 ```
+
+## Stack
+
+Elixir/Phoenix owns the app core (LiveView triage, cases, SQLite, drafts). That is
+intentional: no single language can also own court AcroForm filling, Chrome/Safari
+extensions, and macOS Full Disk Access.
+
+Polyglot edges stay as helpers, not a reason to rewrite the core:
+
+| Edge | Runtime | Why |
+|---|---|---|
+| Official court form fill | Pinned Python + pypdf (`mix dnc.setup_forms`) | Encrypted Judicial Council AcroForm/XFA blanks |
+| Narrative / exhibit PDFs | Chromium via ChromicPDF | HTML → PDF |
+| eFileCA / USPS helpers | JavaScript extensions (+ Swift Safari host) | In-page automation in the user's logged-in browser |
+| Messages / Call History | macOS app identity + local SQLite | TCC Full Disk Access |
+
+Do not migrate the core to Python, Rust, or Swift unless the product becomes a
+SwiftUI Mac app or drops LiveView/Safari in favor of Playwright-only automation.
 
 ## Notes
 

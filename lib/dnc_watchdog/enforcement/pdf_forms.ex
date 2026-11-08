@@ -4,8 +4,9 @@ defmodule DncWatchdog.Enforcement.PdfForms do
   into one file.
 
   The blank forms live in `priv/judicial_forms`; the filling itself runs through
-  `priv/form_filler/fill_forms.py` in its own virtualenv, since the forms are
-  encrypted XFA/AcroForm hybrids that need a real PDF library.
+  `priv/form_filler/fill_forms.py` in a virtualenv built on the pinned standalone
+  CPython from `mix dnc.setup_forms`. The forms are encrypted XFA/AcroForm hybrids
+  that need a real PDF library (pypdf); Elixir stays the app core and shells out.
   """
 
   require Logger
