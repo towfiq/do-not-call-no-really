@@ -161,7 +161,7 @@ defmodule DncWatchdogWeb.CaseController do
   end
 
   defp form_error_message(:form_filler_unavailable) do
-    "The PDF form filler is not installed. Run `mix dnc.setup_forms` to create priv/form_filler/.venv."
+    "The PDF form filler is not installed. Run `mix dnc.setup_forms` to install the pinned Python and create priv/form_filler/.venv."
   end
 
   defp form_error_message({:template_missing, code}) do
