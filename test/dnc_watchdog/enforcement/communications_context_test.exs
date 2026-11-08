@@ -34,6 +34,19 @@ defmodule DncWatchdog.Enforcement.CommunicationsContextTest do
     assert loaded.case.id == comm.case_id
   end
 
+  test "exempt communications stay out of the default review list" do
+    comm = communication_fixture(%{body: "campaign poll", violation_status: "pending"})
+
+    assert {:ok, updated} = Enforcement.set_communication_violation_status(comm, "exempt")
+    assert updated.violation_status == "exempt"
+    assert Enforcement.list_communications() == []
+    assert Enforcement.count_communications() == 0
+
+    [shown] = Enforcement.list_communications(hide_excluded: false)
+    assert shown.id == comm.id
+    assert shown.violation_status == "exempt"
+  end
+
   test "list_cases/1 can preload communications" do
     comm = communication_fixture()
     [case_record] = Enforcement.list_cases(preload_communications: true)

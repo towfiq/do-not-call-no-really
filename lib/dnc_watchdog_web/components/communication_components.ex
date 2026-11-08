@@ -51,6 +51,25 @@ defmodule DncWatchdogWeb.CommunicationComponents do
   attr :communication, :map, required: true
   attr :target, :any, default: nil
 
+  def exempt_button(assigns) do
+    ~H"""
+    <.status_button
+      id={"exempt-#{@communication.id}"}
+      label="Exempt"
+      active={@communication.violation_status == "exempt"}
+      class="bg-sky-100 text-sky-800 ring-sky-300"
+      inactive_class="bg-white text-zinc-600 ring-zinc-300 hover:bg-sky-50"
+      value="exempt"
+      comm_id={@communication.id}
+      target={@target}
+      title="Political calls, polls, and similar contacts kept out of a TCPA claim"
+    />
+    """
+  end
+
+  attr :communication, :map, required: true
+  attr :target, :any, default: nil
+
   def spam_button(assigns) do
     spam? = assigns.communication.spam == true
     assigns = assign(assigns, :spam?, spam?)
@@ -108,6 +127,7 @@ defmodule DncWatchdogWeb.CommunicationComponents do
     <div class="flex flex-wrap gap-1">
       <.violation_button communication={@communication} target={@target} />
       <.not_violation_button communication={@communication} target={@target} />
+      <.exempt_button communication={@communication} target={@target} />
       <.exclude_sender_button communication={@communication} target={@target} />
     </div>
     """
@@ -125,12 +145,14 @@ defmodule DncWatchdogWeb.CommunicationComponents do
   attr :value, :string, required: true
   attr :comm_id, :integer, required: true
   attr :target, :any, default: nil
+  attr :title, :string, default: nil
 
   defp status_button(assigns) do
     ~H"""
     <button
       type="button"
       id={@id}
+      title={@title}
       phx-click="set_violation_status"
       phx-value-id={@comm_id}
       phx-value-status={@value}
@@ -155,6 +177,12 @@ defmodule DncWatchdogWeb.CommunicationComponents do
   def violation_badge(%{status: "excluded"} = assigns) do
     ~H"""
     <span class="rounded bg-zinc-200 px-2 py-0.5 text-xs font-semibold text-zinc-700">Excluded</span>
+    """
+  end
+
+  def violation_badge(%{status: "exempt"} = assigns) do
+    ~H"""
+    <span class="rounded bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-800">Exempt</span>
     """
   end
 
@@ -290,6 +318,7 @@ defmodule DncWatchdogWeb.CommunicationComponents do
                 <.spam_button communication={comm} target={@target} />
                 <.violation_button communication={comm} target={@target} />
                 <.not_violation_button communication={comm} target={@target} />
+                <.exempt_button communication={comm} target={@target} />
                 <.exclude_sender_button communication={comm} target={@target} />
               </div>
             </div>
@@ -372,6 +401,7 @@ defmodule DncWatchdogWeb.CommunicationComponents do
                   <.spam_button communication={comm} target={@target} />
                   <.violation_button communication={comm} target={@target} />
                   <.not_violation_button communication={comm} target={@target} />
+                  <.exempt_button communication={comm} target={@target} />
                   <.exclude_sender_button communication={comm} target={@target} />
                 </div>
               </td>

@@ -8,6 +8,7 @@ defmodule DncWatchdog.Enforcement.DamagesTest do
       %{violation_status: "violation"},
       %{violation_status: "pending"},
       %{violation_status: "excluded"},
+      %{violation_status: "exempt"},
       %{violation_status: "violation"}
     ]
 

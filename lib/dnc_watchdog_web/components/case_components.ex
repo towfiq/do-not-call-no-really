@@ -52,7 +52,7 @@ defmodule DncWatchdogWeb.CaseComponents do
         <div class="flex flex-wrap items-center justify-between gap-2">
           <p class="filter-panel-title">What to show</p>
           <p class="filter-note">
-            Defaults hide excluded senders and known contacts. Change a box, then apply.
+            Defaults hide excluded and exempt messages, plus known contacts. Change a box, then apply.
           </p>
         </div>
         <div class="mt-3 flex flex-wrap items-end justify-between gap-3">
@@ -74,7 +74,7 @@ defmodule DncWatchdogWeb.CaseComponents do
                 name="filters[include_excluded]"
                 value="true"
                 checked={!@hide_excluded}
-              /> Include excluded
+              /> Include excluded and exempt
             </label>
 
             <label :if={@show_group_by} class="filter-checkbox">
