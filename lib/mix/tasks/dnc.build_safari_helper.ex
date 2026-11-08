@@ -13,8 +13,11 @@ defmodule Mix.Tasks.Dnc.BuildSafariHelper do
   previous extension. This task builds, checks the bundle really carries the current
   `priv/chrome_extension` scripts, then replaces the installed app.
 
-  The helper is ad-hoc signed, so Safari only loads it after Develop ->
-  Allow Unsigned Extensions, which Safari forgets every time it quits.
+  When an Apple Development certificate is available, the app is signed with
+  it so Safari will list the extension. An ad-hoc signature stays hidden until
+  Develop -> Allow Unsigned Extensions, which Safari forgets every time it quits.
+  Opening the installed app is what registers the extension; Safari Settings has
+  no separate installer.
   """
 
   use Mix.Task
@@ -38,11 +41,12 @@ defmodule Mix.Tasks.Dnc.BuildSafariHelper do
 
     built = build(Keyword.get(opts, :configuration, "Release"))
     verify_scripts!(built)
+    signed = sign!(built)
 
     if Keyword.get(opts, :install, true) do
       installed = install(built)
-      if Keyword.get(opts, :open, false), do: cmd!("open", [installed])
-      report_next_steps()
+      if Keyword.get(opts, :open, true), do: cmd!("open", [installed])
+      report_next_steps(signed)
     else
       Mix.shell().info("Built #{built} — not installed, so Safari still runs the old extension.")
     end
@@ -125,17 +129,67 @@ defmodule Mix.Tasks.Dnc.BuildSafariHelper do
     end
   end
 
-  defp report_next_steps do
+  # Ad-hoc signatures are invisible in Safari Settings. A development certificate
+  # puts a team id on the bundle, which is what makes the extension listable.
+  defp sign!(app) do
+    case development_identity() do
+      nil ->
+        Mix.shell().info(
+          "No Apple Development certificate found. Safari hides this ad-hoc app until Develop → Allow Unsigned Extensions."
+        )
+
+        :adhoc
+
+      identity ->
+        Mix.shell().info("Signing with #{identity}.")
+        appex = Path.join([app, "Contents/PlugIns", "#{@scheme} Extension.appex"])
+
+        for target <- [appex, app] do
+          cmd!("codesign", [
+            "--force",
+            "--sign",
+            identity,
+            "--options",
+            "runtime",
+            "--timestamp=none",
+            target
+          ])
+        end
+
+        :development
+    end
+  end
+
+  defp development_identity do
+    {output, status} = cmd("security", ["find-identity", "-v", "-p", "codesigning"])
+
+    if status == 0 do
+      case Regex.run(~r/"Apple Development: [^"]+"/, output) do
+        [quoted] -> String.trim(quoted, "\"")
+        _ -> nil
+      end
+    end
+  end
+
+  defp report_next_steps(signed) do
     if safari_running?() do
-      Mix.shell().info("Safari is running with the old extension loaded — quit it (Cmd+Q) first.")
+      Mix.shell().info(
+        "Quit Safari with Cmd+Q so it drops the previous extension, then open Safari again."
+      )
     end
 
     Mix.shell().info("""
 
-    Then in Safari: Develop -> Allow Unsigned Extensions, then Settings -> Extensions
-    to enable the helper, with access to california.tylertech.cloud and localhost.
-    Safari forgets Allow Unsigned Extensions on every quit.
+    The helper app is open. Click “Quit and Open Safari Extensions Preferences…”,
+    then turn on DNC Watchdog Helper and allow localhost, 127.0.0.1, tools.usps.com, and usps.com.
     """)
+
+    if signed == :adhoc do
+      Mix.shell().info("""
+      This copy is ad-hoc signed, so it stays hidden until Safari’s Develop menu →
+      Allow Unsigned Extensions. Safari forgets that switch every time it quits.
+      """)
+    end
   end
 
   defp version(app) do

@@ -1401,6 +1401,7 @@ defmodule DncWatchdog.Enforcement do
   end
 
   def chrome_extension_dir, do: UspsBrowserHelper.extension_dir()
+  def safari_helper_app, do: UspsBrowserHelper.safari_helper_app()
   def safari_xcode_project, do: UspsBrowserHelper.safari_xcode_project()
 
   def usps_tracking_configured?, do: UspsTracking.configured?()

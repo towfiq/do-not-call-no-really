@@ -33,7 +33,28 @@ defmodule DncWatchdog.Enforcement.PdfForms do
 
   def python_path do
     Application.get_env(:dnc_watchdog, :form_filler_python) ||
-      priv_path("form_filler/.venv/bin/python")
+      select_python(priv_path("form_filler/.venv/bin"))
+  end
+
+  @doc false
+  def select_python(bin) do
+    preferred = [Path.join(bin, "python"), Path.join(bin, "python3")]
+
+    versioned =
+      bin
+      |> Path.join("python3.*")
+      |> Path.wildcard()
+      |> Enum.filter(&File.exists?/1)
+      |> Enum.sort_by(&python_minor/1, :desc)
+
+    Enum.find(preferred ++ versioned, &File.exists?/1) || Path.join(bin, "python")
+  end
+
+  defp python_minor(path) do
+    case Regex.run(~r/python3\.(\d+)$/, Path.basename(path)) do
+      [_, minor] -> String.to_integer(minor)
+      _ -> 0
+    end
   end
 
   def script_path, do: priv_path("form_filler/fill_forms.py")
