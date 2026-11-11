@@ -181,7 +181,9 @@ defmodule Mix.Tasks.Dnc.BuildSafariHelper do
     Mix.shell().info("""
 
     The helper app is open. Click “Quit and Open Safari Extensions Preferences…”,
-    then turn on DNC Watchdog Helper and allow localhost, 127.0.0.1, tools.usps.com, and usps.com.
+    then turn on DNC Watchdog Helper and allow localhost, 127.0.0.1, tools.usps.com,
+    usps.com, and california.tylertech.cloud. Without that last one the eFileCA
+    filler cannot touch the portal.
     """)
 
     if signed == :adhoc do
